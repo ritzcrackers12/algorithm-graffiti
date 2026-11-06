@@ -1,0 +1,54 @@
+<!doctype html>
+<!--
+  PLACEHOLDER BASE WEBSITE (invented company "Orbitwell").
+  To swap in your own site, replace this folder's files. Rules:
+    1. Mark every text the AI may rewrite with data-editable="some-id" (unique id, plain text inside, no child tags).
+    2. Read colors/fonts from the CSS variables listed in style.css (:root block).
+    3. Keep everything inside this folder and use relative paths (e.g. "style.css", "logo.png").
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orbitwell</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand"><span class="logo" aria-hidden="true"></span><span data-editable="brand">Orbitwell</span></div>
+      <nav>
+        <a href="#" data-editable="nav-1">Products</a>
+        <a href="#" data-editable="nav-2">About</a>
+        <a href="#" data-editable="nav-3">Contact</a>
+      </nav>
+    </header>
+
+    <div class="ticker"><span data-editable="ticker">Free shipping on orders over $50 · New colors available this month</span></div>
+
+    <section class="hero">
+      <h1 data-editable="hero-title">Technology that fits your life.</h1>
+      <p data-editable="hero-sub">Orbitwell makes simple, reliable devices for the home: lights, locks and thermostats that just work.</p>
+      <a class="cta" href="#" data-editable="cta">See our products</a>
+    </section>
+
+    <section class="features">
+      <article class="card">
+        <div class="glyph glyph-1" aria-hidden="true"></div>
+        <h2 data-editable="f1-title">Smart Lighting</h2>
+        <p data-editable="f1-body">Lights that adjust to your day, from bright mornings to calm evenings.</p>
+      </article>
+      <article class="card">
+        <div class="glyph glyph-2" aria-hidden="true"></div>
+        <h2 data-editable="f2-title">Secure Locks</h2>
+        <p data-editable="f2-body">Lock and unlock your door from anywhere, with a history of every visit.</p>
+      </article>
+      <article class="card">
+        <div class="glyph glyph-3" aria-hidden="true"></div>
+        <h2 data-editable="f3-title">Climate Control</h2>
+        <p data-editable="f3-body">A thermostat that learns your schedule and saves energy while you're out.</p>
+      </article>
+    </section>
+
+    <footer><span data-editable="footer">© Orbitwell Home Systems. All rights reserved.</span></footer>
+  </body>
+</html>

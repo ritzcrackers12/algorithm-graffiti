@@ -1,0 +1,40 @@
+{
+  "name": "algorithm-graffiti",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/sync-shared.mjs && tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "oxlint",
+    "sync-shared": "node scripts/sync-shared.mjs",
+    "test:sql": "node scripts/test-sql.mjs",
+    "deploy": "git push",
+    "deploy:functions": "node scripts/sync-shared.mjs && supabase functions deploy generate && supabase functions deploy admin",
+    "deploy:db": "supabase db push"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^24.19.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.90.0",
+    "supabase": "^3.0.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.6"
+  },
+  "allowScripts": {
+    "supabase@3.0.0": true
+  }
+}
