@@ -1,6 +1,6 @@
 # PROGRESS: Algorithm Graffiti
 
-_Last updated: Nov 6, 2026 (Session 1 built; waiting on Supabase setup to go fully live)_
+_Last updated: Nov 6, 2026 (Session 1 live on Supabase, mock mode)_
 
 ## Done (Session 1)
 - **Project:** own folder and public repo, https://github.com/ritzcrackers12/algorithm-graffiti. Auto-deploys to
@@ -19,7 +19,9 @@ _Last updated: Nov 6, 2026 (Session 1 built; waiting on Supabase setup to go ful
   article; the iPad types out the result.
 - **Website:** era knob (1996–2026), 6 invented country models or a typed custom one, mood slider. Restyles
   the colors and fonts and rewrites the text of the placeholder "Orbitwell" site.
-- **Server (written, not yet deployed):** `generate` and `admin` Edge Functions. They enforce the daily cap
+- **Supabase connected** (project `nkmeiqwhwuuysdahyzju`, region us-west-2): database pushed, both functions deployed,
+  GitHub variables set, live site rebuilt. Verified live: phone takes control, mock rewrite reaches the iPad.
+- **Server:** `generate` and `admin` Edge Functions. They enforce the daily cap
   (200), the 5s rate limit, the 30s timeout with fallback, and input validation, and build every prompt
   server-side.
 - **Mock mode** works everywhere with zero API keys. **Local mode** (no Supabase yet) lets browser tabs act as
@@ -28,9 +30,8 @@ _Last updated: Nov 6, 2026 (Session 1 built; waiting on Supabase setup to go ful
   handoff, per-visitor reset, admin).
 
 ## Next
-1. **User:** create the Supabase project and send the URL and publishable key (see README / chat steps).
-2. Link Supabase, push the database, deploy the functions, set the GitHub variables, and test across devices
-   for real.
+1. **User:** set the `ADMIN_PASSCODE` secret in Supabase, then test on the real iPad and a phone.
+2. Fix anything that shows up on real devices (iOS Safari quirks, sizing).
 3. **User:** Replicate token in Supabase secrets. Then pick and **pin the exact model version** in
    `CONFIG.TEXT_MODEL` (currently uses the latest `meta/meta-llama-3-8b-instruct`, version not pinned yet).
 4. Real-AI test with a few generations, then back to mock until the show if you prefer.
