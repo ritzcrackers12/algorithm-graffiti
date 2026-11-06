@@ -6,8 +6,12 @@ _Last updated: Nov 6, 2026 (sequential visit, fullscreen site, photo slots)_
 - **Project:** own folder and public repo, https://github.com/ritzcrackers12/algorithm-graffiti. Auto-deploys to
   https://ritzcrackers12.github.io/algorithm-graffiti/ on every push (GitHub Actions).
 - **Settings in one place:** `src/shared/config.ts`.
-- **Queue (one visitor at a time):** 90s turns, 20s idle handoff, vanished phones dropped after 12s, waiting phones
-  kept for 3 min even with a locked screen. Covered by SQL tests (`npm run test:sql`, all passing).
+- **Queue (one visitor at a time):** 240s turns (covers the whole sequence), 40s idle handoff, vanished phones
+  dropped after 12s, waiting phones kept for 3 min even with a locked screen. Covered by SQL tests
+  (`npm run test:sql`, all passing).
+- **Sequential visit:** ready objects play in order (website, then article). Finishing one locks that icon
+  (unclickable, DONE badge) and auto-opens the next. After the last object, control passes to the next person
+  in line. Reel / image / song stay on the desktop but are skipped until their sessions.
 - **Staff console `#/admin`:** passcode, live status, today's generation counts, reset / skip / clear queue /
   mock on-off.
 - **iPad `#/library`:** tap-to-begin (sound, wake lock, fullscreen), XP desktop, 5 icons (idle, click and
@@ -18,8 +22,9 @@ _Last updated: Nov 6, 2026 (sequential visit, fullscreen site, photo slots)_
   Background photos go in `public/assets/bg-*.jpg` when you have them.
 - **Article:** title picker plus lean / reader / sensationalism / connotation. iPad shows **The Ball Street
   Journal** (WSJ masthead, section nav, markets ticker, serif article). Sample library of 3 Harbor Point stories.
-- **Website:** era / country model / mood. iPad shows **Block Safety**, a Flock Safety–style homepage
-  (cream ground, green ink, light serif headlines). Copy and drawings are original.
+- **Website:** era / country model / mood. iPad shows **Block Safety** fullscreen (no desktop icons / QR while
+  the site is open). Original and altered keep the **same photos and layout**; only rewriteable text and mood
+  colors change. Placeholder photos look for `.jpg` first, then fall back to `.svg`.
 - **Supabase connected** (project `nkmeiqwhwuuysdahyzju`, region us-west-2): database pushed, both functions deployed,
   GitHub variables set, live site rebuilt. Verified live: phone takes control, mock rewrite reaches the iPad.
 - **Server:** `generate` and `admin` Edge Functions. They enforce the daily cap
@@ -36,8 +41,9 @@ _Last updated: Nov 6, 2026 (sequential visit, fullscreen site, photo slots)_
 3. **User:** Replicate token in Supabase secrets. Then pick and **pin the exact model version** in
    `CONFIG.TEXT_MODEL` (currently uses the latest `meta/meta-llama-3-8b-instruct`, version not pinned yet).
 4. Real-AI test with a few generations, then back to mock until the show if you prefer.
-5. Your real article library, desktop wallpaper, app icons, phone backgrounds, and optional `hero.jpg`.
-6. Later sessions: Reel, Image, Song, and stats.
+5. Drop real photos (see `public/assets/README.txt` and the photos READMEs). Desktop wallpaper, icons, phone
+   backgrounds, Block Safety shots, and Ball Street Journal lead photos.
+6. Later sessions: Reel (Supabase Storage + caption/embed prep), Song (stems + Tone.js), Image becoming ads.
 
 ## Needed from the user
 - Supabase account and project: Project URL and the publishable (anon) key.
