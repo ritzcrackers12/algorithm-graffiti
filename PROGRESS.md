@@ -1,12 +1,12 @@
-# PROGRESS
+# PROGRESS: Algorithm Graffiti
 
 _Last updated: Nov 6, 2026 (Session 1, planning)_
 
 ## Done
-- Created project folder `who-tunes-your-reality` (separate from the Sigma Chi site) and an empty git repo.
+- Project is named **Algorithm Graffiti**. Folder: `scratch/algorithm-graffiti` (separate from the Sigma Chi site).
 - Saved `PROJECT_SPEC.md`.
-- GitHub repo created (public, required for free GitHub Pages): https://github.com/ritzcrackers12/who-tunes-your-reality
-- GitHub login fixed; created public repo https://github.com/ritzcrackers12/who-tunes-your-reality and pushed `main`. (Public because free GitHub Pages requires it; no secrets ever go in the repo.)
+- GitHub repo (public, because free GitHub Pages requires it; no secrets ever go in the repo): https://github.com/ritzcrackers12/algorithm-graffiti
+- Planned GitHub Pages URL: https://ritzcrackers12.github.io/algorithm-graffiti/ (Vite `base` must be `/algorithm-graffiti/`).
 
 ## Next (Session 1)
 1. Vite + React + TS + Tailwind scaffold, hash routing, central config, manifest, GitHub Pages workflow.
@@ -25,6 +25,7 @@ _Last updated: Nov 6, 2026 (Session 1, planning)_
 
 ## Decisions / notes
 - Project lives in its own folder and repo, not inside the Sigma Chi website repo.
+- Renamed from "who-tunes-your-reality" to "Algorithm Graffiti" (standard spelling confirmed by user). "Who tunes your reality?" remains the theme line.
 
 ## Known issues
 - None yet.
