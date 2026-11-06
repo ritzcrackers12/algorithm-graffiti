@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { AssetImg } from '../components/AssetImg.tsx'
-import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
 import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive, useNow } from '../lib/live.ts'
-import { CONFIG, OBJECTS, type ObjectId } from '../shared/config.ts'
-import type { ArticleParams, GenerateRequest, Snapshot, WebsiteParams } from '../shared/types.ts'
+import { CONFIG, nextObject, playableObjects, type ObjectId } from '../shared/config.ts'
+import type { ArticleParams, GenerateRequest, WebsiteParams } from '../shared/types.ts'
 import ArticleControls from './ArticleControls.tsx'
 import { Segmented } from './controls.tsx'
 import WebsiteControls from './WebsiteControls.tsx'
@@ -72,29 +70,6 @@ function QueueScreen({ position }: { position: number }) {
   )
 }
 
-function Picker({ snap, onPick }: { snap: Snapshot; onPick: (id: ObjectId) => void }) {
-  return (
-    <div className="pop-in picker">
-      <div className="ctl-label picker-label">SELECT OBJECT</div>
-      <div className="picker-grid">
-        {OBJECTS.map((o) => (
-          <button
-            key={o.id}
-            className="tile"
-            disabled={!o.ready}
-            onClick={() => onPick(o.id)}
-          >
-            {snap.altered[o.id as keyof typeof snap.altered] && <span className="tag">ALTERED</span>}
-            <div className="art"><AssetImg names={[`icon-${o.id}.png`]} fallback={<ObjectIcon id={o.id} />} /></div>
-            <div className="name">{o.label}</div>
-            <div className="sub">{o.ready ? o.file.toUpperCase() : 'OFFLINE'}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 const REASONS: Record<string, string> = {
   cooldown: 'COOLDOWN ACTIVE.',
   busy: 'PROCESS ALREADY RUNNING.',
@@ -121,18 +96,39 @@ export default function Controller() {
   const active = snap?.position === 0
   const open = active ? snap.display.open : null
   const busy = active ? snap.display.busy : null
+  const completed = snap?.display.completed ?? []
+  const completedKey = completed.join(',')
   const idleLeft = active && snap.lastActivityAt ? snap.lastActivityAt + CONFIG.IDLE_SECONDS * 1000 - now : Infinity
   const turnLeft = active && snap.turnStartedAt ? snap.turnStartedAt + CONFIG.TURN_SECONDS * 1000 - now : 0
   const idleWarning = active && !busy && idleLeft < 7000
 
+  const finishObject = useCallback(async () => {
+    haptic('press')
+    await sendCommand('done')
+  }, [])
+
   const wasBusy = useRef(false)
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (wasBusy.current && !busy && active) {
       haptic('success')
       say('OUTPUT GENERATED.')
+      if (advanceTimer.current) clearTimeout(advanceTimer.current)
+      advanceTimer.current = setTimeout(() => void finishObject(), 2800)
     }
     wasBusy.current = !!busy
-  }, [busy, active, say])
+    return () => {
+      if (advanceTimer.current) clearTimeout(advanceTimer.current)
+    }
+  }, [busy, active, say, finishObject])
+
+  useEffect(() => {
+    if (!active || busy || !snap || live.ended) return
+    if (open) return
+    const n = nextObject(completed)
+    if (n) void sendCommand('open', n)
+    else if (completed.length > 0) void sendCommand('end')
+  }, [active, open, busy, completedKey, completed.length, live.ended])
 
   const wasActive = useRef(false)
   useEffect(() => {
@@ -181,7 +177,7 @@ export default function Controller() {
   } else if (!active) {
     content = <Centered><div className="scanline" /><div className="ctl-label">REQUESTING ACCESS...</div></Centered>
   } else if (!open) {
-    content = <Picker snap={snap} onPick={(id) => { haptic('press'); void sendCommand('open', id) }} />
+    content = <Centered><div className="scanline" /><div className="ctl-label">LOADING NEXT OBJECT...</div></Centered>
   } else {
     const hasAltered = !!snap.altered[open as keyof typeof snap.altered]
     content = (
@@ -218,9 +214,7 @@ export default function Controller() {
       <div className="ctl-main">
         <div className="ctl-top">
           {active && open ? (
-            <button className="chip chip-btn" onClick={() => { haptic('press'); void sendCommand('home') }}>
-              HOME
-            </button>
+            <span className="chip">{open.toUpperCase()} · {completed.length + 1}/{playableObjects().length}</span>
           ) : (
             <span className="chip">{CONFIG.TITLE}</span>
           )}
@@ -237,9 +231,15 @@ export default function Controller() {
           <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
         </div>
         {content}
-        {active && (
-          <button className="end-session" onClick={() => { haptic('press'); void sendCommand('end') }}>
-            END SESSION
+        {active && open && (
+          <button
+            className="end-session"
+            onClick={() => {
+              if (advanceTimer.current) clearTimeout(advanceTimer.current)
+              void finishObject()
+            }}
+          >
+            NEXT OBJECT
           </button>
         )}
       </div>

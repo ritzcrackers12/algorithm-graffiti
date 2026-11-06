@@ -92,6 +92,12 @@ r = await admin('clear_queue'); assert.equal(r.waiting, 0); assert.equal(r.hasAc
 // bad input
 await assert.rejects(hb('x'), /invalid session/)
 r = await hb(A); await assert.rejects(cmd(A, 'open', 'evil'), /invalid object/)
+r = await cmd(A, 'open', 'website'); assert.equal(r.ok, true)
+r = await cmd(A, 'done')
+assert.equal(r.display.open, null)
+assert.deepEqual(r.display.completed, ['website'])
+r = await cmd(A, 'open', 'website'); assert.equal(r.ok, false, 'cannot reopen a finished object')
+r = await cmd(A, 'open', 'article'); assert.equal(r.ok, true)
 
 // anon must not call server-only functions
 await db.exec(`set role anon`)

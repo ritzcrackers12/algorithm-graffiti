@@ -6,6 +6,12 @@ import ViewTabs from './ViewTabs.tsx'
 
 const typedAlready = new Set<number>()
 
+const PHOTO_CAP: Record<string, string> = {
+  placeholder: 'Harbor Point, Tuesday evening. Replace this with a photo of wet asphalt, LED streetlights, and a nearly empty commercial street.',
+  'campus-cameras': 'Harbor Point High School entrance. Replace this with a daytime photo of a school facade with cameras over the doors.',
+  'waterfront-readers': 'Harbor Point waterfront. Replace this with a photo of the promenade, water, and camera poles along the rail.',
+}
+
 function useTypewriter(text: string, animateKey: number | null) {
   const [count, setCount] = useState(text.length)
   useEffect(() => {
@@ -117,6 +123,21 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
               </div>
             )}
             <h1>{title}{nl === -1 && caret}</h1>
+            {articleId && (
+              <figure className="bsj-photo">
+                <img
+                  src={`${import.meta.env.BASE_URL}content/articles/photos/${articleId}.jpg`}
+                  alt=""
+                  onError={(e) => {
+                    const img = e.currentTarget
+                    if (img.dataset.fallback) { img.style.display = 'none'; return }
+                    img.dataset.fallback = '1'
+                    img.src = `${import.meta.env.BASE_URL}content/articles/photos/${articleId}.svg`
+                  }}
+                />
+                <figcaption>{PHOTO_CAP[articleId] ?? 'Harbor Point.'}</figcaption>
+              </figure>
+            )}
             {nl !== -1 && renderBody(body, caret)}
           </article>
         </div>

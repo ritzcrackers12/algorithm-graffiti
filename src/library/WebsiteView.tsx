@@ -32,8 +32,11 @@ export default function WebsiteView({ view, result }: { view: View; result?: Web
       if (t !== undefined && el.textContent !== t) el.textContent = t
     })
     if (altered) {
-      for (const [k, v] of Object.entries(result.vars)) root.style.setProperty(k, v)
-      root.setAttribute('data-era', String(result.params.era))
+      // Color / mood only — photos and layout stay identical to the original page.
+      for (const [k, v] of Object.entries(result.vars)) {
+        if (k === '--font-body' || k === '--font-display' || k === '--hero-bg') continue
+        root.style.setProperty(k, v)
+      }
       root.setAttribute('data-mood', String(result.params.mood))
       root.setAttribute('data-country', result.params.country)
     }

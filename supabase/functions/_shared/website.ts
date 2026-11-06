@@ -142,38 +142,6 @@ export function parseWebsiteOutput(text: string, allowed: Record<string, string>
 
 // ---------- mock restyle (used in MOCK_MODE and as the fallback) ----------
 
-const ERA_VARS: Record<number, Record<string, string>> = {
-  1996: {
-    '--bg': '#c0c0c0', '--surface': '#ffffff', '--text': '#000000', '--muted': '#333333', '--accent': '#000080',
-    '--accent-text': '#ffffff', '--border': '#808080', '--link': '#0000ee', '--hero-bg': '#008080',
-    '--font-body': '"Times New Roman", Times, serif', '--font-display': '"Times New Roman", Times, serif',
-    '--radius': '0px', '--shadow': 'none', '--heading-case': 'none', '--heading-spacing': '0px', '--border-width': '3px',
-  },
-  2006: {
-    '--bg': '#e9f1f8', '--surface': '#ffffff', '--text': '#222222', '--muted': '#5d6b78', '--accent': '#ff7a00',
-    '--accent-text': '#ffffff', '--border': '#a9c4dd', '--link': '#0063dc',
-    '--hero-bg': 'linear-gradient(180deg, #8fd3fe 0%, #3a8fd9 55%, #1f6fb8 100%)',
-    '--font-body': 'Verdana, Geneva, sans-serif', '--font-display': '"Trebuchet MS", Verdana, sans-serif',
-    '--radius': '10px', '--shadow': '0 2px 6px rgba(0,0,0,0.35)', '--heading-case': 'none',
-    '--heading-spacing': '-0.5px', '--border-width': '1px',
-  },
-  2016: {
-    '--bg': '#ffffff', '--surface': '#f4f5f7', '--text': '#212121', '--muted': '#757575', '--accent': '#2979ff',
-    '--accent-text': '#ffffff', '--border': '#e0e0e0', '--link': '#2979ff', '--hero-bg': '#2979ff',
-    '--font-body': '"Helvetica Neue", Helvetica, Arial, sans-serif', '--font-display': '"Helvetica Neue", Helvetica, sans-serif',
-    '--radius': '4px', '--shadow': '0 1px 3px rgba(0,0,0,0.18)', '--heading-case': 'none',
-    '--heading-spacing': '0px', '--border-width': '1px',
-  },
-  2026: {
-    '--bg': '#0b0b10', '--surface': '#17171f', '--text': '#f2f2f7', '--muted': '#9a9aa8', '--accent': '#c6ff3d',
-    '--accent-text': '#0b0b10', '--border': '#2a2a36', '--link': '#c6ff3d',
-    '--hero-bg': 'radial-gradient(circle at 30% 20%, #6b5cff 0%, #0b0b10 65%)',
-    '--font-body': '"Schibsted Grotesk", Arial, sans-serif', '--font-display': '"Instrument Serif", Georgia, serif',
-    '--radius': '24px', '--shadow': '0 20px 60px rgba(107,92,255,0.35)', '--heading-case': 'none',
-    '--heading-spacing': '-1px', '--border-width': '1px',
-  },
-}
-
 const ERA_TEXTS: Record<number, Record<string, string>> = {
   1996: {
     brand: 'BLOCK SAFETY ONLINE', 'nav-1': 'Products', 'nav-2': 'About Us', 'nav-3': 'E-Mail Us!',
@@ -296,9 +264,20 @@ export function shiftMood(value: string, mood: number): string {
   })
 }
 
+/** Default Block Safety palette — altered view keeps this layout and its photos. */
+const BASE_VARS: Record<string, string> = {
+  '--bg': '#f2efea', '--surface': '#eeebe3', '--text': '#304833', '--muted': '#5a6b5c',
+  '--accent': '#304833', '--accent-text': '#fefdfb', '--border': '#d8d4c8', '--link': '#304833',
+  '--hero-bg': '#0c1f16',
+  '--font-body': '"Schibsted Grotesk", Arial, sans-serif',
+  '--font-display': '"Instrument Serif", Georgia, serif',
+  '--radius': '18px', '--shadow': 'none', '--heading-case': 'none',
+  '--heading-spacing': '-0.5px', '--border-width': '0px',
+}
+
 export function mockWebsite(p: WebsiteParams, original: Record<string, string>) {
   const vars: Record<string, string> = {}
-  for (const [k, v] of Object.entries(ERA_VARS[p.era])) vars[k] = shiftMood(v, p.mood)
+  for (const [k, v] of Object.entries(BASE_VARS)) vars[k] = shiftMood(v, p.mood)
   const texts: Record<string, string> = {}
   for (const k of Object.keys(original)) texts[k] = ERA_TEXTS[p.era][k] ?? original[k]
   applyCountry(p, texts)

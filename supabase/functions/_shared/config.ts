@@ -12,10 +12,10 @@ export const CONFIG = {
   TAGLINE: 'WHO TUNES YOUR REALITY?',
 
   // ---------- Visitor queue ----------
-  /** Seconds each visitor controls the installation. */
-  TURN_SECONDS: 90,
+  /** Seconds each visitor controls the installation (covers the full media sequence). */
+  TURN_SECONDS: 240,
   /** Seconds without touching anything before control passes on. */
-  IDLE_SECONDS: 20,
+  IDLE_SECONDS: 40,
   /** The visitor in control is dropped if their phone stops checking in (locked / tab closed) this long. */
   GONE_SECONDS: 12,
   /** People waiting in line keep their place this long with a locked phone (they're skipped if their turn comes while away). */
@@ -81,3 +81,10 @@ export const OBJECTS: { id: ObjectId; label: string; file: string; ready: boolea
   { id: 'image', label: 'IMAGE', file: 'ideal.bmp', ready: false },
   { id: 'song', label: 'SONG', file: 'station.wav', ready: false },
 ]
+
+/** Ready objects, in the order a visitor must finish them. */
+export const playableObjects = () => OBJECTS.filter((o) => o.ready)
+
+export function nextObject(completed: readonly string[] = []): ObjectId | null {
+  return playableObjects().find((o) => !completed.includes(o.id))?.id ?? null
+}

@@ -15,6 +15,8 @@ export interface DisplayState {
   view: View
   busy: Busy | null
   openedAt: number
+  /** Objects this visitor has already finished. Locked on the desktop. */
+  completed: ObjectId[]
 }
 
 export interface ArticleParams {

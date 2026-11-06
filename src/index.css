@@ -88,6 +88,11 @@ button:disabled { cursor: default; }
 }
 .xp-window.opening { animation: win-open 0.38s cubic-bezier(.2,.8,.2,1) both; }
 .xp-window.closing { animation: win-close 0.22s ease-in both; }
+.xp-window.fill { border-width: 3px 0 0; border-radius: 0; box-shadow: none; }
+.desktop.site-fill .icon-grid, .desktop.site-fill .sticky { display: none; }
+.desk-icon.done { opacity: 0.42; filter: grayscale(1); pointer-events: none; }
+.desk-icon.done .art { animation: none; }
+.done-badge { background: #3a3a36 !important; }
 @keyframes win-open { from { opacity: 0; transform: scale(0.35) translate(-60%, -30%); } to { opacity: 1; transform: none; } }
 @keyframes win-close { to { opacity: 0; transform: scale(0.6) translate(-30%, 10%); } }
 
@@ -215,6 +220,9 @@ button:disabled { cursor: default; }
   font-family: var(--font-wsj-serif); font-weight: 700; font-size: 38px; line-height: 1.12;
   letter-spacing: -0.02em; margin: 0 0 16px;
 }
+.bsj-photo { margin: 0 0 22px; }
+.bsj-photo img { width: 100%; height: auto; display: block; background: #d9d9d9; }
+.bsj-photo figcaption { font-size: 12px; color: #555; margin-top: 8px; font-family: var(--font-wsj-sans); }
 .bsj-article h2 { font-family: var(--font-wsj-serif); font-size: 22px; margin: 22px 0 10px; }
 .bsj-article p { font-size: 18px; line-height: 1.55; margin: 0 0 16px; }
 .bsj-article p.bsj-byline + p { font-size: 20px; line-height: 1.4; }

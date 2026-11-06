@@ -46,18 +46,28 @@ export default function Desktop({ live }: { live: Live }) {
   }, [open, openedAt])
 
   const obj = OBJECTS.find((o) => o.id === shown)
+  const fill = shown === 'website'
+  const completed = snap?.display.completed ?? []
 
   return (
-    <div className="desktop desktop-fallback">
+    <div className={`desktop desktop-fallback ${fill ? 'site-fill' : ''}`}>
       <div className="wallpaper" style={{ backgroundImage: `url("${asset('wallpaper.jpg')}")` }} />
 
       <div className="icon-grid">
         {OBJECTS.map((o) => {
           const altered = !!snap?.altered[o.id as keyof typeof snap.altered]
-          const cls = ['desk-icon', clicking === o.id && 'clicking', shown === o.id && 'is-open', altered && 'altered'].filter(Boolean).join(' ')
+          const done = completed.includes(o.id)
+          const cls = [
+            'desk-icon',
+            clicking === o.id && 'clicking',
+            shown === o.id && 'is-open',
+            altered && 'altered',
+            done && 'done',
+          ].filter(Boolean).join(' ')
           return (
             <div key={o.id} className={cls}>
-              {altered && <span className="altered-badge">ALTERED</span>}
+              {done && <span className="altered-badge done-badge">DONE</span>}
+              {altered && !done && <span className="altered-badge">ALTERED</span>}
               <div className="art">
                 <AssetImg
                   names={altered ? [`icon-${o.id}-altered.png`, `icon-${o.id}.png`] : [`icon-${o.id}.png`]}
@@ -78,10 +88,11 @@ export default function Desktop({ live }: { live: Live }) {
       {obj && (
         <XpWindow
           key={`${obj.id}-${openedAt}`}
-          className={closing ? 'closing' : 'opening'}
-          style={WINDOW_RECT}
+          className={`${closing ? 'closing' : 'opening'}${fill ? ' fill' : ''}`}
+          style={fill ? { left: 0, top: 0, width: '100%', height: 'calc(100% - 48px)', borderRadius: 0 } : WINDOW_RECT}
           title={`${obj.file} - ${view === 'altered' ? 'ALTERED' : 'ORIGINAL'}`}
           icon={<ObjectIcon id={obj.id} />}
+          menu={fill ? null : undefined}
         >
           {obj.id === 'article' ? (
             <ArticleView view={view} result={snap?.altered.article} />

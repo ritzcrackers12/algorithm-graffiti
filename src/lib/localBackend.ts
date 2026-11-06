@@ -21,7 +21,7 @@ interface DB {
 }
 
 const KEY = 'ag-local-db-v1'
-const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0 }
+const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [] }
 
 function fresh(): DB {
   return {
@@ -98,7 +98,7 @@ export function createLocalBackend(): Backend {
     }
     return {
       hasActive: !!db.activeSession, turnStartedAt: db.turnStartedAt, lastActivityAt: db.lastActivityAt,
-      display: db.display, altered: db.altered, mockMode: db.mockMode, version: db.version,
+      display: { ...db.display, completed: db.display.completed ?? [] }, altered: db.altered, mockMode: db.mockMode, version: db.version,
       serverNow: Date.now(), waiting: waitingRows.length, position,
     }
   }
@@ -160,10 +160,16 @@ export function createLocalBackend(): Backend {
       const row = db.queue.find((q) => q.id === session)
       if (row) row.lastSeen = Date.now()
       db.lastActivityAt = Date.now()
-      if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
+      const completed = db.display.completed ?? []
+      if (cmd === 'open' && OBJECTS.some((o) => o.id === arg) && !completed.includes(arg as (typeof OBJECTS)[number]['id'])) {
         const obj = arg as keyof Altered
         db.display = { ...db.display, open: obj, view: db.altered[obj] ? 'altered' : 'original', openedAt: Date.now() }
       } else if (cmd === 'home') db.display = { ...db.display, open: null }
+      else if (cmd === 'done') {
+        const cur = db.display.open
+        const next = cur && !completed.includes(cur) ? [...completed, cur] : completed
+        db.display = { ...db.display, open: null, completed: next }
+      }
       else if (cmd === 'view' && (arg === 'original' || arg === 'altered')) db.display = { ...db.display, view: arg }
       else if (cmd === 'end') {
         db.queue = db.queue.filter((q) => q.id !== session)

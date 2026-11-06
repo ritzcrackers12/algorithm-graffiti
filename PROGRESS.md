@@ -1,6 +1,6 @@
 # PROGRESS: Algorithm Graffiti
 
-_Last updated: Nov 6, 2026 (Session 1 live; controller + BSJ + Block Safety restyle)_
+_Last updated: Nov 6, 2026 (sequential visit, fullscreen site, photo slots)_
 
 ## Done (Session 1)
 - **Project:** own folder and public repo, https://github.com/ritzcrackers12/algorithm-graffiti. Auto-deploys to
