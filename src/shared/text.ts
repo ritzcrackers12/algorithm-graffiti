@@ -27,14 +27,16 @@ export function cleanShortText(text: unknown, max = 40): string | null {
 export const clampInt = (v: unknown, min: number, max: number): number | null =>
   typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null
 
-/** Replace whole words/phrases, keeping the capitalisation of the first letter. */
+/** Replace whole words/phrases in one pass (longest match first), keeping the first letter's capitalisation. */
 export function swapWords(text: string, map: Record<string, string>): string {
-  let out = text
-  for (const [from, to] of Object.entries(map)) {
-    const re = new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
-    out = out.replace(re, (m) => (m[0] === m[0].toUpperCase() ? to[0].toUpperCase() + to.slice(1) : to))
-  }
-  return out
+  const keys = Object.keys(map).sort((a, b) => b.length - a.length)
+  if (!keys.length) return text
+  const lower = Object.fromEntries(Object.entries(map).map(([k, v]) => [k.toLowerCase(), v]))
+  const re = new RegExp(`\\b(${keys.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi')
+  return text.replace(re, (m) => {
+    const to = lower[m.toLowerCase()]
+    return m[0] === m[0].toUpperCase() && m[0] !== m[0].toLowerCase() ? to[0].toUpperCase() + to.slice(1) : to
+  })
 }
 
 /** Deterministic pseudo-random pick, so mock output is stable for the same settings. */

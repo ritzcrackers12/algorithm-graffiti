@@ -99,13 +99,13 @@ export function parseArticleOutput(text: string): { title: string; body: string 
 const LEAN_SWAPS: Record<number, Record<string, string>> = {
   [-2]: {
     'business owners': 'corporate interests', residents: 'working families', taxpayers: 'the community',
-    officials: 'city leaders', cost: 'public investment', company: 'corporation', profits: 'windfall profits',
+    officials: 'city leaders', 'will cost': 'will invest', cost: 'public investment', company: 'corporation', profits: 'windfall profits',
   },
-  [-1]: { residents: 'neighbors', 'business owners': 'local employers', cost: 'investment' },
-  [1]: { residents: 'taxpayers', officials: 'bureaucrats', investment: 'spending', public: 'government' },
+  [-1]: { residents: 'neighbors', 'business owners': 'local employers', 'will cost': 'will invest', cost: 'investment' },
+  [1]: { residents: 'taxpayers', officials: 'bureaucrats', investment: 'spending', 'will cost': 'will cost taxpayers' },
   [2]: {
     residents: 'hardworking taxpayers', officials: 'career bureaucrats', 'the plan': 'the government scheme',
-    cost: 'burden on taxpayers', investment: 'spending spree', public: 'government-run',
+    'will cost': 'will cost taxpayers', 'the cost': 'the burden on taxpayers', investment: 'spending spree',
   },
 }
 const LEAN_FRAMES: Record<number, string> = {
@@ -116,20 +116,21 @@ const LEAN_FRAMES: Record<number, string> = {
 }
 const CONNOTATION_SWAPS: Record<number, Record<string, string>> = {
   [-1]: { approved: 'pushed through', said: 'claimed', will: 'could', improve: 'disrupt', change: 'upheaval', new: 'untested' },
-  [1]: { approved: 'proudly approved', said: 'explained', change: 'improvement', new: 'innovative', will: 'will finally' },
+  [1]: { approved: 'proudly approved', said: 'explained', change: 'improvement', new: 'innovative' },
 }
 const SIMPLE_WORDS = {
   approximately: 'about', residents: 'people', officials: 'leaders', implement: 'do', infrastructure: 'roads and pipes',
   municipal: 'city', significant: 'big', however: 'but', additionally: 'also', consumption: 'use', initiative: 'plan',
 }
 const JARGON_WORDS = {
-  use: 'utilize', about: 'approximately', people: 'constituents', plan: 'initiative', change: 'paradigmatic shift',
+  use: 'utilize', about: 'approximately', people: 'constituents', plan: 'strategic initiative', change: 'paradigmatic shift',
   show: 'demonstrate', help: 'facilitate', city: 'municipality', new: 'novel', big: 'substantial', lights: 'luminaires',
 }
 const CAPS_WORDS = ['streetlights', 'city', 'council', 'money', 'residents', 'plan', 'night', 'everyone', 'cost']
 
 function sentences(p: string) {
-  return p.match(/[^.!?]+[.!?]+["”']?\s*/g)?.map((s) => s.trim()) ?? [p]
+  const safe = p.replace(/(\d)\.(\d)/g, '$1\u2024$2') // keep "6.8" in one sentence
+  return (safe.match(/[^.!?]+[.!?]+["”']?\s*/g)?.map((s) => s.trim()) ?? [safe]).map((s) => s.replace(/\u2024/g, '.'))
 }
 
 export function mockArticle(p: ArticleParams, original: { title: string; body: string }) {
@@ -149,7 +150,11 @@ export function mockArticle(p: ArticleParams, original: { title: string; body: s
   paras = paras.map((x) => (isProse(x) ? transform(x) : x))
 
   if (p.education === 0) {
-    paras = paras.map((x) => (isProse(x) ? sentences(x).slice(0, 2).join(' ').replace(/, (and|but|which) /g, '. ') : x))
+    paras = paras.map((x) =>
+      isProse(x)
+        ? sentences(x).slice(0, 2).join(' ').replace(/, (and|but|which) (\w)/g, (_m, _c, l: string) => '. ' + l.toUpperCase())
+        : x,
+    )
   }
   if (p.education === 3) {
     paras.push(

@@ -9,7 +9,7 @@ import { useControls } from './useControls.ts'
 
 function Flag({ colors, symbol }: { colors: readonly string[]; symbol: string }) {
   return (
-    <svg viewBox="0 0 60 40" width="60" height="40" style={{ borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
+    <svg viewBox="0 0 60 40" width="45" height="30" style={{ borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.5)' }}>
       {colors.map((c, i) => <rect key={i} x={i * 20} y="0" width="20.5" height="40" fill={c} />)}
       <text x="30" y="27" textAnchor="middle" fontSize="18" fontWeight="900" fill={colors[1] === '#ffffff' || colors[1] === '#d9d9d9' ? '#111' : '#fff'}>{symbol}</text>
     </svg>
@@ -40,8 +40,8 @@ export default function WebsiteControls({
 
   return (
     <>
-      <Section label="ERA" value={String(p.era)} style={{ padding: '14px 4px 2px' }}>
-        <Knob steps={ERAS.map(String)} value={ERAS.indexOf(p.era)} onChange={(i) => set({ era: ERAS[i] })} size={104} disabled={locked} />
+      <Section label="ERA" value={String(p.era)} style={{ padding: "12px 14px 0" }}>
+        <Knob steps={ERAS.map(String)} value={ERAS.indexOf(p.era)} onChange={(i) => set({ era: ERAS[i] })} size={88} disabled={locked} />
       </Section>
 
       <Section label="COUNTRY MODEL" value={p.country === 'custom' ? 'CUSTOM' : undefined}>
@@ -89,7 +89,7 @@ export default function WebsiteControls({
         />
       </Section>
 
-      <button className="big-btn" disabled={locked} onClick={() => transmit({ object: 'website', params: p })}>
+      <button className="big-btn sticky-cta" disabled={locked} onClick={() => transmit({ object: 'website', params: p })}>
         REBUILD WEBSITE
       </button>
 

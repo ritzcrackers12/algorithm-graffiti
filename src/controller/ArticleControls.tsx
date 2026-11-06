@@ -40,11 +40,11 @@ export default function ArticleControls({ snap, locked, transmit }: { snap: Snap
           right="RIGHT"
         />
       </Section>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Section label="READER" value={EDUCATION_LABELS[p.education].slice(0, 5)} style={{ padding: '14px 4px 6px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12 }}>
+        <Section stack label="READER" value={EDUCATION_LABELS[p.education]} style={{ padding: "14px 4px 6px" }}>
           <Knob steps={['PRI', 'SEC', 'UNI', 'PHD']} value={p.education} onChange={(v) => set({ education: v })} size={84} disabled={locked} />
         </Section>
-        <Section label="HYPE" value={SENSATION_LABELS[p.sensationalism].slice(0, 4)} style={{ padding: '14px 4px 6px' }}>
+        <Section stack label="SENSATIONALISM" value={SENSATION_LABELS[p.sensationalism]} style={{ padding: "14px 4px 6px" }}>
           <Knob
             steps={['0', '1', '2', '3', 'MAX']}
             value={p.sensationalism}
@@ -68,7 +68,7 @@ export default function ArticleControls({ snap, locked, transmit }: { snap: Snap
         />
       </Section>
       <button
-        className="big-btn"
+        className="big-btn sticky-cta"
         disabled={locked || !articleId}
         onClick={() => transmit({ object: 'article', params: { ...p, articleId } })}
       >

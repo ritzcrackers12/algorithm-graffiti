@@ -28,12 +28,13 @@ export function Knob({
     const deg = Math.min(sweep / 2, Math.max(-sweep / 2, (Math.atan2(dx, -dy) * 180) / Math.PI))
     set(Math.round((deg + sweep / 2) / (sweep / (n - 1))))
   }
-  const ring = size + 96
+  const ring = size + 78
+  const pad = (ring - size) / 2
   return (
     <div style={{ width: ring, height: ring, position: 'relative', margin: '0 auto', opacity: disabled ? 0.45 : 1 }}>
       {steps.map((s, i) => {
         const a = (angleOf(i) * Math.PI) / 180
-        const rad = size / 2 + 30
+        const rad = size / 2 + 24
         return (
           <button
             key={s}
@@ -52,12 +53,12 @@ export function Knob({
         ref={ref}
         onPointerDown={(e) => {
           if (disabled) return
-          e.currentTarget.setPointerCapture(e.pointerId)
+          try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* synthetic events */ }
           fromPointer(e)
         }}
         onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && fromPointer(e)}
         style={{
-          position: 'absolute', left: 48, top: 48, width: size, height: size, borderRadius: '50%', touchAction: 'none',
+          position: "absolute", left: pad, top: pad, width: size, height: size, borderRadius: '50%', touchAction: 'none',
           background: 'radial-gradient(circle at 35% 30%, #4a4a58 0%, #1c1c24 55%, #0b0b10 100%)',
           boxShadow: '0 14px 30px rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.18), inset 0 -4px 10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)',
         }}
@@ -110,7 +111,7 @@ export function DetentSlider({
         ref={ref}
         onPointerDown={(e) => {
           if (disabled) return
-          e.currentTarget.setPointerCapture(e.pointerId)
+          try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* synthetic events */ }
           fromPointer(e)
         }}
         onPointerMove={(e) => !disabled && e.currentTarget.hasPointerCapture(e.pointerId) && fromPointer(e)}
@@ -161,12 +162,19 @@ export function Segmented<T extends string | number>({
   )
 }
 
-export function Section({ label, value, children, style }: { label: string; value?: string; children: ReactNode; style?: CSSProperties }) {
+export function Section({
+  label, value, children, style, stack,
+}: { label: string; value?: string; children: ReactNode; style?: CSSProperties; stack?: boolean }) {
   return (
-    <div className="panel" style={{ padding: '14px 14px 12px', ...style }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8 }}>
+    <div className="panel" style={{ padding: '14px 14px 12px', minWidth: 0, ...style }}>
+      <div
+        style={{
+          display: 'flex', flexDirection: stack ? 'column' : 'row', justifyContent: 'space-between',
+          alignItems: stack ? 'center' : 'baseline', marginBottom: 6, gap: stack ? 6 : 8,
+        }}
+      >
         <span className="ctl-label">{label}</span>
-        {value && <span className="ctl-value" style={{ fontSize: 15, textAlign: 'right' }}>{value}</span>}
+        {value && <span className="ctl-value" style={{ fontSize: stack ? 13 : 15, textAlign: stack ? 'center' : 'right' }}>{value}</span>}
       </div>
       {children}
     </div>

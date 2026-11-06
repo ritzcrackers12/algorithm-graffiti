@@ -59,9 +59,9 @@ function QueueScreen({ position }: { position: number }) {
     <Centered>
       <div className="radar" />
       <div style={{ font: '800 26px/1.2 var(--font-mono)', letterSpacing: 2 }}>
-        {position === 1 ? 'YOU ARE NEXT.' : `QUEUE POSITION: ${position}.`}
+        QUEUE POSITION: {position}.
         <br />
-        <span style={{ color: 'var(--color-signal)' }}>STAND BY.</span>
+        <span style={{ color: 'var(--color-signal)' }}>{position === 1 ? 'YOU ARE NEXT.' : 'STAND BY.'}</span>
       </div>
       <div className="ctl-label" style={{ lineHeight: 1.7 }}>
         MAX WAIT {fmt(position * CONFIG.TURN_SECONDS * 1000)}
