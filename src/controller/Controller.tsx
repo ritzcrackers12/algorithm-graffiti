@@ -12,7 +12,6 @@ import WebsiteControls from './WebsiteControls.tsx'
 
 export type Transmit = (req: { object: 'article'; params: ArticleParams } | { object: 'website'; params: WebsiteParams }) => void
 
-// Stop the page itself from scrolling, bouncing or zooming while thumbs are on the controls.
 let gesturesLocked = false
 function lockGestures() {
   if (gesturesLocked) return
@@ -21,7 +20,8 @@ function lockGestures() {
   document.addEventListener(
     'touchmove',
     (e) => {
-      if (!(e.target as HTMLElement).closest?.('.ctl-scroll')) e.preventDefault()
+      if ((e.target as HTMLElement).closest?.('.ctl-allow-scroll')) return
+      e.preventDefault()
     },
     { passive: false },
   )
@@ -43,27 +43,27 @@ function Background({ id }: { id: ObjectId | null }) {
 
 function StatusChip({ connected, local }: { connected: boolean; local: boolean }) {
   return (
-    <span className="chip" style={{ display: 'flex', alignItems: 'center' }}>
+    <span className="chip">
       <span className={`dot ${connected ? 'ok' : 'bad'}`} />
-      {local ? 'LOCAL' : connected ? 'CONNECTED' : 'RECONNECTING'}
+      {local ? 'LOCAL' : connected ? 'LINK' : 'WAIT'}
     </span>
   )
 }
 
 function Centered({ children }: { children: ReactNode }) {
-  return <div className="pop-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 18, padding: '0 10px' }}>{children}</div>
+  return <div className="pop-in ctl-center">{children}</div>
 }
 
 function QueueScreen({ position }: { position: number }) {
   return (
     <Centered>
       <div className="radar" />
-      <div style={{ font: '800 26px/1.2 var(--font-mono)', letterSpacing: 2 }}>
+      <div className="ctl-display">
         QUEUE POSITION: {position}.
         <br />
-        <span style={{ color: 'var(--color-signal)' }}>{position === 1 ? 'YOU ARE NEXT.' : 'STAND BY.'}</span>
+        <em>{position === 1 ? 'YOU ARE NEXT.' : 'STAND BY.'}</em>
       </div>
-      <div className="ctl-label" style={{ lineHeight: 1.7 }}>
+      <div className="ctl-label">
         MAX WAIT {fmt(position * CONFIG.TURN_SECONDS * 1000)}
         <br />
         KEEP THIS PAGE OPEN.
@@ -74,21 +74,20 @@ function QueueScreen({ position }: { position: number }) {
 
 function Picker({ snap, onPick }: { snap: Snapshot; onPick: (id: ObjectId) => void }) {
   return (
-    <div className="ctl-scroll pop-in" style={{ paddingTop: 6 }}>
-      <div className="ctl-label" style={{ textAlign: 'center', margin: '6px 0 14px' }}>SELECT OBJECT FOR MODIFICATION.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {OBJECTS.map((o, i) => (
+    <div className="pop-in picker">
+      <div className="ctl-label picker-label">SELECT OBJECT</div>
+      <div className="picker-grid">
+        {OBJECTS.map((o) => (
           <button
             key={o.id}
             className="tile"
             disabled={!o.ready}
-            style={{ minHeight: 150, gridColumn: i === OBJECTS.length - 1 && OBJECTS.length % 2 ? 'span 2' : undefined }}
             onClick={() => onPick(o.id)}
           >
             {snap.altered[o.id as keyof typeof snap.altered] && <span className="tag">ALTERED</span>}
             <div className="art"><AssetImg names={[`icon-${o.id}.png`]} fallback={<ObjectIcon id={o.id} />} /></div>
             <div className="name">{o.label}</div>
-            <div className="sub">{o.ready ? o.file.toUpperCase() : 'MODULE OFFLINE'}</div>
+            <div className="sub">{o.ready ? o.file.toUpperCase() : 'OFFLINE'}</div>
           </button>
         ))}
       </div>
@@ -126,7 +125,6 @@ export default function Controller() {
   const turnLeft = active && snap.turnStartedAt ? snap.turnStartedAt + CONFIG.TURN_SECONDS * 1000 - now : 0
   const idleWarning = active && !busy && idleLeft < 7000
 
-  // Feedback when a generation finishes.
   const wasBusy = useRef(false)
   useEffect(() => {
     if (wasBusy.current && !busy && active) {
@@ -136,7 +134,6 @@ export default function Controller() {
     wasBusy.current = !!busy
   }, [busy, active, say])
 
-  // Gaining control.
   const wasActive = useRef(false)
   useEffect(() => {
     if (active && !wasActive.current) haptic('success')
@@ -168,13 +165,13 @@ export default function Controller() {
   } else if (live.ended) {
     content = (
       <Centered>
-        <div style={{ font: '800 26px/1.25 var(--font-mono)', letterSpacing: 2 }}>
+        <div className="ctl-display">
           SESSION COMPLETE.
           <br />
-          <span style={{ color: 'var(--color-signal)' }}>CONTROL TRANSFERRED.</span>
+          <em>CONTROL TRANSFERRED.</em>
         </div>
         <div className="ctl-label">YOUR INPUT HAS BEEN RECORDED.</div>
-        <button className="big-btn ghost" style={{ marginTop: 20 }} onClick={() => { haptic('press'); rejoinQueue() }}>
+        <button className="big-btn ghost" onClick={() => { haptic('press'); rejoinQueue() }}>
           REJOIN QUEUE
         </button>
       </Centered>
@@ -188,7 +185,7 @@ export default function Controller() {
   } else {
     const hasAltered = !!snap.altered[open as keyof typeof snap.altered]
     content = (
-      <div className="ctl-scroll" key={open} style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 6 }}>
+      <div className="ctl-object" key={open}>
         <Segmented
           options={[
             { value: 'original', label: 'ORIGINAL' },
@@ -199,13 +196,13 @@ export default function Controller() {
           disabled={!!busy}
           onChange={(v) => void sendCommand('view', v)}
         />
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="ctl-object-body">
           {open === 'article' && <ArticleControls snap={snap} locked={!!busy} transmit={transmit} />}
           {open === 'website' && <WebsiteControls snap={snap} locked={!!busy} transmit={transmit} say={say} />}
           {busy && (
             <div className="lock-shade">
               <div>
-                <div style={{ font: '800 18px/1.4 var(--font-mono)', letterSpacing: 2 }}>PROCESSING.<br />CONTROLS LOCKED.</div>
+                <div className="ctl-display">PROCESSING.<br />CONTROLS LOCKED.</div>
                 <div className="scanline" />
               </div>
             </div>
@@ -219,24 +216,20 @@ export default function Controller() {
     <div className="ctl" onPointerDownCapture={markActivity}>
       <Background id={open} />
       <div className="ctl-main">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 56, marginBottom: 10 }}>
+        <div className="ctl-top">
           {active && open ? (
-            <button
-              className="chip"
-              style={{ border: 0, color: '#fff', padding: '12px 16px', fontSize: 13 }}
-              onClick={() => { haptic('press'); void sendCommand('home') }}
-            >
-              ⌂ HOME
+            <button className="chip chip-btn" onClick={() => { haptic('press'); void sendCommand('home') }}>
+              HOME
             </button>
           ) : (
             <span className="chip">{CONFIG.TITLE}</span>
           )}
-          <div style={{ flex: 1, textAlign: 'center' }}>
+          <div className="ctl-timer">
             {active && (
               <>
-                <div style={{ font: '800 26px/1 var(--font-mono)', letterSpacing: 2, color: turnLeft < 15000 ? '#ff2ea0' : '#fff' }}>{fmt(turnLeft)}</div>
-                <div style={{ height: 3, marginTop: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.max(0, turnLeft / (CONFIG.TURN_SECONDS * 10))}%`, background: turnLeft < 15000 ? '#ff2ea0' : 'var(--color-signal)', transition: 'width .25s linear' }} />
+                <div className={`ctl-clock ${turnLeft < 15000 ? 'hot' : ''}`}>{fmt(turnLeft)}</div>
+                <div className="ctl-meter">
+                  <div style={{ width: `${Math.max(0, turnLeft / (CONFIG.TURN_SECONDS * 10))}%` }} />
                 </div>
               </>
             )}
@@ -245,10 +238,7 @@ export default function Controller() {
         </div>
         {content}
         {active && (
-          <button
-            style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.45)', font: '700 11px/1 var(--font-mono)', letterSpacing: 2, padding: '12px 0 2px' }}
-            onClick={() => { haptic('press'); void sendCommand('end') }}
-          >
+          <button className="end-session" onClick={() => { haptic('press'); void sendCommand('end') }}>
             END SESSION
           </button>
         )}

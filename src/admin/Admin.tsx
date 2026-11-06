@@ -61,7 +61,7 @@ export default function Admin() {
 
   if (!pass) {
     return (
-      <div className="grid min-h-full place-items-center bg-[#0b0b10] p-6 font-mono text-white">
+      <div className="grid min-h-full place-items-center bg-[#0b0b10] p-6 text-white" style={{ fontFamily: 'Supreme, system-ui, sans-serif' }}>
         <form
           className="flex w-full max-w-xs flex-col gap-3"
           onSubmit={async (e) => {
@@ -95,7 +95,7 @@ export default function Admin() {
   const btn = 'rounded-xl px-4 py-4 text-sm font-bold tracking-[0.15em] disabled:opacity-40'
 
   return (
-    <div className="min-h-full bg-[#0b0b10] p-5 font-mono text-white">
+    <div className="min-h-full bg-[#0b0b10] p-5 text-white" style={{ fontFamily: 'Supreme, system-ui, sans-serif' }}>
       <div className="mx-auto max-w-lg">
         <div className="mb-1 text-xs tracking-[0.3em] text-white/50">{CONFIG.TITLE}</div>
         <h1 className="mb-5 text-2xl font-extrabold tracking-[0.2em]">STAFF CONSOLE</h1>

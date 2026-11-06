@@ -45,6 +45,7 @@ export const CSS_VARS = {
 export const SAFE_FONTS = [
   'Times New Roman', 'Georgia', 'Verdana', 'Trebuchet MS', 'Arial', 'Helvetica Neue', 'Courier New',
   'Avenir Next', 'Futura', 'Didot', 'American Typewriter', 'Marker Felt', 'Menlo', 'Impact', 'system-ui',
+  'Schibsted Grotesk', 'Instrument Serif', 'Source Serif 4', 'Source Sans 3',
 ]
 
 export function validateWebsiteParams(v: unknown): WebsiteParams | null {
@@ -166,7 +167,7 @@ const ERA_VARS: Record<number, Record<string, string>> = {
     '--bg': '#0b0b10', '--surface': '#17171f', '--text': '#f2f2f7', '--muted': '#9a9aa8', '--accent': '#c6ff3d',
     '--accent-text': '#0b0b10', '--border': '#2a2a36', '--link': '#c6ff3d',
     '--hero-bg': 'radial-gradient(circle at 30% 20%, #6b5cff 0%, #0b0b10 65%)',
-    '--font-body': '"Avenir Next", Avenir, system-ui, sans-serif', '--font-display': '"Avenir Next", Avenir, system-ui, sans-serif',
+    '--font-body': '"Schibsted Grotesk", Arial, sans-serif', '--font-display': '"Instrument Serif", Georgia, serif',
     '--radius': '24px', '--shadow': '0 20px 60px rgba(107,92,255,0.35)', '--heading-case': 'none',
     '--heading-spacing': '-1px', '--border-width': '1px',
   },
@@ -174,38 +175,38 @@ const ERA_VARS: Record<number, Record<string, string>> = {
 
 const ERA_TEXTS: Record<number, Record<string, string>> = {
   1996: {
-    brand: 'ORBITWELL ONLINE', 'nav-1': 'Products', 'nav-2': 'About Us', 'nav-3': 'E-Mail Us!',
-    'hero-title': 'Welcome to the Orbitwell Home Page!',
+    brand: 'BLOCK SAFETY ONLINE', 'nav-1': 'Products', 'nav-2': 'About Us', 'nav-3': 'E-Mail Us!',
+    'hero-title': 'Welcome to the Block Safety Home Page!',
     'hero-sub': 'You are visitor #000451. This page is best viewed at 800x600 with a 28.8k modem.',
-    cta: 'Click Here!', 'f1-title': 'Lights', 'f1-body': 'Our lamps plug right into the wall. Order by fax today.',
-    'f2-title': 'Locks', 'f2-body': 'Heavy duty locks with TWO keys.', 'f3-title': 'Heating',
-    'f3-body': 'A dial thermostat built to last.', ticker: '*** UNDER CONSTRUCTION *** Sign our Guestbook! ***',
-    footer: '(c) 1996 Orbitwell. Webmaster: webmaster@orbitwell.example',
+    cta: 'Click Here!', 'f1-title': 'Cameras', 'f1-body': 'Our poles plug right into the grid. Order by fax today.',
+    'f2-title': 'Plates', 'f2-body': 'A reader that writes down every car.', 'f3-title': 'Dispatch',
+    'f3-body': 'A radio desk built to last.', ticker: '*** UNDER CONSTRUCTION *** Sign our Guestbook! ***',
+    footer: '(c) 1996 Block Safety. Webmaster: webmaster@blocksafety.example',
   },
   2006: {
-    brand: 'orbitwell 2.0 beta', 'nav-1': 'Products', 'nav-2': 'Blog', 'nav-3': 'Community',
-    'hero-title': 'Your Home. Connected.',
-    'hero-sub': 'Join thousands of users sharing their Orbitwell setups. Now with RSS feeds and tags!',
-    cta: 'Sign Up Free!', 'f1-title': 'iLight', 'f1-body': 'Control your lamps from your flip phone. Seriously.',
-    'f2-title': 'LockBox', 'f2-body': 'Get an email every time your door opens. Share it on your profile!',
-    'f3-title': 'ThermoSpace', 'f3-body': 'Customize your thermostat with over 50 skins.',
+    brand: 'block safety 2.0 beta', 'nav-1': 'Products', 'nav-2': 'Blog', 'nav-3': 'Community',
+    'hero-title': 'Your Block. Connected.',
+    'hero-sub': 'Join thousands of agencies sharing their Block setups. Now with RSS feeds and tags!',
+    cta: 'Sign Up Free!', 'f1-title': 'iCam', 'f1-body': 'Read a plate from your flip phone. Seriously.',
+    'f2-title': 'PlateBox', 'f2-body': 'Get an email every time a car rolls past. Share it on your profile!',
+    'f3-title': 'DispatchSpace', 'f3-body': 'Customize your radio desk with over 50 skins.',
     ticker: 'NEW! Podcast episode 12 is up · Add us as a friend · Rate this page 5 stars',
-    footer: '© 2006 Orbitwell Inc. | Privacy | Terms | Site Map',
+    footer: '© 2006 Block Safety Inc. | Privacy | Terms | Site Map',
   },
   2016: {
-    brand: 'orbitwell', 'nav-1': 'Shop', 'nav-2': 'Story', 'nav-3': 'Help', 'hero-title': 'Home, simplified.',
-    'hero-sub': 'Beautifully designed devices that work together. Set up in minutes from one app.',
-    cta: 'Get started', 'f1-title': 'Lighting', 'f1-body': 'Scenes for every moment.', 'f2-title': 'Access',
-    'f2-body': 'Keyless entry. Total peace of mind.', 'f3-title': 'Climate', 'f3-body': 'Smart comfort that pays for itself.',
-    ticker: 'Free 2-day shipping · 30-day returns', footer: '© 2016 Orbitwell, Inc. Made with love in Brooklyn.',
+    brand: 'block', 'nav-1': 'Shop', 'nav-2': 'Story', 'nav-3': 'Help', 'hero-title': 'The street, simplified.',
+    'hero-sub': 'Beautifully designed readers that work together. Set up in minutes from one app.',
+    cta: 'Get started', 'f1-title': 'Readers', 'f1-body': 'A plate for every moment.', 'f2-title': 'Access',
+    'f2-body': 'The block is the key. Total peace of mind.', 'f3-title': 'Dispatch', 'f3-body': 'A desk that pays for itself.',
+    ticker: 'Free 2-day shipping · 30-day returns', footer: '© 2016 Block Safety, Inc. Made with love in Atlanta.',
   },
   2026: {
-    brand: 'ORBITWELL', 'nav-1': 'Agents', 'nav-2': 'Trust', 'nav-3': 'Subscribe', 'hero-title': 'Your home, anticipated.',
-    'hero-sub': "Orbitwell's AI predicts what you need before you need it. Opt out anytime*.",
-    cta: 'Activate my home AI', 'f1-title': 'Predictive Light', 'f1-body': 'Mood-aware lighting powered by your biometric data.',
-    'f2-title': 'Ambient Access', 'f2-body': 'Your face is your key. Your face is also our data.',
-    'f3-title': 'Autonomous Climate', 'f3-body': "We set the temperature. You'll learn to like it.",
-    ticker: 'Your home has 3 new recommendations · Terms updated', footer: '© 2026 Orbitwell. *Opting out may limit functionality.',
+    brand: 'BLOCK', 'nav-1': 'Agents', 'nav-2': 'Trust', 'nav-3': 'Subscribe', 'hero-title': 'Your block, anticipated.',
+    'hero-sub': "Block's AI predicts who is coming before they arrive. Opt out anytime*.",
+    cta: 'Activate my street AI', 'f1-title': 'Predictive Read', 'f1-body': 'Mood-aware patrols powered by your biometric data.',
+    'f2-title': 'Ambient Access', 'f2-body': 'Your plate is your key. Your plate is also our data.',
+    'f3-title': 'Autonomous Dispatch', 'f3-body': "We send the car. You'll learn to like it.",
+    ticker: 'Your block has 3 new recommendations · Terms updated', footer: '© 2026 Block Safety. *Opting out may limit functionality.',
   },
 }
 
@@ -237,8 +238,8 @@ function applyCountry(p: WebsiteParams, t: Record<string, string>) {
     case 'corporate-city':
       set('brand', (s) => s + ' CITY')
       set('nav-3', () => 'Citizenship')
-      set('ticker', () => 'Orbitwell is your employer, your landlord and your government')
-      set('footer', () => '© Orbitwell Municipal Corporation. Loyalty is mandatory.')
+      set('ticker', () => 'Block Safety is your employer, your landlord and your government')
+      set('footer', () => '© Block Safety Municipal Corporation. Loyalty is mandatory.')
       break
     case 'post-collapse':
       set('hero-sub', (s) => s.toLowerCase())

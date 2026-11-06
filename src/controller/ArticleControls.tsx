@@ -18,40 +18,45 @@ export default function ArticleControls({ snap, locked, transmit }: { snap: Snap
     loadArticleIndex().then(setArticles).catch(console.error)
   }, [])
   const articleId = p.articleId || articles[0]?.id || ''
+  const selected = articles.find((a) => a.id === articleId)
 
   return (
-    <>
-      {articles.length > 1 && (
-        <Segmented
-          options={articles.map((a, i) => ({ value: a.id, label: `DOC ${String(i + 1).padStart(2, '0')}` }))}
+    <div className="ctl-board">
+      <Section label="STORY" value={selected ? 'SELECTED' : '—'}>
+        <select
+          className="metal-select"
+          disabled={locked || articles.length === 0}
           value={articleId}
-          disabled={locked}
-          onChange={(v) => set({ articleId: v })}
-        />
-      )}
+          onChange={(e) => set({ articleId: e.target.value })}
+        >
+          {articles.map((a) => (
+            <option key={a.id} value={a.id}>{a.title}</option>
+          ))}
+        </select>
+      </Section>
       <Section label="POLITICAL LEAN" value={LEAN_LABELS[p.lean + 2]}>
         <DetentSlider
           steps={5}
           value={p.lean + 2}
           onChange={(v) => set({ lean: v - 2 })}
           disabled={locked}
-          track="linear-gradient(90deg, #2b59ff, #8a8aa0 50%, #ff3b3b)"
+          track="linear-gradient(90deg, #3a5a9a, #8a8680 50%, #8a3030)"
           left="LEFT"
           right="RIGHT"
         />
       </Section>
-      <div style={{ display: 'grid', gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12 }}>
-        <Section stack label="READER" value={EDUCATION_LABELS[p.education]} style={{ padding: "14px 4px 6px" }}>
-          <Knob steps={['PRI', 'SEC', 'UNI', 'PHD']} value={p.education} onChange={(v) => set({ education: v })} size={84} disabled={locked} />
+      <div className="knob-row">
+        <Section stack label="READER" value={EDUCATION_LABELS[p.education]}>
+          <Knob steps={['PRI', 'SEC', 'UNI', 'PHD']} value={p.education} onChange={(v) => set({ education: v })} size={68} disabled={locked} />
         </Section>
-        <Section stack label="SENSATIONALISM" value={SENSATION_LABELS[p.sensationalism]} style={{ padding: "14px 4px 6px" }}>
+        <Section stack label="SENSATIONALISM" value={SENSATION_LABELS[p.sensationalism]}>
           <Knob
             steps={['0', '1', '2', '3', 'MAX']}
             value={p.sensationalism}
             onChange={(v) => set({ sensationalism: v })}
-            size={84}
+            size={68}
             disabled={locked}
-            accent="#ff2ea0"
+            accent="#c45c2a"
           />
         </Section>
       </div>
@@ -68,12 +73,12 @@ export default function ArticleControls({ snap, locked, transmit }: { snap: Snap
         />
       </Section>
       <button
-        className="big-btn sticky-cta"
+        className="big-btn"
         disabled={locked || !articleId}
         onClick={() => transmit({ object: 'article', params: { ...p, articleId } })}
       >
         REWRITE ARTICLE
       </button>
-    </>
+    </div>
   )
 }

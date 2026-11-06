@@ -6,7 +6,6 @@ import ViewTabs from './ViewTabs.tsx'
 
 const typedAlready = new Set<number>()
 
-/** Reveals `text` character by character the first time a new result arrives ("types itself"). */
 function useTypewriter(text: string, animateKey: number | null) {
   const [count, setCount] = useState(text.length)
   useEffect(() => {
@@ -36,9 +35,15 @@ function renderBody(body: string, caret: ReactNode) {
     const last = i === paras.length - 1
     const t = p.trim()
     if (/^##\s+/.test(t)) return <h2 key={i}>{t.replace(/^##\s+/, '')}{last && caret}</h2>
-    if (/^\*[^*].*\*$/.test(t) || /^_.*_$/.test(t)) return <p key={i} className="byline">{t.slice(1, -1)}{last && caret}</p>
+    if (/^\*[^*].*\*$/.test(t) || /^_.*_$/.test(t)) return <p key={i} className="bsj-byline">{t.slice(1, -1)}{last && caret}</p>
     return <p key={i}>{t.replace(/\*\*/g, '')}{last && caret}</p>
   })
+}
+
+function todayLine() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/New_York',
+  }).toUpperCase()
 }
 
 export default function ArticleView({ view, result }: { view: View; result?: ArticleResult }) {
@@ -78,22 +83,42 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
   return (
     <>
       <div className="xp-toolbar">
-        <span className="xp-field" style={{ width: 170 }}>Georgia</span>
-        <span className="xp-field" style={{ width: 44 }}>12</span>
-        <b>B</b><i>I</i><u>U</u>
-        <span style={{ marginLeft: 'auto' }} />
+        <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>https://www.bsj.example/articles</span>
         <ViewTabs view={view} hasAltered={!!result} />
       </div>
       <div className="doc-scroll" ref={scrollRef}>
-        <div className="doc-page">
-          {altered && p && (
-            <div className="doc-profile">
-              PROFILE: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
-              {CONNOTATION_LABELS[p.connotation + 1]} · SENSATIONALISM {SENSATION_LABELS[p.sensationalism]}
-            </div>
-          )}
-          <h1>{title}{nl === -1 && caret}</h1>
-          {nl !== -1 && renderBody(body, caret)}
+        <div className="bsj">
+          <div className="bsj-top">
+            <span>{todayLine()}</span>
+            <span>U.S. EDITION</span>
+            <span>BSJ</span>
+          </div>
+          <div className="bsj-mast">The Ball Street Journal</div>
+          <div className="bsj-rule" />
+          <nav className="bsj-nav">
+            {['World', 'Business', 'U.S.', 'Politics', 'Economy', 'Tech', 'Markets', 'Opinion', 'Arts', 'Lifestyle'].map((s) => (
+              <span key={s}>{s}</span>
+            ))}
+          </nav>
+          <div className="bsj-rule thin" />
+          <div className="bsj-ticker">
+            <b>MARKETS</b>
+            <span>DJIA 51285.73 <i className="dn">−0.46%</i></span>
+            <span>S&amp;P 500 7376.86 <i className="up">+0.31%</i></span>
+            <span>NASDAQ 24579.42 <i className="up">+1.09%</i></span>
+            <span>U.S. 10 YR 4.867%</span>
+          </div>
+          <article className="bsj-article">
+            <div className="bsj-kicker">U.S. NEWS</div>
+            {altered && p && (
+              <div className="doc-profile">
+                PROFILE: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
+                {CONNOTATION_LABELS[p.connotation + 1]} · SENSATIONALISM {SENSATION_LABELS[p.sensationalism]}
+              </div>
+            )}
+            <h1>{title}{nl === -1 && caret}</h1>
+            {nl !== -1 && renderBody(body, caret)}
+          </article>
         </div>
       </div>
       <div className="xp-statusbar">

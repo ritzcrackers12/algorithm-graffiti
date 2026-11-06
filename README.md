@@ -60,28 +60,31 @@ placeholder art, so you can add them one at a time.
 | `bg-reel.jpg`, `bg-website.jpg`, `bg-article.jpg`, `bg-image.jpg`, `bg-song.jpg` | 1170 × 2532 | Phone background for that object's controls |
 
 Keep big media (video, audio) **out** of this repo. Later sessions will put it in Supabase Storage.
+A checklist of file names is also in `public/assets/README.txt`.
 
-### Articles: `public/content/articles/`
+### Articles: `public/content/articles/` (Ball Street Journal)
 
-1. Write the article as a plain text file, e.g. `my-story.md`. The first line is the headline,
-   starting with `# `. Then the paragraphs, separated by a blank line.
-2. Add it to `index.json`, e.g.
-   `[{"id": "my-story", "title": "My Headline"}]`. The `id` must match the file name without `.md`.
-3. You can list several. The phone then shows a document picker. Delete the `placeholder` entry
-   when your real article is in.
+The iPad shows each story in a Wall Street Journal–style page titled **The Ball Street Journal**.
+The phone lists stories **by title** in a metal dropdown. Add as many as you like:
 
-### Website: `public/content/website/base/`
+1. Write the article as a Markdown file, e.g. `my-story.md`. First line is `# Headline`.
+   Optional byline: `*By Name, Ball Street Journal*`. Then paragraphs separated by a blank line.
+2. Add it to `index.json`: `{ "id": "my-story", "title": "The Headline Visitors Will See" }`.
+   The `id` must match the file name without `.md`.
+3. Delete the sample Harbor Point stories when yours are in. See `public/content/articles/README.txt`.
 
-`index.html` + `style.css` is the page that gets restyled. To swap in your own design, keep two
-rules:
+### Website: `public/content/website/base/` (Block Safety)
 
-- Text the AI may rewrite carries `data-editable="some-id"`, e.g. `<h1 data-editable="hero-title">`.
-- Colors, fonts and spacing come from CSS variables on `:root` (`--bg`, `--fg`, `--accent`,
-  `--accent-2`, `--panel`, `--border`, `--font-body`, `--font-head`, `--radius`, `--spacing`,
-  `--shadow`). Restyles only change those variables.
+This is a Flock Safety–style homepage renamed **Block Safety**. Layout, cream/green palette and
+serif headlines follow their public site; the words, logo and street drawing are original.
 
-The server only accepts CSS variables from that list, and only the fonts listed in
-`src/shared/website.ts`.
+Optional photo: drop `hero.jpg` in that same folder to replace the drawing.
+
+Keep these two rules if you edit the HTML:
+
+- Text the AI may rewrite carries `data-editable="some-id"` with plain text inside (no child tags).
+- Colors and fonts come from the CSS variables on `:root` in `style.css`. Restyles only change
+  those variables. Allowed fonts are listed in `src/shared/website.ts`.
 
 ## Deploying
 

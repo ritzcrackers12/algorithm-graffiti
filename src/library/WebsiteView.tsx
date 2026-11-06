@@ -47,8 +47,8 @@ export default function WebsiteView({ view, result }: { view: View; result?: Web
   const altered = view === 'altered' && result
   const p = result?.params
   const address = altered && p
-    ? `http://www.orbitwell.example/?era=${p.era}&model=${encodeURIComponent(countryLabel(p).toLowerCase())}&mood=${MOOD_LABELS[p.mood].toLowerCase()}`
-    : 'http://www.orbitwell.example/'
+    ? `http://www.blocksafety.example/?era=${p.era}&model=${encodeURIComponent(countryLabel(p).toLowerCase())}&mood=${MOOD_LABELS[p.mood].toLowerCase()}`
+    : 'http://www.blocksafety.example/'
 
   return (
     <>

@@ -1,54 +1,113 @@
 <!doctype html>
 <!--
-  PLACEHOLDER BASE WEBSITE (invented company "Orbitwell").
-  To swap in your own site, replace this folder's files. Rules:
-    1. Mark every text the AI may rewrite with data-editable="some-id" (unique id, plain text inside, no child tags).
-    2. Read colors/fonts from the CSS variables listed in style.css (:root block).
-    3. Keep everything inside this folder and use relative paths (e.g. "style.css", "logo.png").
+  Block Safety homepage. Layout, type and color follow Flock Safety's public site
+  (cream ground, green ink, light serif headlines, pill nav buttons). Copy, name
+  and drawings are original. Drop hero.jpg here to replace the SVG street.
+  Rules for restyling:
+    1. Text the AI may rewrite: data-editable="id" with plain text only.
+    2. Colors/fonts come from the :root variables in style.css.
 -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Orbitwell</title>
+    <title>Block Safety</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header class="site-header">
-      <div class="brand"><span class="logo" aria-hidden="true"></span><span data-editable="brand">Orbitwell</span></div>
-      <nav>
-        <a href="#" data-editable="nav-1">Products</a>
-        <a href="#" data-editable="nav-2">About</a>
-        <a href="#" data-editable="nav-3">Contact</a>
-      </nav>
-    </header>
-
-    <div class="ticker"><span data-editable="ticker">Free shipping on orders over $50 · New colors available this month</span></div>
+    <div class="header-bg">
+      <header class="nav">
+        <a class="brand" href="#">
+          <img src="logo.svg" alt="" width="28" height="28" />
+          <span data-editable="brand">block</span>
+        </a>
+        <nav class="menu">
+          <a href="#" data-editable="nav-1">Products</a>
+          <a href="#" data-editable="nav-2">Solutions</a>
+          <a href="#" data-editable="nav-3">Privacy &amp; Security</a>
+        </nav>
+        <div class="nav-actions">
+          <a class="btn-demo" href="#" data-editable="cta">Get a Demo</a>
+          <a class="btn-ghost" href="#">Sign In</a>
+        </div>
+      </header>
+    </div>
 
     <section class="hero">
-      <h1 data-editable="hero-title">Technology that fits your life.</h1>
-      <p data-editable="hero-sub">Orbitwell makes simple, reliable devices for the home: lights, locks and thermostats that just work.</p>
-      <a class="cta" href="#" data-editable="cta">See our products</a>
+      <div class="hero-photo"></div>
+      <div class="hero-copy">
+        <h1 data-editable="hero-title">Better tools for quieter blocks</h1>
+        <p data-editable="hero-sub">Block Safety builds hardware that helps neighborhoods notice, record, and replay what happens on their streets. We think a city should not have to choose between feeling watched and feeling safe.</p>
+      </div>
+      <div class="hero-cards">
+        <div class="hero-card">
+          <div class="eyebrow">BLOG</div>
+          <div class="stat" data-editable="r1-num">1 in 6</div>
+          <p data-editable="r1-label">cleared cases used Block where we are live.</p>
+        </div>
+        <div class="hero-card">
+          <div class="eyebrow">NEW</div>
+          <div class="stat" data-editable="r2-num">7 days</div>
+          <p data-editable="r2-label">Default retention, cut from 30 days.</p>
+        </div>
+        <div class="hero-card">
+          <div class="eyebrow">IMPACT</div>
+          <div class="stat" data-editable="r3-num">19</div>
+          <p data-editable="r3-label">Missing people located every day in 2025.</p>
+        </div>
+      </div>
     </section>
 
-    <section class="features">
-      <article class="card">
-        <div class="glyph glyph-1" aria-hidden="true"></div>
-        <h2 data-editable="f1-title">Smart Lighting</h2>
-        <p data-editable="f1-body">Lights that adjust to your day, from bright mornings to calm evenings.</p>
-      </article>
-      <article class="card">
-        <div class="glyph glyph-2" aria-hidden="true"></div>
-        <h2 data-editable="f2-title">Secure Locks</h2>
-        <p data-editable="f2-body">Lock and unlock your door from anywhere, with a history of every visit.</p>
-      </article>
-      <article class="card">
-        <div class="glyph glyph-3" aria-hidden="true"></div>
-        <h2 data-editable="f3-title">Climate Control</h2>
-        <p data-editable="f3-body">A thermostat that learns your schedule and saves energy while you're out.</p>
-      </article>
+    <section class="together">
+      <h2 data-editable="together-title">Public safety works better together</h2>
+      <p data-editable="together-body">Block brings the tools that agencies, schools, shops and blocks already use onto one desk, so a dispatcher, a principal and a shop owner can look at the same incident without forwarding a dozen emails.</p>
     </section>
 
-    <footer><span data-editable="footer">© Orbitwell Home Systems. All rights reserved.</span></footer>
+    <section class="bar">
+      <h2 data-editable="bar-title">Raising the bar</h2>
+      <p data-editable="bar-body">Building this kind of machine means we do not get to stand still. We keep tightening who can look, how long a plate stays on disk, and what an audit trail has to show.</p>
+      <h3 data-editable="ticker">This year, we shortened retention, locked every login behind a second factor, and published who owns the footage.</h3>
+    </section>
+
+    <section class="results">
+      <h2 data-editable="f1-title">Results that matter</h2>
+      <p data-editable="f1-body">The only number that counts is what a city can close, recover, or send home.</p>
+      <div class="result-row">
+        <div>
+          <h3>8,400+</h3>
+          <p>Missing people located in 2025.</p>
+        </div>
+        <div>
+          <h3>38%</h3>
+          <p>Of Block customers recovered more than half of stolen vehicles on their books.</p>
+        </div>
+        <div>
+          <h3>1 in 6</h3>
+          <p>Cleared cases involved Block evidence, where we are live.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="account">
+      <p class="eyebrow">BLOCK PLATFORM</p>
+      <h2 data-editable="f2-title">Accountability built in</h2>
+      <p data-editable="f2-body">Customers keep the files, decide who else can search them, and can see every query. Every lookup is logged. Every policy is on the wall.</p>
+    </section>
+
+    <section class="platform">
+      <h2 data-editable="f3-title">Safety needs more than a camera. It needs a connected desk</h2>
+      <p data-editable="f3-body">Plate readers, pole cameras, trailers and a shared case file. One contract. One invoice. One place to look.</p>
+      <ul class="lineup">
+        <li>License Plate Reader</li>
+        <li>Video Cameras</li>
+        <li>Mobile Security Trailers</li>
+        <li>Block Desk</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span data-editable="footer">© 2026 Block Safety. All rights reserved.</span>
+    </footer>
   </body>
 </html>

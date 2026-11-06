@@ -1,6 +1,6 @@
 # City Council Approves Plan to Replace Streetlights with Adaptive Lighting
 
-*By Staff Reporter, Harbor Point Ledger*
+*By Staff Reporter, Ball Street Journal*
 
 The Harbor Point City Council approved a plan on Tuesday to replace the city's 4,200 streetlights with adaptive LED fixtures that dim when streets are empty and brighten when sensors detect people or cars.
 
