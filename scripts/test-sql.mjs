@@ -96,7 +96,8 @@ r = await cmd(A, 'open', 'website'); assert.equal(r.ok, true)
 r = await cmd(A, 'done')
 assert.equal(r.display.open, null)
 assert.deepEqual(r.display.completed, ['website'])
-r = await cmd(A, 'open', 'website'); assert.equal(r.ok, false, 'cannot reopen a finished object')
+r = await cmd(A, 'open', 'website'); assert.equal(r.ok, true, 'can reopen a finished object')
+r = await cmd(A, 'home'); assert.equal(r.display.open, null)
 r = await cmd(A, 'open', 'article'); assert.equal(r.ok, true)
 
 // anon must not call server-only functions

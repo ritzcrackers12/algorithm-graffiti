@@ -162,7 +162,7 @@ export function createLocalBackend(): Backend {
       if (row) row.lastSeen = Date.now()
       db.lastActivityAt = Date.now()
       const completed = db.display.completed ?? []
-      if (cmd === 'open' && OBJECTS.some((o) => o.id === arg) && !completed.includes(arg as (typeof OBJECTS)[number]['id'])) {
+      if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
         const obj = arg as keyof Altered
         db.display = { ...db.display, open: obj, view: db.altered[obj] ? 'altered' : 'original', openedAt: Date.now() }
       } else if (cmd === 'home') db.display = { ...db.display, open: null }

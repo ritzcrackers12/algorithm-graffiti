@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
 import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive, useNow } from '../lib/live.ts'
-import { CONFIG, nextObject, playableObjects, type ObjectId } from '../shared/config.ts'
+import { CONFIG, type ObjectId } from '../shared/config.ts'
 import type { ArticleParams, GenerateRequest, WebsiteParams } from '../shared/types.ts'
 import ArticleControls from './ArticleControls.tsx'
 import { Segmented } from './controls.tsx'
+import Picker from './Picker.tsx'
 import WebsiteControls from './WebsiteControls.tsx'
 
 export type Transmit = (req: { object: 'article'; params: ArticleParams } | { object: 'website'; params: WebsiteParams }) => void
@@ -70,6 +71,14 @@ function QueueScreen({ position }: { position: number }) {
   )
 }
 
+function DoneAllButton({ onDone }: { onDone: () => void }) {
+  return (
+    <button className="done-all" onClick={onDone}>
+      I AM DONE WITH ALL THE MEDIA OBJECTS
+    </button>
+  )
+}
+
 const REASONS: Record<string, string> = {
   cooldown: 'COOLDOWN ACTIVE.',
   busy: 'PROCESS ALREADY RUNNING.',
@@ -96,39 +105,23 @@ export default function Controller() {
   const active = snap?.position === 0
   const open = active ? snap.display.open : null
   const busy = active ? snap.display.busy : null
-  const completed = snap?.display.completed ?? []
-  const completedKey = completed.join(',')
   const idleLeft = active && snap.lastActivityAt ? snap.lastActivityAt + CONFIG.IDLE_SECONDS * 1000 - now : Infinity
   const turnLeft = active && snap.turnStartedAt ? snap.turnStartedAt + CONFIG.TURN_SECONDS * 1000 - now : 0
   const idleWarning = active && !busy && idleLeft < 7000
 
-  const finishObject = useCallback(async () => {
+  const endVisit = useCallback(() => {
     haptic('press')
-    await sendCommand('done')
+    void sendCommand('end')
   }, [])
 
   const wasBusy = useRef(false)
-  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (wasBusy.current && !busy && active) {
       haptic('success')
       say('OUTPUT GENERATED.')
-      if (advanceTimer.current) clearTimeout(advanceTimer.current)
-      advanceTimer.current = setTimeout(() => void finishObject(), 2800)
     }
     wasBusy.current = !!busy
-    return () => {
-      if (advanceTimer.current) clearTimeout(advanceTimer.current)
-    }
-  }, [busy, active, say, finishObject])
-
-  useEffect(() => {
-    if (!active || busy || !snap || live.ended) return
-    if (open) return
-    const n = nextObject(completed)
-    if (n) void sendCommand('open', n)
-    else if (completed.length > 0) void sendCommand('end')
-  }, [active, open, busy, completedKey, completed.length, live.ended])
+  }, [busy, active, say])
 
   const wasActive = useRef(false)
   useEffect(() => {
@@ -177,7 +170,7 @@ export default function Controller() {
   } else if (!active) {
     content = <Centered><div className="scanline" /><div className="ctl-label">REQUESTING ACCESS...</div></Centered>
   } else if (!open) {
-    content = <Centered><div className="scanline" /><div className="ctl-label">LOADING NEXT OBJECT...</div></Centered>
+    content = <Picker onPick={(id) => void sendCommand('open', id)} />
   } else {
     const hasAltered = !!snap.altered[open as keyof typeof snap.altered]
     content = (
@@ -204,6 +197,15 @@ export default function Controller() {
             </div>
           )}
         </div>
+        <button
+          className="end-session"
+          onClick={() => {
+            haptic('press')
+            void sendCommand('home')
+          }}
+        >
+          BACK TO ICONS
+        </button>
       </div>
     )
   }
@@ -213,11 +215,10 @@ export default function Controller() {
       <Background id={open} />
       <div className="ctl-main">
         <div className="ctl-top">
-          {active && open ? (
-            <span className="chip">{open.toUpperCase()} · {completed.length + 1}/{playableObjects().length}</span>
-          ) : (
-            <span className="chip">{CONFIG.TITLE}</span>
-          )}
+          <div className="ctl-top-meta">
+            <span className="chip">{active && open ? open.toUpperCase() : CONFIG.TITLE}</span>
+            <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
+          </div>
           <div className="ctl-timer">
             {active && (
               <>
@@ -228,20 +229,9 @@ export default function Controller() {
               </>
             )}
           </div>
-          <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
+          {active && <DoneAllButton onDone={endVisit} />}
         </div>
         {content}
-        {active && open && (
-          <button
-            className="end-session"
-            onClick={() => {
-              if (advanceTimer.current) clearTimeout(advanceTimer.current)
-              void finishObject()
-            }}
-          >
-            NEXT OBJECT
-          </button>
-        )}
       </div>
       {idleWarning && (
         <div className="idle-warn">

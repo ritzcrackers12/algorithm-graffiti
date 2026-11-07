@@ -9,9 +9,11 @@ _Last updated: Nov 6, 2026 (article controls: 6 dials, MAGA lead photo)_
 - **Queue (one visitor at a time):** 240s turns (covers the whole sequence), 40s idle handoff, vanished phones
   dropped after 12s, waiting phones kept for 3 min even with a locked screen. Covered by SQL tests
   (`npm run test:sql`, all passing).
-- **Sequential visit:** ready objects play in order (website, then article). Finishing one locks that icon
-  (unclickable, DONE badge) and auto-opens the next. After the last object, control passes to the next person
-  in line. Reel / image / song stay on the desktop but are skipped until their sessions.
+- **Visitor picks the object:** iPad stays on the desktop (`CLICK AN ICON TO START.`) until the phone taps an
+  icon. Then the iPad opens that window and the phone shows that object's controls. **BACK TO ICONS** returns
+  to the picker without ending the visit. A red **I AM DONE WITH ALL THE MEDIA OBJECTS** button (top right of
+  every controller screen) is how they hand off to the next person. Rewriting an article no longer ends the
+  session. Reel / image / song stay on the picker as OFFLINE until their sessions.
 - **Staff console `#/admin`:** passcode, live status, today's generation counts, reset / skip / clear queue /
   mock on-off.
 - **iPad `#/library`:** tap-to-begin (sound, wake lock, fullscreen), XP desktop, 5 icons (idle, click and

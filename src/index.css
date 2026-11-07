@@ -171,6 +171,19 @@ button:disabled { cursor: default; }
 .dot.bad { background: #ffb020; animation: blink 0.9s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0.2; } }
 
+.click-hint {
+  position: absolute; right: 72px; top: 38%; z-index: 8; max-width: 420px;
+  padding: 18px 22px; border: 2px solid #fff; border-radius: 4px;
+  background: rgba(8, 49, 217, 0.88); color: #fff;
+  font: 800 22px/1.2 var(--font-xp); letter-spacing: 1px; text-align: center;
+  text-shadow: 1px 1px #0f1089; box-shadow: 4px 6px 18px rgba(0,0,0,0.45);
+  pointer-events: none;
+}
+.click-hint::after {
+  content: ''; position: absolute; left: -18px; top: 50%; margin-top: -10px;
+  border: 10px solid transparent; border-right-color: #0831d9;
+}
+
 /* ---- QR sticky note ---- */
 .sticky {
   position: absolute; left: 40px; bottom: 66px; width: 176px; padding: 12px 12px 10px; z-index: 30; transform: rotate(-2.5deg);
@@ -267,8 +280,16 @@ button:disabled { cursor: default; }
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), inset 0 18px 40px rgba(255,255,255,0.04);
 }
 
-.ctl-top { display: flex; align-items: center; gap: 8px; min-height: 44px; flex: none; }
-.ctl-timer { flex: 1; text-align: center; min-width: 0; }
+.ctl-top { display: flex; align-items: flex-start; gap: 8px; min-height: 52px; flex: none; }
+.ctl-top-meta { display: flex; flex-direction: column; gap: 4px; flex: none; }
+.ctl-timer { flex: 1; text-align: center; min-width: 0; padding-top: 2px; }
+.done-all {
+  flex: none; width: 132px; padding: 8px 7px; border-radius: 3px; border: 1px solid #6a0c08;
+  background: linear-gradient(180deg, #e24a3a, #b11c14); color: #fff;
+  font: 800 9px/1.25 var(--font-supreme); letter-spacing: 0.06em; text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 2px 0 #6a0c08;
+}
+.done-all:active { transform: translateY(1px); }
 .ctl-clock { font: 800 24px/1 var(--font-supreme); letter-spacing: 2px; color: #f3edd8; }
 .ctl-clock.hot { color: #d24a2c; }
 .ctl-meter { height: 4px; margin-top: 5px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.12); overflow: hidden; }

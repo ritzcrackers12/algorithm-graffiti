@@ -83,6 +83,10 @@ export default function Desktop({ live }: { live: Live }) {
         })}
       </div>
 
+      {!open && (
+        <div className="click-hint">CLICK AN ICON TO START.</div>
+      )}
+
       <QrNote />
 
       {obj && (
