@@ -2,19 +2,13 @@ import { CONFIG } from '../shared/config.ts'
 import { unlockAudio } from '../lib/audio.ts'
 
 export default function TapToBegin({ onBegin }: { onBegin: () => void }) {
-  const begin = async () => {
-    unlockAudio() // must stay in this pointerdown turn so iPad audio unlocks
-    try {
-      await document.documentElement.requestFullscreen?.()
-    } catch {
-      /* iPad Safari may refuse; Home Screen mode is already full screen */
-    }
-    try {
-      await (navigator as Navigator & { wakeLock?: { request(t: string): Promise<unknown> } }).wakeLock?.request('screen')
-    } catch {
-      /* not supported */
-    }
+  const begin = () => {
+    unlockAudio()
     onBegin()
+    window.setTimeout(() => {
+      void document.documentElement.requestFullscreen?.().catch(() => {})
+      void (navigator as Navigator & { wakeLock?: { request(t: string): Promise<unknown> } }).wakeLock?.request('screen').catch(() => {})
+    }, 400)
   }
   return (
     <div className="boot" onPointerDown={begin}>

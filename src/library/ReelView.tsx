@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { kioskVideo, pauseKioskReel, playKioskReel, stopKioskReel } from '../lib/audio.ts'
+import {
+  kioskVideo, pauseKioskReel, playKioskReel, reelAudioFile, stopKioskReel, syncKioskAudio,
+} from '../lib/audio.ts'
 import { getBackend } from '../lib/backend.ts'
 import { loadReelLibrary, reelUrls } from '../lib/content.ts'
 import { getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
@@ -48,21 +50,23 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
     const onMeta = () => report(false, v.duration)
     const onPlay = () => report(false, v.duration)
     const onEnd = () => report(true)
+    const onTime = () => syncKioskAudio(v.currentTime)
     const onErr = () => setSrcIndex((i) => (i + 1 < urls.length ? i + 1 : i))
     v.addEventListener('loadedmetadata', onMeta)
     v.addEventListener('playing', onPlay)
     v.addEventListener('ended', onEnd)
+    v.addEventListener('timeupdate', onTime)
     v.addEventListener('error', onErr)
 
-    if (src && !skipped) void playKioskReel(src)
+    if (src && id && !skipped) void playKioskReel(src, reelAudioFile(id))
     else pauseKioskReel()
 
     return () => {
       v.removeEventListener('loadedmetadata', onMeta)
       v.removeEventListener('playing', onPlay)
       v.removeEventListener('ended', onEnd)
+      v.removeEventListener('timeupdate', onTime)
       v.removeEventListener('error', onErr)
-      pauseKioskReel()
     }
   }, [src, id, skipped, phase, urls.length])
 

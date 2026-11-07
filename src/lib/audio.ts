@@ -1,129 +1,124 @@
-// iOS only allows sound after a tap. TAP TO BEGIN plays a silent clip on a
-// persistent <video> in that gesture; later reels reuse the same element.
+// iPad Safari will not unmute a later <video> unless audible media started
+// in the TAP TO BEGIN gesture. We keep one <audio> alive from that tap and
+// swap its src to same-origin reel AAC. The picture can stay a muted <video>.
 const BASE = import.meta.env.BASE_URL
-const SILENCE = `${BASE}assets/silence.mp4`
+const UNLOCK = `${BASE}assets/unlock.m4a`
 
 let ctx: AudioContext | null = null
 let unlocked = false
-let out: GainNode | null = null
-let kiosk: HTMLVideoElement | null = null
-const wired = new WeakSet<HTMLMediaElement>()
+let audio: HTMLAudioElement | null = null
+let video: HTMLVideoElement | null = null
 
 function graph() {
   const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
   ctx ??= new AC()
-  if (!out) {
-    out = ctx.createGain()
-    out.gain.value = 1
-    out.connect(ctx.destination)
-  }
-  return { ctx, out }
+  return ctx
 }
 
 export function kioskVideo() {
-  if (!kiosk) {
-    kiosk = document.createElement('video')
-    kiosk.className = 'reel-video'
-    kiosk.playsInline = true
-    kiosk.preload = 'auto'
-    kiosk.autoplay = true
-    kiosk.controls = false
-    kiosk.setAttribute('playsinline', 'true')
-    kiosk.setAttribute('webkit-playsinline', 'true')
-    kiosk.disablePictureInPicture = true
+  if (!video) {
+    video = document.createElement('video')
+    video.className = 'reel-video'
+    video.playsInline = true
+    video.preload = 'auto'
+    video.autoplay = true
+    video.muted = true
+    video.defaultMuted = true
+    video.controls = false
+    video.setAttribute('playsinline', 'true')
+    video.setAttribute('webkit-playsinline', 'true')
+    video.disablePictureInPicture = true
   }
-  return kiosk
+  return video
 }
 
-function park(v: HTMLVideoElement) {
-  v.style.cssText = 'position:fixed;width:2px;height:2px;opacity:0;left:0;top:0;pointer-events:none;z-index:0'
-  if (v.parentElement !== document.body) document.body.appendChild(v)
+function kioskAudio() {
+  if (!audio) {
+    audio = new Audio()
+    audio.preload = 'auto'
+    audio.loop = false
+    audio.playsInline = true
+  }
+  return audio
+}
+
+export function reelAudioFile(id: string) {
+  return `${BASE}content/reel-audio/${id}.m4a`
 }
 
 export function unlockAudio() {
   unlocked = true
   try {
-    const { ctx: ac } = graph()
+    const ac = graph()
     void ac.resume()
-    const buf = ac.createBuffer(1, 1, 22050)
-    const src = ac.createBufferSource()
-    src.buffer = buf
-    src.connect(ac.destination)
-    src.start(0)
+    const osc = ac.createOscillator()
+    const gain = ac.createGain()
+    gain.gain.value = 0.12
+    osc.frequency.value = 880
+    osc.connect(gain)
+    gain.connect(ac.destination)
+    osc.start()
+    osc.stop(ac.currentTime + 0.16)
   } catch { /* no Web Audio */ }
 
+  const a = kioskAudio()
+  a.loop = false
+  a.muted = false
+  a.volume = 1
+  a.src = UNLOCK
+  void a.play().catch(() => {})
+
   const v = kioskVideo()
-  park(v)
-  v.loop = true
-  v.muted = false
-  v.defaultMuted = false
-  v.volume = 1
-  if (!v.getAttribute('src')) v.src = SILENCE
-  void v.play().catch(() => {
-    v.muted = true
-    void v.play().then(() => {
-      v.muted = false
-    }).catch(() => {})
-  })
+  v.muted = true
+  void v.play().catch(() => {})
+
   window.dispatchEvent(new Event('ag-media-unlock'))
 }
 
-export function attachReelOutput(el: HTMLMediaElement) {
-  try {
-    const { ctx: ac, out: gain } = graph()
-    void ac.resume()
-    gain.gain.value = 1
-    if (!wired.has(el)) {
-      ac.createMediaElementSource(el).connect(gain)
-      wired.add(el)
-    }
-  } catch { /* already connected or CORS */ }
-  el.muted = false
-  el.volume = 1
-}
-
-export function playKioskReel(src: string) {
+export function playKioskReel(videoSrc: string, audioSrc: string) {
   const v = kioskVideo()
+  const a = kioskAudio()
+  v.muted = true
   v.loop = false
-  v.muted = false
-  v.defaultMuted = false
-  v.volume = 1
   v.style.cssText = ''
-  if (src.startsWith('http') && !src.startsWith(location.origin)) {
-    v.crossOrigin = 'anonymous'
+  if (v.currentSrc !== new URL(videoSrc, location.href).href) v.src = videoSrc
+  void v.play().catch(() => {})
+
+  a.loop = false
+  a.muted = false
+  a.volume = 1
+  const abs = new URL(audioSrc, location.href).href
+  if (a.src !== abs) {
+    a.src = audioSrc
   }
-  const abs = new URL(src, location.href).href
-  if (v.currentSrc !== abs) v.src = src
-  const go = () => {
-    attachReelOutput(v)
-    return v.play()
-  }
-  return go().catch(() => {
-    v.muted = true
-    return v.play().then(() => {
-      v.muted = false
-      attachReelOutput(v)
-      return v.play()
-    })
+  a.currentTime = 0
+  return a.play().catch(() => {
+    a.muted = false
+    return a.play()
   })
 }
 
+export function syncKioskAudio(seconds: number) {
+  if (!audio || audio.paused) return
+  if (Math.abs(audio.currentTime - seconds) > 0.35) {
+    try { audio.currentTime = seconds } catch { /* ignore */ }
+  }
+}
+
 export function pauseKioskReel() {
-  const v = kiosk
-  if (!v) return
-  v.pause()
-  v.muted = true
-  if (out) out.gain.value = 0
+  video?.pause()
+  if (audio) {
+    audio.pause()
+    audio.volume = 0
+  }
 }
 
 export function stopKioskReel() {
   pauseKioskReel()
-  const v = kiosk
-  if (!v) return
-  v.loop = true
-  v.removeAttribute('crossorigin')
-  v.src = SILENCE
-  park(v)
+  if (audio) {
+    audio.removeAttribute('src')
+    audio.load()
+  }
 }
 
 export const isAudioUnlocked = () => unlocked
