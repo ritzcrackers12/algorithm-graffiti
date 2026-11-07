@@ -4,7 +4,8 @@ import { pickAd, personalizeAd, weaveSponsored } from '../_shared/ads.ts'
 import { CONFIG } from '../_shared/config.ts'
 import type { ArticleParams, ReelParams } from '../_shared/types.ts'
 import {
-  cleanWord, emptyReelResult, logRound, pickFirst, pickNext, rowFromRecord, sessionLine,
+  AFFINITY_KEY, addRating, cleanWord, emptyReelResult, logRound, parseAffinity,
+  pickFirst, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
   type ReelResult, type ReelRow,
 } from '../_shared/reel.ts'
 import {
@@ -138,41 +139,54 @@ async function loadLibrary(): Promise<ReelRow[]> {
   }
 }
 
+async function loadAffinity() {
+  const { data } = await db.from('ag_ai_cache').select('output').eq('key', AFFINITY_KEY).maybeSingle()
+  return parseAffinity(data?.output)
+}
+
+async function saveAffinity(affinity: ReturnType<typeof parseAffinity>) {
+  await db.from('ag_ai_cache').upsert({ key: AFFINITY_KEY, job: 'reel', input: {}, output: affinity })
+}
+
 async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result: ReelResult }> {
   const library = await loadLibrary()
   const { data: state } = await db.from('ag_state').select('altered').eq('id', 1).maybeSingle()
   const prev = ((state?.altered as { reel?: ReelResult } | null)?.reel) ?? emptyReelResult()
+  const source = useAi ? 'ai' : 'mock'
 
-  if (params.action === 'word') {
-    const w = cleanWord(params.word)
-    if ('blocked' in w || 'invalid' in w) {
-      return { result: { ...emptyReelResult(), phase: 'word', at: Date.now(), source: 'fallback' } }
+  if (params.action === 'start' || params.action === 'word') {
+    if (prev.phase === 'done') return { result: prev }
+    if (prev.currentId && (prev.phase === 'playing' || prev.phase === 'rate')) return { result: prev }
+    let pick = null as ReelRow | null
+    let word = ''
+    if (params.action === 'word') {
+      const w = cleanWord(params.word)
+      if ('blocked' in w || 'invalid' in w) {
+        return { result: { ...emptyReelResult(), phase: 'word', at: Date.now(), source: 'fallback' } }
+      }
+      word = w.word
+      let vec: number[] | null = null
+      if (useAi) {
+        const pred = await predict({ job: 'embed', input: { text: w.word } })
+        if (pred.ok && Array.isArray(pred.output)) vec = pred.output as number[]
+      }
+      pick = pickFirst(library, w.word, vec, !vec)
+    } else {
+      pick = pickStart(library, await loadAffinity())
     }
-    let vec: number[] | null = null
-    if (useAi) {
-      const pred = await predict({ job: 'embed', input: { text: w.word } })
-      if (pred.ok && Array.isArray(pred.output)) vec = pred.output as number[]
-    }
-    const pick = pickFirst(library, w.word, vec, !vec)
     if (!pick) {
       return {
         result: {
-          ...emptyReelResult(), word: w.word, phase: 'done', sessionLine: 'NO LIBRARY.',
+          ...emptyReelResult(), word, phase: 'done', sessionLine: 'NO LIBRARY.',
           at: Date.now(), source: 'fallback',
         },
       }
     }
     return {
       result: {
-        word: w.word,
-        phase: 'playing',
-        currentId: pick.id,
-        videoUrl: pick.videoUrl,
-        rounds: [logRound(pick, null, 0)],
-        usedIds: [pick.id],
-        sessionLine: '',
-        source: useAi ? 'ai' : 'mock',
-        at: Date.now(),
+        word, phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
+        rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
+        source, at: Date.now(),
       },
     }
   }
@@ -186,12 +200,18 @@ async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result
   if (!current) {
     return { result: { ...prev, rounds, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now() } }
   }
-  const next = pickNext(library, prev.usedIds, current, rating, current.embedding ?? null, !current.embedding)
+  const last = rounds[rounds.length - 1]
+  let affinity = await loadAffinity()
+  if (last) {
+    affinity = addRating(affinity, last, rating)
+    await saveAffinity(affinity)
+  }
+  const next = pickNext(library, prev.usedIds, current, rating, rounds, affinity, current.embedding ?? null, !current.embedding)
   if (!next) {
     return {
       result: {
         ...prev, rounds, currentId: null, videoUrl: null, phase: 'done',
-        sessionLine: sessionLine(rounds), at: Date.now(), source: useAi ? 'ai' : 'mock',
+        sessionLine: sessionLine(rounds), at: Date.now(), source,
       },
     }
   }
@@ -202,11 +222,11 @@ async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result
       rounds: nextRounds,
       usedIds: [...prev.usedIds, next.id],
       currentId: next.id,
-      videoUrl: next.videoUrl,
+      videoUrl: playableUrl(next.id),
       phase: 'playing',
       sessionLine: sessionLine(nextRounds),
       at: Date.now(),
-      source: useAi ? 'ai' : 'mock',
+      source,
     },
   }
 }
@@ -237,7 +257,7 @@ Deno.serve(async (req) => {
     }
   } else {
     const p = body.params && typeof body.params === 'object' ? body.params as Record<string, unknown> : {}
-    if (p.action !== 'word' && p.action !== 'rate') return json({ ok: false, reason: 'invalid' })
+    if (p.action !== 'start' && p.action !== 'word' && p.action !== 'rate') return json({ ok: false, reason: 'invalid' })
     reelParams = {
       action: p.action,
       word: typeof p.word === 'string' ? p.word : undefined,
@@ -255,7 +275,7 @@ Deno.serve(async (req) => {
     : inferProfile({ ...emptyProfile(), ...(body.profile && typeof body.profile === 'object' ? body.profile as VisitorProfile : {}) })
 
   const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
-  const mockDelay = object === 'reel' ? 1 : Math.round(lo + Math.random() * (hi - lo))
+  const mockDelay = object === 'reel' ? 0 : Math.round(lo + Math.random() * (hi - lo))
   const etaAi = object === 'reel' ? 3 : (CONFIG.EXPECTED_SECONDS[object] ?? 12)
   const { data: begin, error } = await db.rpc('ag_begin_generation', {
     p_session: session, p_object: object, p_eta_ai: etaAi, p_eta_mock: mockDelay,

@@ -3,6 +3,7 @@ import { parseArticleMarkdown } from '../shared/article.ts'
 const BASE = import.meta.env.BASE_URL
 
 export const asset = (name: string) => `${BASE}assets/${name}`
+export const reelFile = (id: string) => `${BASE}content/reels/${id}.mp4`
 
 export interface ArticleInfo {
   id: string

@@ -19,8 +19,8 @@
     "sponsored": "yes",
     "ad_category": "selling course",
     "transcript": "",
-    "videoUrl": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/001.mp4",
-    "video_url": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/001.mp4"
+    "videoUrl": "content/reels/001.mp4",
+    "video_url": "content/reels/001.mp4"
   },
   {
     "id": "002",
@@ -42,8 +42,8 @@
     "sponsored": "yes",
     "ad_category": "Political UGC",
     "transcript": "",
-    "videoUrl": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/002.mp4",
-    "video_url": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/002.mp4"
+    "videoUrl": "content/reels/002.mp4",
+    "video_url": "content/reels/002.mp4"
   },
   {
     "id": "003",
@@ -65,8 +65,8 @@
     "sponsored": "no",
     "ad_category": "",
     "transcript": "",
-    "videoUrl": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/003.mp4",
-    "video_url": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/003.mp4"
+    "videoUrl": "content/reels/003.mp4",
+    "video_url": "content/reels/003.mp4"
   },
   {
     "id": "004",
@@ -88,8 +88,8 @@
     "sponsored": "no",
     "ad_category": "",
     "transcript": "",
-    "videoUrl": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/004.mp4",
-    "video_url": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/004.mp4"
+    "videoUrl": "content/reels/004.mp4",
+    "video_url": "content/reels/004.mp4"
   },
   {
     "id": "005",
@@ -111,7 +111,7 @@
     "sponsored": "yes",
     "ad_category": "AI Video company",
     "transcript": "",
-    "videoUrl": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/005.mp4",
-    "video_url": "https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/005.mp4"
+    "videoUrl": "content/reels/005.mp4",
+    "video_url": "content/reels/005.mp4"
   }
 ]

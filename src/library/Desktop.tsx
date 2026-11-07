@@ -119,7 +119,7 @@ export default function Desktop({ live }: { live: Live }) {
         </XpWindow>
       )}
 
-      {snap?.display.busy && <ProgressDialog busy={snap.display.busy} />}
+      {snap?.display.busy && snap.display.busy.object !== 'reel' && <ProgressDialog busy={snap.display.busy} />}
       {place && (!open || snap?.display.busy) && (
         <AdPopup place={place} profile={profile} onClose={() => setAdClosed(place.at)} />
       )}

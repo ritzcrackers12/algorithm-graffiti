@@ -15,11 +15,29 @@ const CHOICES: { rating: ReelRating; label: string }[] = [
 export default function ReelControls({ snap, locked, say }: { snap: Snapshot; locked: boolean; say: (t: string) => void }) {
   const reel = snap.altered.reel
   const phase = reel?.phase ?? 'word'
-  const url = reel?.videoUrl
-  const [word, setWord] = useState('')
+  const busy = !!snap.display.busy
   const [ended, setEnded] = useState(false)
   const endedAt = useRef(0)
   const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
+
+  useEffect(() => {
+    if (locked || phase === 'done' || reel?.currentId || busy) return
+    let cancelled = false
+    const kick = () => {
+      if (cancelled) return
+      void sendGenerate({
+        session: sessionId(),
+        object: 'reel',
+        params: { action: 'start' },
+        profile: getLocalProfile(),
+      }).then((res) => {
+        if (cancelled || res.ok || res.reason === 'busy') return
+        window.setTimeout(kick, 900)
+      })
+    }
+    kick()
+    return () => { cancelled = true }
+  }, [locked, phase, reel?.currentId, busy])
 
   useEffect(() => {
     setEnded(false)
@@ -44,20 +62,8 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
     return () => window.clearTimeout(t)
   }, [reel?.currentId, clip, ended])
 
-  const sendWord = async () => {
-    const w = word.trim()
-    if (!w || locked) return
-    haptic('press')
-    const res = await sendGenerate({ session: sessionId(), object: 'reel', params: { action: 'word', word: w }, profile: getLocalProfile() })
-    if (res.ok) say('INPUT RECEIVED.')
-    else {
-      haptic('error')
-      say(res.reason === 'blocked' ? 'INPUT REJECTED. TERM NOT PERMITTED.' : 'TRANSMISSION FAILED. RETRY.')
-    }
-  }
-
   const sendRate = async (rating: ReelRating) => {
-    if (locked || !ended || phase === 'done' || phase === 'word') return
+    if (locked || !ended || phase === 'done' || !reel?.currentId) return
     haptic('press')
     const hesitationMs = endedAt.current ? Date.now() - endedAt.current : 0
     const res = await sendGenerate({
@@ -85,32 +91,7 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
     )
   }
 
-  if (phase === 'word' || !reel?.currentId || !url) {
-    return (
-      <form
-        className="ctl-center ctl-allow-scroll"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void sendWord()
-        }}
-      >
-        <div className="ctl-display">ENTER ONE WORD.</div>
-        <input
-          className="reel-word"
-          value={word}
-          disabled={locked}
-          autoCapitalize="off"
-          autoCorrect="off"
-          autoComplete="off"
-          onChange={(e) => setWord(e.target.value)}
-          aria-label="One word"
-        />
-        <button className="big-btn" type="submit" disabled={locked || !word.trim()}>SEND</button>
-      </form>
-    )
-  }
-
-  if (!ended) {
+  if (!ended || !reel?.currentId) {
     return (
       <div className="ctl-center">
         <div className="ctl-display">WATCH THE VIDEO ON THE IPAD SCREEN.</div>

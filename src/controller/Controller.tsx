@@ -252,7 +252,7 @@ export default function Controller() {
               <div className="ctl-label">CONTROLS NOT INSTALLED.</div>
             </div>
           )}
-          {busy && (
+          {busy && open !== 'reel' && (
             <div className="lock-shade">
               <div>
                 <div className="ctl-display">PROCESSING.<br />CONTROLS LOCKED.</div>

@@ -59,6 +59,10 @@ export interface ReelResult {
   at: number
 }
 
+export function playableUrl(id: string): string {
+  return `content/reels/${id}.mp4`
+}
+
 export function rowFromRecord(r: Record<string, unknown>): ReelRow {
   return {
     id: String(r.id ?? ''),
@@ -80,7 +84,7 @@ export function rowFromRecord(r: Record<string, unknown>): ReelRow {
     sponsored: sponsoredYes(r.sponsored),
     ad_category: String(r.ad_category ?? ''),
     transcript: String(r.transcript ?? ''),
-    videoUrl: String(r.video_url ?? r.videoUrl ?? ''),
+    videoUrl: String(r.id ?? '') ? playableUrl(String(r.id)) : String(r.video_url ?? r.videoUrl ?? ''),
     embedding: Array.isArray(r.embedding) ? r.embedding as number[] : null,
   }
 }
@@ -163,6 +167,153 @@ function energyOk(from: string, to: string, rating: ReelRating | null): boolean 
   return Math.abs(i - j) <= 1
 }
 
+export const AFFINITY_KEY = 'reel_affinity'
+
+const AFFINITY_FIELDS = ['audience', 'topic', 'subtopic', 'mood', 'energy', 'format', 'vibe', 'keywords', 'depth'] as const
+type AffinityField = (typeof AFFINITY_FIELDS)[number]
+
+export interface CrowdAffinity {
+  n: number
+  audience: Record<string, number>
+  topic: Record<string, number>
+  subtopic: Record<string, number>
+  mood: Record<string, number>
+  energy: Record<string, number>
+  format: Record<string, number>
+  vibe: Record<string, number>
+  keywords: Record<string, number>
+  depth: Record<string, number>
+}
+
+export function emptyAffinity(): CrowdAffinity {
+  return {
+    n: 0, audience: {}, topic: {}, subtopic: {}, mood: {},
+    energy: {}, format: {}, vibe: {}, keywords: {}, depth: {},
+  }
+}
+
+export function parseAffinity(raw: unknown): CrowdAffinity {
+  const a = emptyAffinity()
+  if (!raw || typeof raw !== 'object') return a
+  const o = raw as Record<string, unknown>
+  a.n = typeof o.n === 'number' && o.n > 0 ? o.n : 0
+  for (const key of AFFINITY_FIELDS) {
+    const m = o[key]
+    if (m && typeof m === 'object') {
+      for (const [k, v] of Object.entries(m as Record<string, unknown>)) {
+        const n = Number(v)
+        if (k && Number.isFinite(n) && n !== 0) a[key][k.toLowerCase()] = n
+      }
+    }
+  }
+  return a
+}
+
+function bump(map: Record<string, number>, raw: string, by = 1) {
+  const k = raw.trim().toLowerCase()
+  if (!k) return
+  map[k] = (map[k] || 0) + by
+}
+
+function cloneAffinity(a: CrowdAffinity): CrowdAffinity {
+  const next = emptyAffinity()
+  next.n = a.n
+  for (const key of AFFINITY_FIELDS) next[key] = { ...a[key] }
+  return next
+}
+
+export function addRating(affinity: CrowdAffinity, round: ReelRoundLog, rating: ReelRating): CrowdAffinity {
+  const by = rating === 'HIGH' ? 2 : rating === 'MEDIUM' ? 0.4 : -1.2
+  const next = cloneAffinity(affinity)
+  if (rating === 'HIGH') next.n += 1
+  bump(next.audience, round.audience, by)
+  bump(next.topic, round.topic, by)
+  bump(next.subtopic, round.subtopic, by)
+  bump(next.mood, round.mood, by)
+  bump(next.energy, round.energy, by)
+  bump(next.format, round.format, by)
+  bump(next.vibe, round.vibe, by)
+  bump(next.depth, String(round.depth), by)
+  for (const k of round.keywords.split(',')) bump(next.keywords, k, by)
+  return next
+}
+
+export function addHigh(affinity: CrowdAffinity, round: ReelRoundLog): CrowdAffinity {
+  return addRating(affinity, round, 'HIGH')
+}
+
+function same(a: string, b: string) {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+function metaHay(r: ReelRow): string {
+  return [
+    r.audience, r.topic, r.subtopic, r.mood, r.energy, r.format, r.vibe,
+    r.keywords, r.description, r.curator_notes, r.sponsored ? 'sponsored' : '',
+  ].join(' ')
+}
+
+function tokenOverlap(a: string, b: string): number {
+  const A = new Set(a.toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2))
+  let n = 0
+  for (const t of b.toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2)) {
+    if (A.has(t)) n++
+  }
+  return n
+}
+
+function vsClip(candidate: ReelRow, liked: ReelRow, weight: number): number {
+  let s = 0
+  if (same(candidate.audience, liked.audience)) s += 3
+  if (same(candidate.topic, liked.topic)) s += 2
+  if (same(candidate.subtopic, liked.subtopic)) s += 2.5
+  if (same(candidate.mood, liked.mood)) s += 1
+  if (same(candidate.vibe, liked.vibe)) s += 1
+  if (same(candidate.format, liked.format)) s += 0.5
+  if (same(String(candidate.energy), String(liked.energy))) s += 0.4
+  if (candidate.depth === liked.depth) s += 0.4
+  if (candidate.sponsored === liked.sponsored) s += 0.15
+  s += tokenOverlap(metaHay(liked), metaHay(candidate)) * 0.35
+  s += overlapScore(metaHay(liked), candidate) * 0.15
+  return s * weight
+}
+
+function affinityScore(r: ReelRow, aff: CrowdAffinity): number {
+  if (!aff.n && !Object.values(aff.audience).length && !Object.values(aff.topic).length) {
+    const any = AFFINITY_FIELDS.some((k) => Object.keys(aff[k]).length)
+    if (!any) return 0
+  }
+  let s = 0
+  const hit = (field: AffinityField, value: string, w: number) => {
+    s += (aff[field][value.trim().toLowerCase()] || 0) * w
+  }
+  hit('audience', r.audience, 1.6)
+  hit('topic', r.topic, 1.2)
+  hit('subtopic', r.subtopic, 1.3)
+  hit('mood', r.mood, 0.7)
+  hit('energy', String(r.energy), 0.4)
+  hit('format', r.format, 0.4)
+  hit('vibe', r.vibe, 0.7)
+  hit('depth', String(r.depth), 0.3)
+  for (const k of r.keywords.split(',')) hit('keywords', k, 0.55)
+  return s
+}
+
+function lookup(library: ReelRow[], id: string): ReelRow | undefined {
+  return library.find((r) => r.id === id)
+}
+
+/** First clip: closest to what other visitors liked. If nobody has rated yet, random. */
+export function pickStart(library: ReelRow[], affinity: CrowdAffinity): ReelRow | null {
+  const pool = library.filter((r) => !notesBlock(r, [], null, 0))
+  const src = pool.length ? pool : library
+  if (!src.length) return null
+  const scored = src.map((r) => ({ r, s: affinityScore(r, affinity) }))
+  scored.sort((a, b) => b.s - a.s || Math.random() - 0.5)
+  if (!scored[0] || scored[0].s <= 0) return src[Math.floor(Math.random() * src.length)]
+  return scored[0].r
+}
+
 export function pickFirst(library: ReelRow[], word: string, wordVec: number[] | null, mock: boolean): ReelRow | null {
   const openers = library.filter((r) => /good opener|opener/i.test(r.notes || ''))
   const pool = library.filter((r) => !notesBlock(r, [], null, 0))
@@ -181,6 +332,8 @@ export function pickNext(
   used: string[],
   current: ReelRow,
   rating: ReelRating,
+  rounds: ReelRoundLog[],
+  affinity: CrowdAffinity,
   wordVec: number[] | null,
   mock: boolean,
 ): ReelRow | null {
@@ -191,35 +344,51 @@ export function pickNext(
   const candidates = left.filter((r) => !notesBlock(r, used, last, roundIndex))
   const pool = candidates.length ? candidates : left
 
+  const rowsFor = (want: ReelRating) =>
+    rounds.map((log) => (log.rating === want ? lookup(library, log.reelId) : undefined)).filter((r): r is ReelRow => !!r)
+
+  const liked = rowsFor('HIGH')
+  const mid = rowsFor('MEDIUM')
+  const hated = rowsFor('LOW')
+
   const meaning = (r: ReelRow) =>
-    mock || !wordVec ? overlapScore([current.topic, current.subtopic, current.keywords, current.description].join(' '), r) : cosine(wordVec, r.embedding)
+    mock || !wordVec ? overlapScore(metaHay(current), r) : cosine(wordVec, r.embedding)
 
   const scored = pool.map((r) => {
     let s = 0
-    const sameAud = r.audience && current.audience && r.audience.toLowerCase() === current.audience.toLowerCase()
-    const sameTopic = r.topic && current.topic && r.topic.toLowerCase() === current.topic.toLowerCase()
-    const sameMood = r.mood && current.mood && r.mood.toLowerCase() === current.mood.toLowerCase()
-    const sameFmt = r.format && current.format && r.format.toLowerCase() === current.format.toLowerCase()
+    const sameAud = same(r.audience, current.audience)
+    const sameTopic = same(r.topic, current.topic)
+    const sameMood = same(r.mood, current.mood)
+    const sameFmt = same(r.format, current.format)
     if (rating === 'HIGH') {
       if (sameAud) s += 3
+      if (same(r.subtopic, current.subtopic)) s += 2
       if (r.depth === Math.min(5, current.depth + 1)) s += 2
       else if (r.depth >= current.depth) s += 0.5
       if (!sameFmt) s += 0.8
-      s += meaning(r) * 0.3
+      s += meaning(r) * 0.35
+      s += vsClip(r, current, 0.85)
     } else if (rating === 'MEDIUM') {
       if (sameAud || sameTopic) s += 3
       if (r.depth === current.depth) s += 1.5
+      if (!sameFmt) s += 0.6
       s += meaning(r)
+      s += vsClip(r, current, 0.4)
     } else {
       if (!sameAud) s += 3
       if (!sameTopic) s += 1.5
       if (!sameMood) s += 1
       if (r.depth === Math.max(1, current.depth - 1)) s += 2
+      s -= vsClip(r, current, 1.35)
     }
+    for (const row of liked) s += vsClip(r, row, 1)
+    for (const row of mid) s += vsClip(r, row, 0.35)
+    for (const row of hated) s -= vsClip(r, row, 1.15)
+    s += affinityScore(r, affinity) * 0.45
     if (!energyOk(current.energy, r.energy, rating)) s -= 4
     return { r, s }
   })
-  scored.sort((a, b) => b.s - a.s)
+  scored.sort((a, b) => b.s - a.s || Math.random() - 0.5)
   return scored[0]?.r ?? pool[0] ?? null
 }
 

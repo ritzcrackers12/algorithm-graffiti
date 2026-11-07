@@ -35,4 +35,3 @@ supabase/.branches
 content/reels-raw/
 content/reels-work/
 public/content/reels-check/*.jpg
-public/content/reels/*.mp4

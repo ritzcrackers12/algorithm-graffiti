@@ -7,7 +7,8 @@ import { CONFIG, OBJECTS } from '../shared/config.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
 import {
-  cleanWord, emptyReelResult, logRound, pickFirst, pickNext, rowFromRecord, sessionLine,
+  AFFINITY_KEY, addRating, cleanWord, emptyAffinity, emptyReelResult, logRound,
+  parseAffinity, pickFirst, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
   type ReelResult, type ReelRow,
 } from '../shared/reel.ts'
 import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
@@ -16,6 +17,19 @@ import { loadArticle } from './content.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 
 const REEL_KEY = 'ag-reel-ended'
+const AFFINITY_LS = `ag-${AFFINITY_KEY}`
+
+function loadAffinity() {
+  try {
+    return parseAffinity(JSON.parse(localStorage.getItem(AFFINITY_LS) || 'null'))
+  } catch {
+    return emptyAffinity()
+  }
+}
+
+function saveAffinity(a: ReturnType<typeof emptyAffinity>) {
+  localStorage.setItem(AFFINITY_LS, JSON.stringify(a))
+}
 
 interface DB {
   activeSession: string | null
@@ -158,15 +172,22 @@ export function createLocalBackend(): Backend {
 
   function produceReel(params: { action: string; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined): ReelResult {
     const current = prev ?? emptyReelResult()
-    if (params.action === 'word') {
-      const w = cleanWord(params.word)
-      if ('blocked' in w || 'invalid' in w) return { ...emptyReelResult(), at: Date.now(), source: 'fallback' }
-      const pick = pickFirst(library, w.word, null, true)
+    if (params.action === 'start' || params.action === 'word') {
+      if (current.phase === 'done') return current
+      if (current.currentId && (current.phase === 'playing' || current.phase === 'rate')) return current
+      const pick = params.action === 'word'
+        ? (() => {
+            const w = cleanWord(params.word)
+            if ('blocked' in w || 'invalid' in w) return null
+            return pickFirst(library, w.word, null, true)
+          })()
+        : pickStart(library, loadAffinity())
       if (!pick) {
-        return { ...emptyReelResult(), word: w.word, phase: 'done', sessionLine: 'NO LIBRARY.', at: Date.now(), source: 'fallback' }
+        return { ...emptyReelResult(), phase: 'done', sessionLine: 'NO LIBRARY.', at: Date.now(), source: 'fallback' }
       }
       return {
-        word: w.word, phase: 'playing', currentId: pick.id, videoUrl: pick.videoUrl,
+        word: params.action === 'word' ? String(params.word ?? '').toLowerCase() : '',
+        phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
         rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
         source: 'mock', at: Date.now(),
       }
@@ -178,14 +199,16 @@ export function createLocalBackend(): Backend {
       i === current.rounds.length - 1 ? { ...r, rating, hesitationMs: params.hesitationMs ?? 0 } : r,
     )
     if (!cur) return { ...current, rounds, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now() }
-    const next = pickNext(library, current.usedIds, cur, rating, null, true)
+    const last = rounds[rounds.length - 1]
+    if (last) saveAffinity(addRating(loadAffinity(), last, rating))
+    const next = pickNext(library, current.usedIds, cur, rating, rounds, loadAffinity(), null, true)
     if (!next) {
       return { ...current, rounds, currentId: null, videoUrl: null, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now(), source: 'mock' }
     }
     const nextRounds = [...rounds, logRound(next, null, 0)]
     return {
       ...current, rounds: nextRounds, usedIds: [...current.usedIds, next.id],
-      currentId: next.id, videoUrl: next.videoUrl, phase: 'playing',
+      currentId: next.id, videoUrl: playableUrl(next.id), phase: 'playing',
       sessionLine: sessionLine(nextRounds), at: Date.now(), source: 'mock',
     }
   }
@@ -253,11 +276,42 @@ export function createLocalBackend(): Backend {
         }
       } else if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
         const obj = arg as 'article' | 'reel' | 'song' | 'game'
+        if (obj === 'reel') {
+          const library = await loadReels()
+          const latest = read()
+          Object.assign(db, latest)
+          if (db.activeSession !== session) {
+            write(db, changed)
+            return { ...snapshot(db, session), ok: false }
+          }
+          const prevReel = db.altered.reel
+          if (!prevReel?.currentId || prevReel.phase === 'word') {
+            const pick = pickStart(library, loadAffinity())
+            if (pick) {
+              db.altered = {
+                ...db.altered,
+                reel: {
+                  word: '',
+                  phase: 'playing',
+                  currentId: pick.id,
+                  videoUrl: playableUrl(pick.id),
+                  rounds: [logRound(pick, null, 0)],
+                  usedIds: [pick.id],
+                  sessionLine: '',
+                  source: 'mock',
+                  at: Date.now(),
+                },
+              }
+            }
+          }
+        }
         const used = db.display.used ?? []
         db.display = {
           ...db.display,
           open: obj,
-          view: obj === 'article' && db.altered.article ? 'altered' : 'original',
+          view: obj === 'reel' && db.altered.reel?.currentId
+            ? 'altered'
+            : obj === 'article' && db.altered.article ? 'altered' : 'original',
           openedAt: Date.now(),
           articleId: obj === 'article' ? db.display.articleId : null,
           used: used.includes(obj) ? used : [...used, obj],
@@ -279,12 +333,12 @@ export function createLocalBackend(): Backend {
     },
     async generate(req) {
       const articleParams = req.object === 'article' ? validateArticleParams(req.params) : null
-      let reelParams: { action: 'word' | 'rate'; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number } | null = null
+      let reelParams: { action: 'start' | 'word' | 'rate'; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number } | null = null
       if (req.object === 'article') {
         if (!articleParams) return { ok: false, reason: 'invalid' }
       } else if (req.object === 'reel') {
         const p = req.params
-        if (p.action !== 'word' && p.action !== 'rate') return { ok: false, reason: 'invalid' }
+        if (p.action !== 'start' && p.action !== 'word' && p.action !== 'rate') return { ok: false, reason: 'invalid' }
         if (p.action === 'word') {
           const w = cleanWord(p.word)
           if ('blocked' in w) return { ok: false, reason: 'blocked' }
@@ -303,7 +357,7 @@ export function createLocalBackend(): Backend {
         return { ok: false, reason: 'cooldown', secondsLeft: Math.ceil((last.at + rate * 1000 - Date.now()) / 1000) }
       }
       const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
-      const delay = req.object === 'reel' ? 1 : Math.round(lo + Math.random() * (hi - lo))
+      const delay = req.object === 'reel' ? 0 : Math.round(lo + Math.random() * (hi - lo))
       const id = (last?.id ?? 0) + 1
       db.generations.push({ id, at: Date.now(), object: req.object, source: 'pending' })
       db.generations = db.generations.slice(-500)
