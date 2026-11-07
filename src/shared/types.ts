@@ -1,6 +1,7 @@
 import type { ObjectId } from './config.ts'
 import type { VisitorProfile } from './profile.ts'
 import type { AdPlacement } from './ads.ts'
+import type { ReelRating, ReelResult } from './reel.ts'
 
 export type View = 'original' | 'altered'
 export type Source = 'ai' | 'mock' | 'fallback' | 'cap'
@@ -52,6 +53,7 @@ export interface ArticleResult {
 
 export interface Altered {
   article?: ArticleResult
+  reel?: ReelResult
 }
 
 export interface Snapshot {
@@ -70,8 +72,16 @@ export interface Snapshot {
   ok?: boolean
 }
 
+export interface ReelParams {
+  action: 'word' | 'rate'
+  word?: string
+  rating?: ReelRating
+  hesitationMs?: number
+}
+
 export type GenerateRequest =
   | { session: string; object: 'article'; params: ArticleParams; profile?: VisitorProfile }
+  | { session: string; object: 'reel'; params: ReelParams; profile?: VisitorProfile }
 
 export interface GenerateResponse {
   ok: boolean

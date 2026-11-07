@@ -428,3 +428,6 @@ verify_jwt = false
 
 [functions.admin]
 verify_jwt = false
+
+[functions.reels]
+verify_jwt = false

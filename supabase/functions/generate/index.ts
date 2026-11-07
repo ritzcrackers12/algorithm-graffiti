@@ -2,7 +2,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { pickAd, personalizeAd, weaveSponsored } from '../_shared/ads.ts'
 import { CONFIG } from '../_shared/config.ts'
-import type { ArticleParams } from '../_shared/types.ts'
+import type { ArticleParams, ReelParams } from '../_shared/types.ts'
+import {
+  cleanWord, emptyReelResult, logRound, pickFirst, pickNext, rowFromRecord, sessionLine,
+  type ReelResult, type ReelRow,
+} from '../_shared/reel.ts'
 import {
   articlePrompt, canonicalArticleParams, inventedNumbers, mockArticle, parseArticleMarkdown, parseArticleOutput, tooShort, validateArticleParams,
 } from '../_shared/article.ts'
@@ -118,6 +122,95 @@ async function produce(params: ArticleParams, profile: VisitorProfile, useAi: bo
   return { result: fallback(), ai: false, failed: true }
 }
 
+async function loadLibrary(): Promise<ReelRow[]> {
+  const { data, error } = await db.from('ag_reels').select('*')
+  if (!error && data?.length) {
+    return data.map((r) => rowFromRecord(r as Record<string, unknown>)).filter((r) => r.id)
+  }
+  if (error) console.error(error)
+  try {
+    const text = await fetchSite('content/reels.json')
+    const rows = JSON.parse(text) as Record<string, unknown>[]
+    return rows.map((r) => rowFromRecord(r)).filter((r) => r.id)
+  } catch (e) {
+    console.error('reels.json fallback failed', e)
+    return []
+  }
+}
+
+async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result: ReelResult }> {
+  const library = await loadLibrary()
+  const { data: state } = await db.from('ag_state').select('altered').eq('id', 1).maybeSingle()
+  const prev = ((state?.altered as { reel?: ReelResult } | null)?.reel) ?? emptyReelResult()
+
+  if (params.action === 'word') {
+    const w = cleanWord(params.word)
+    if ('blocked' in w || 'invalid' in w) {
+      return { result: { ...emptyReelResult(), phase: 'word', at: Date.now(), source: 'fallback' } }
+    }
+    let vec: number[] | null = null
+    if (useAi) {
+      const pred = await predict({ job: 'embed', input: { text: w.word } })
+      if (pred.ok && Array.isArray(pred.output)) vec = pred.output as number[]
+    }
+    const pick = pickFirst(library, w.word, vec, !vec)
+    if (!pick) {
+      return {
+        result: {
+          ...emptyReelResult(), word: w.word, phase: 'done', sessionLine: 'NO LIBRARY.',
+          at: Date.now(), source: 'fallback',
+        },
+      }
+    }
+    return {
+      result: {
+        word: w.word,
+        phase: 'playing',
+        currentId: pick.id,
+        videoUrl: pick.videoUrl,
+        rounds: [logRound(pick, null, 0)],
+        usedIds: [pick.id],
+        sessionLine: '',
+        source: useAi ? 'ai' : 'mock',
+        at: Date.now(),
+      },
+    }
+  }
+
+  const rating = params.rating
+  if (!rating || !prev.currentId) return { result: { ...prev, at: Date.now() } }
+  const current = library.find((r) => r.id === prev.currentId)
+  const rounds = prev.rounds.map((r, i) =>
+    i === prev.rounds.length - 1 ? { ...r, rating, hesitationMs: params.hesitationMs ?? 0 } : r,
+  )
+  if (!current) {
+    return { result: { ...prev, rounds, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now() } }
+  }
+  const next = pickNext(library, prev.usedIds, current, rating, current.embedding ?? null, !current.embedding)
+  if (!next) {
+    return {
+      result: {
+        ...prev, rounds, currentId: null, videoUrl: null, phase: 'done',
+        sessionLine: sessionLine(rounds), at: Date.now(), source: useAi ? 'ai' : 'mock',
+      },
+    }
+  }
+  const nextRounds = [...rounds, logRound(next, null, 0)]
+  return {
+    result: {
+      ...prev,
+      rounds: nextRounds,
+      usedIds: [...prev.usedIds, next.id],
+      currentId: next.id,
+      videoUrl: next.videoUrl,
+      phase: 'playing',
+      sessionLine: sessionLine(nextRounds),
+      at: Date.now(),
+      source: useAi ? 'ai' : 'mock',
+    },
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ ok: false, reason: 'invalid' }, 405)
@@ -129,22 +222,44 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'invalid' })
   }
   const session = typeof body.session === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(body.session) ? body.session : null
-  const object = body.object === 'article' ? body.object : null
+  const object = body.object === 'article' || body.object === 'reel' ? body.object : null
   if (!session || !object) return json({ ok: false, reason: 'invalid' })
-  const params = validateArticleParams(body.params)
-  if (!params) {
-    const loc = body.params && typeof body.params === 'object'
-      ? String((body.params as Record<string, unknown>).location ?? '')
-      : ''
-    return json({ ok: false, reason: loc && isBlocked(loc) ? 'blocked' : 'invalid' })
+
+  let articleParams = null as ReturnType<typeof validateArticleParams>
+  let reelParams = null as ReelParams | null
+  if (object === 'article') {
+    articleParams = validateArticleParams(body.params)
+    if (!articleParams) {
+      const loc = body.params && typeof body.params === 'object'
+        ? String((body.params as Record<string, unknown>).location ?? '')
+        : ''
+      return json({ ok: false, reason: loc && isBlocked(loc) ? 'blocked' : 'invalid' })
+    }
+  } else {
+    const p = body.params && typeof body.params === 'object' ? body.params as Record<string, unknown> : {}
+    if (p.action !== 'word' && p.action !== 'rate') return json({ ok: false, reason: 'invalid' })
+    reelParams = {
+      action: p.action,
+      word: typeof p.word === 'string' ? p.word : undefined,
+      rating: p.rating === 'HIGH' || p.rating === 'MEDIUM' || p.rating === 'LOW' ? p.rating : undefined,
+      hesitationMs: typeof p.hesitationMs === 'number' ? p.hesitationMs : 0,
+    }
+    if (p.action === 'word') {
+      const w = cleanWord(p.word)
+      if ('blocked' in w) return json({ ok: false, reason: 'blocked' })
+      if ('invalid' in w) return json({ ok: false, reason: 'invalid' })
+    }
   }
-  const profile = asProfile(body.profile, params)
+  const profile = articleParams
+    ? asProfile(body.profile, articleParams)
+    : inferProfile({ ...emptyProfile(), ...(body.profile && typeof body.profile === 'object' ? body.profile as VisitorProfile : {}) })
 
   const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
-  const mockDelay = Math.round(lo + Math.random() * (hi - lo))
+  const mockDelay = object === 'reel' ? 1 : Math.round(lo + Math.random() * (hi - lo))
+  const etaAi = object === 'reel' ? 3 : (CONFIG.EXPECTED_SECONDS[object] ?? 12)
   const { data: begin, error } = await db.rpc('ag_begin_generation', {
-    p_session: session, p_object: object, p_eta_ai: CONFIG.EXPECTED_SECONDS[object] ?? 12, p_eta_mock: mockDelay,
-    p_rate: CONFIG.RATE_LIMIT_SECONDS, p_cap: CONFIG.DAILY_GENERATION_CAP, p_tz: CONFIG.TIME_ZONE,
+    p_session: session, p_object: object, p_eta_ai: etaAi, p_eta_mock: mockDelay,
+    p_rate: object === 'reel' ? 0 : CONFIG.RATE_LIMIT_SECONDS, p_cap: CONFIG.DAILY_GENERATION_CAP, p_tz: CONFIG.TIME_ZONE,
   })
   if (error) {
     console.error(error)
@@ -159,11 +274,18 @@ Deno.serve(async (req) => {
     let result: unknown = null
     let source = 'mock'
     try {
-      const out = await produce(params, profile, useAi)
-      result = { ...out.result, at: Date.now() }
-      source = out.ai ? 'ai' : out.failed ? 'fallback' : begin.capReached && !begin.mockMode ? 'cap' : 'mock'
-      ;(result as { source: string }).source = source
-      if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
+      if (object === 'article' && articleParams) {
+        const out = await produce(articleParams, profile, useAi)
+        result = { ...out.result, at: Date.now() }
+        source = out.ai ? 'ai' : out.failed ? 'fallback' : begin.capReached && !begin.mockMode ? 'cap' : 'mock'
+        ;(result as { source: string }).source = source
+        if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
+      } else if (object === 'reel' && reelParams) {
+        const out = await produceReel(reelParams, useAi)
+        result = out.result
+        source = out.result.source
+        if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
+      }
     } catch (e) {
       console.error('generation failed', e)
       source = 'fallback'

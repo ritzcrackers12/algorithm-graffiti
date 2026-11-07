@@ -6,9 +6,16 @@ import { canonicalArticleParams, mockArticle, validateArticleParams } from '../s
 import { CONFIG, OBJECTS } from '../shared/config.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
+import {
+  cleanWord, emptyReelResult, logRound, pickFirst, pickNext, rowFromRecord, sessionLine,
+  type ReelResult, type ReelRow,
+} from '../shared/reel.ts'
 import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
 import { loadArticle } from './content.ts'
+import { emitReelClip, noteReelClip } from './reelSync.ts'
+
+const REEL_KEY = 'ag-reel-ended'
 
 interface DB {
   activeSession: string | null
@@ -50,6 +57,12 @@ export function createLocalBackend(): Backend {
   const fire = () => listeners.forEach((cb) => cb())
   window.addEventListener('storage', (e) => {
     if (e.key === KEY) fire()
+    if (e.key === REEL_KEY && e.newValue) {
+      try {
+        noteReelClip(JSON.parse(e.newValue))
+        fire()
+      } catch { /* ignore */ }
+    }
   })
 
   function write(db: DB, notify: boolean) {
@@ -128,14 +141,63 @@ export function createLocalBackend(): Backend {
     }
   }
 
-  function finish(id: number, session: string, object: 'article', result: unknown, source: Source) {
+  let reelLibrary: ReelRow[] | null = null
+  async function loadReels(): Promise<ReelRow[]> {
+    if (reelLibrary) return reelLibrary
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}content/reels.json`)
+      if (res.ok) {
+        const rows = await res.json() as Record<string, unknown>[]
+        reelLibrary = rows.map((r) => rowFromRecord(r)).filter((r) => r.id)
+        return reelLibrary
+      }
+    } catch { /* empty library */ }
+    reelLibrary = []
+    return reelLibrary
+  }
+
+  function produceReel(params: { action: string; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined): ReelResult {
+    const current = prev ?? emptyReelResult()
+    if (params.action === 'word') {
+      const w = cleanWord(params.word)
+      if ('blocked' in w || 'invalid' in w) return { ...emptyReelResult(), at: Date.now(), source: 'fallback' }
+      const pick = pickFirst(library, w.word, null, true)
+      if (!pick) {
+        return { ...emptyReelResult(), word: w.word, phase: 'done', sessionLine: 'NO LIBRARY.', at: Date.now(), source: 'fallback' }
+      }
+      return {
+        word: w.word, phase: 'playing', currentId: pick.id, videoUrl: pick.videoUrl,
+        rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
+        source: 'mock', at: Date.now(),
+      }
+    }
+    const rating = params.rating
+    if (!rating || !current.currentId) return { ...current, at: Date.now() }
+    const cur = library.find((r) => r.id === current.currentId)
+    const rounds = current.rounds.map((r, i) =>
+      i === current.rounds.length - 1 ? { ...r, rating, hesitationMs: params.hesitationMs ?? 0 } : r,
+    )
+    if (!cur) return { ...current, rounds, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now() }
+    const next = pickNext(library, current.usedIds, cur, rating, null, true)
+    if (!next) {
+      return { ...current, rounds, currentId: null, videoUrl: null, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now(), source: 'mock' }
+    }
+    const nextRounds = [...rounds, logRound(next, null, 0)]
+    return {
+      ...current, rounds: nextRounds, usedIds: [...current.usedIds, next.id],
+      currentId: next.id, videoUrl: next.videoUrl, phase: 'playing',
+      sessionLine: sessionLine(nextRounds), at: Date.now(), source: 'mock',
+    }
+  }
+
+  function finish(id: number, session: string, object: 'article' | 'reel', result: unknown, source: Source) {
     const db = read()
     const g = db.generations.find((x) => x.id === id)
     if (g) g.source = source
     const keep = db.activeSession === session || CONFIG.RESET_MODE === 'persist'
     if (db.display.busy?.id === id) db.display = { ...db.display, busy: null }
     if (keep && result) {
-      db.altered = { ...db.altered, [object]: result as ArticleResult }
+      db.altered = { ...db.altered, [object]: result as ArticleResult | ReelResult }
       if (db.display.open === object) db.display = { ...db.display, view: 'altered' }
     }
     if (db.activeSession === session) db.lastActivityAt = Date.now()
@@ -216,17 +278,32 @@ export function createLocalBackend(): Backend {
       return { ...snapshot(db, session), ok: true }
     },
     async generate(req) {
-      const params = req.object === 'article' ? validateArticleParams(req.params) : null
-      if (!params) return { ok: false, reason: 'invalid' }
+      const articleParams = req.object === 'article' ? validateArticleParams(req.params) : null
+      let reelParams: { action: 'word' | 'rate'; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number } | null = null
+      if (req.object === 'article') {
+        if (!articleParams) return { ok: false, reason: 'invalid' }
+      } else if (req.object === 'reel') {
+        const p = req.params
+        if (p.action !== 'word' && p.action !== 'rate') return { ok: false, reason: 'invalid' }
+        if (p.action === 'word') {
+          const w = cleanWord(p.word)
+          if ('blocked' in w) return { ok: false, reason: 'blocked' }
+          if ('invalid' in w) return { ok: false, reason: 'invalid' }
+        }
+        reelParams = p
+      } else {
+        return { ok: false, reason: 'invalid' }
+      }
       const db = read()
       if (db.activeSession !== req.session) return { ok: false, reason: 'not_active' }
       if (db.display.busy && db.display.busy.startedAt > Date.now() - 90_000) return { ok: false, reason: 'busy' }
       const last = db.generations.at(-1)
-      if (last && last.at > Date.now() - CONFIG.RATE_LIMIT_SECONDS * 1000) {
-        return { ok: false, reason: 'cooldown', secondsLeft: Math.ceil((last.at + CONFIG.RATE_LIMIT_SECONDS * 1000 - Date.now()) / 1000) }
+      const rate = req.object === 'reel' ? 0 : CONFIG.RATE_LIMIT_SECONDS
+      if (rate && last && last.at > Date.now() - rate * 1000) {
+        return { ok: false, reason: 'cooldown', secondsLeft: Math.ceil((last.at + rate * 1000 - Date.now()) / 1000) }
       }
       const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
-      const delay = Math.round(lo + Math.random() * (hi - lo))
+      const delay = req.object === 'reel' ? 1 : Math.round(lo + Math.random() * (hi - lo))
       const id = (last?.id ?? 0) + 1
       db.generations.push({ id, at: Date.now(), object: req.object, source: 'pending' })
       db.generations = db.generations.slice(-500)
@@ -239,8 +316,8 @@ export function createLocalBackend(): Backend {
       void (async () => {
         let result: unknown = null
         try {
-          if (req.object === 'article') {
-            const p = params
+          if (req.object === 'article' && articleParams) {
+            const p = articleParams
             const out = mockArticle(p, await loadArticle(p.articleId), resolveLocation(p.location))
             const profile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
             const match = pickAd(profile)
@@ -253,6 +330,9 @@ export function createLocalBackend(): Backend {
               source: 'mock',
               at: Date.now(),
             }
+          } else if (req.object === 'reel' && reelParams) {
+            const library = await loadReels()
+            result = produceReel(reelParams, library, db.altered.reel)
           }
         } catch (e) {
           console.error(e)
@@ -318,5 +398,10 @@ export function createLocalBackend(): Backend {
       return () => listeners.delete(cb)
     },
     poke() {},
+    reportReel(clip) {
+      emitReelClip(clip)
+      localStorage.setItem(REEL_KEY, JSON.stringify(clip))
+      fire()
+    },
   }
 }

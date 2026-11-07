@@ -13,6 +13,8 @@ export interface Backend {
   onPoke(cb: () => void): () => void
   /** Tell other devices to refresh now. */
   poke(): void
+  /** iPad reports clip duration / end so the phone can show LIKE / NEUTRAL / DISLIKE. */
+  reportReel(clip: { id: string; ended?: boolean; duration?: number }): void
 }
 
 let instance: Backend | null = null

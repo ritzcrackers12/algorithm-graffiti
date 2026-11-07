@@ -9,6 +9,7 @@ import type { AdPlacement } from '../shared/ads.ts'
 import AdPopup from './AdPopup.tsx'
 import ArticleView from './ArticleView.tsx'
 import PlaceholderView from './PlaceholderView.tsx'
+import ReelView from './ReelView.tsx'
 import ProgressDialog from './ProgressDialog.tsx'
 import QrNote from './QrNote.tsx'
 import Taskbar from './Taskbar.tsx'
@@ -110,6 +111,8 @@ export default function Desktop({ live }: { live: Live }) {
               selectedId={snap?.display.articleId}
               profile={profile}
             />
+          ) : obj.id === 'reel' ? (
+            <ReelView result={snap?.altered.reel} />
           ) : (
             <PlaceholderView id={obj.id} />
           )}

@@ -9,6 +9,7 @@ import { hydrateProfile } from '../shared/profile.ts'
 import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
 import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
+import ReelControls from './ReelControls.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
 
@@ -242,7 +243,10 @@ export default function Controller() {
           {open === 'article' && storyId && (
             <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} />
           )}
-          {open && open !== 'article' && (
+          {open === 'reel' && (
+            <ReelControls snap={snap} locked={!!busy} say={say} />
+          )}
+          {open && open !== 'article' && open !== 'reel' && (
             <div className="ctl-center">
               <div className="ctl-display">{open.toUpperCase()}</div>
               <div className="ctl-label">CONTROLS NOT INSTALLED.</div>

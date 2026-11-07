@@ -1,50 +1,61 @@
 # PROGRESS: Algorithm Graffiti
 
-_Last updated: Nov 7, 2026 (Version 2, Phase P)_
+_Last updated: Nov 7, 2026 (Version 2, Phase B 5-reel test)_
+
+## Phase B (5-reel test, in progress)
+
+Five rows `001`–`005` from `content/reel-library.xlsx`. Raw files stay in `content/reels-raw/` (gitignored). Compressed copies are in the public Supabase bucket `reels`.
+
+- **Match:** first frames checked on `#/reel-check`. Confirmed.
+- **Compress:** vertical H.264 ~5 MB. Instagram follow end-cards trimmed (~4s) on 001–003. Small baked-in IG username watermarks remain on 001–003 (they’re in the whole clip, not just the end). 004 has no IG card. 005 ends on the Cantina ad frame (content, not IG).
+- **Upload:** `reels/001.mp4` … `005.mp4` at `https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/{id}.mp4`
+- **Tag:** empty cells only. Energy from ffmpeg (all medium, speech detected). Vision captions (moondream) + Llama JSON. STT skipped: pinned `incredibly-fast-whisper` version is disabled on Replicate, and the unpinned model 404s. Tagged file: `content/reel-library-tagged.xlsx` (light blue + `ai_filled`).
+- **Import:** 5 rows + 5 gte-small embeddings in `ag_reels`. Local copy `public/content/reels.json`.
+- **Visitor flow:** phone `ENTER ONE WORD` → closest reel → HIGH/MEDIUM/LOW → next, no repeats. Sponsored items look like normal reels (no “Sponsored”, no ⓘ). Session line at the end includes `SPONSORED ITEMS`. `#/credits` lists creator names (empty until that column is filled).
+
+### Library balance (these 5)
+
+| | |
+|---|---|
+| n | 5 |
+| sponsored | 3 (001, 002, 005) |
+| topic | beauty/fashion 1, humor 4 |
+| audience | young men 1, general 3, teens 1 |
+| depth | 1 × 3, 2 × 2 |
+
+Llama still leaned “humor/prank” on 002–005 even with curator notes marked most reliable. Overlap/embeddings also use `curator_notes`, so words like `vivek` / `dance` / `rap` still match.
 
 ## Phase P (done)
 
-- **Spec:** Section 11 is the NYU proxy. Section 4 / Reel is the new spreadsheet pipeline (Phase B, not built yet).
-- **Wrapper:** `supabase/functions/_shared/replicateClient.ts`. `REPLICATE_MODE` default `proxy` → `https://itp-ima-replicate-proxy.web.app/api/create_n_get`. `direct` → `api.replicate.com`. Same `{ model | version, input }` plus optional `fieldToConvertBase64ToURL` / `fileFormat`.
-- **Admin:** paste proxy token (stored on `ag_state`, only last 4 shown), last-updated time, proxy/direct toggle, today's proxy count vs 500 cheap quota, status `PROXY OK` / `TOKEN EXPIRED` / `DAILY LIMIT REACHED`.
-- **Failures:** expired token or limit → cached or mock article. Visitors never see an error.
-- **Cache:** `ag_ai_cache` keyed by SHA-256 of job + inputs. Same article knobs reuse the rewrite.
-- **Ad copy:** still templates (`AI_AD_COPY` is off).
-- **Embeddings:** `gte-small` on the Edge Function first (free, 384-d). Replicate only if that fails.
-- **No typewriter:** the altered article appears whole when the progress dialog closes.
-- **`npm run test:replicate`:** embed + (if a token is saved) one tiny text call. `--all` adds vision/image/tts. STT waits for Phase B audio.
+- **Spec:** Section 11 is the NYU proxy. Section 4 / Reel is the spreadsheet pipeline.
+- **Wrapper:** `supabase/functions/_shared/replicateClient.ts`. `REPLICATE_MODE` default `proxy`.
+- **Admin:** paste proxy token, quota, PROXY OK / TOKEN EXPIRED / DAILY LIMIT REACHED.
+- **Cache:** `ag_ai_cache`. Embeddings: `gte-small` first.
 
 ### Pinned models (cheap only)
 
 | Job | Model | Version pin | Cost note |
 |---|---|---|---|
-| Text | `meta/meta-llama-3-8b-instruct` | `5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8` | ~$0.05/1M in + $0.25/1M out; a long article is a few cents |
+| Text | `meta/meta-llama-3-8b-instruct` | `5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8` | ~$0.05/1M in + $0.25/1M out |
 | Vision | `lucataco/moondream2` | `fe364e0c95b9142eef216ee8bf227b345097fee629b26bac3f4aed19f7b30a4d` | ~$0.0012 / run |
-| STT | `vaibhavs10/incredibly-fast-whisper` | `3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c` | short clip ≪ $0.01 |
-| Image | `black-forest-labs/flux-schnell` | `c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e` | schnell; about a cent or less |
+| STT | `vaibhavs10/incredibly-fast-whisper` | *(pin disabled / model 404 — needs a new cheap STT)* | — |
+| Image | `black-forest-labs/flux-schnell` | `c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e` | schnell |
 | TTS | `jaaari/kokoro-82m` | `f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13` | ~$0.0004 / run |
 | Embed | Supabase `gte-small` | built-in | free |
 
-No video models.
-
 ## Phase A (done)
 
-Four icons, no turn timer, visitor profile, placeholder ads, sponsored paragraph, Game locked. See git history.
-
-## Next (wait for “continue”)
-
-**Phase B: Reel** — needs your spreadsheet + MP4 folder.
+Four icons, no turn timer, visitor profile, placeholder ads, sponsored paragraph, Game locked.
 
 ## Needed from the user
 
-1. **Now, for a live proxy test:** log in at https://itp-ima-replicate-proxy.web.app/ with your **nyu.edu** account, copy a fresh token, paste it on `#/admin` (SAVE PROXY TOKEN). Tokens can expire about every hour.
-2. For **Phase B:** `reel-library.xlsx` (or `reels.csv`) and the MP4 folder, or say to wait.
-3. Optional later: `REPLICATE_API_TOKEN` in Supabase secrets if we switch to **direct** for the show.
+1. Fresh NYU proxy token on `#/admin` when it expires (~hourly).
+2. A working cheap STT model if we want transcripts on the next batch.
+3. Optional: `REPLICATE_API_TOKEN` if we switch to **direct** for the show.
 4. `ADMIN_PASSCODE` secret before the gallery.
 
 ## Decisions / notes
 
-- Default `test:replicate` does **not** spend quota when no token is saved (embed only). With a token it makes **one** tiny text call unless you pass `--all`.
-- Article rewrite is cached by canonical control values so repeats are free.
-- Sponsored paragraph is still inserted after the rewrite so source facts stay put.
-- `fieldToConvertBase64ToURL` is sent at the top level of the proxy body, matching the class p5 examples.
+- 5-reel test: no round-3 forced sponsored, no sponsored chrome on the player.
+- Proxy media: data URLs with `image/jpeg` were rejected (`only works for png, jpg, and wav`). Tag assets are uploaded to `reels/tag/` and passed as public URLs.
+- Do not git-push large MP4s. Raw and work folders are gitignored.

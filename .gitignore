@@ -30,3 +30,9 @@ dist-ssr
 supabase/.temp
 supabase/.branches
 .screens
+
+# Raw reel downloads (Phase B). Large MP4s stay off git; compressed copies go to Supabase Storage.
+content/reels-raw/
+content/reels-work/
+public/content/reels-check/*.jpg
+public/content/reels/*.mp4

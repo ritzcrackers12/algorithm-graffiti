@@ -85,9 +85,9 @@ export const CONFIG = {
     },
     stt: {
       model: 'vaibhavs10/incredibly-fast-whisper',
-      version: '3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c',
+      version: '',
       kind: 'cheap' as const,
-      note: 'whisper-large-v3; short clip is a fraction of a cent',
+      note: 'whisper-large-v3; pinned hash was disabled on Replicate, so the proxy uses current model',
     },
     image: {
       model: 'black-forest-labs/flux-schnell',

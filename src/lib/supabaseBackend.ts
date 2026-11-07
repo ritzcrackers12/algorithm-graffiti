@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { CONFIG } from '../shared/config.ts'
 import type { Backend } from './backend.ts'
+import { emitReelClip, noteReelClip } from './reelSync.ts'
 import type { Snapshot } from '../shared/types.ts'
 
 const TOPIC = 'ag-installation'
@@ -13,6 +14,12 @@ export function createSupabaseBackend(url: string, key: string): Backend {
   // One channel for the whole app (never created inside React effects, so StrictMode can't double it).
   const channel = sb.channel(TOPIC, { config: { broadcast: { self: false } } })
   channel.on('broadcast', { event: 'state' }, fire)
+  channel.on('broadcast', { event: 'reel' }, ({ payload }) => {
+    if (payload && typeof payload === 'object' && 'id' in payload) {
+      noteReelClip(payload as { id: string; ended?: boolean; duration?: number })
+    }
+    fire()
+  })
   channel.subscribe((status) => {
     if (status === 'SUBSCRIBED') fire()
   })
@@ -54,6 +61,10 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     },
     poke() {
       void channel.send({ type: 'broadcast', event: 'state', payload: {} })
+    },
+    reportReel(clip) {
+      emitReelClip(clip)
+      void channel.send({ type: 'broadcast', event: 'reel', payload: clip })
     },
   }
 }
