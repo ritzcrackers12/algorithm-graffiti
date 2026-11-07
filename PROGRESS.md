@@ -1,82 +1,44 @@
 # PROGRESS: Algorithm Graffiti
 
-_Last updated: Nov 6, 2026 (article controls: 6 dials, MAGA lead photo)_
+_Last updated: Nov 7, 2026 (Version 2, Phase A)_
 
-## Done (Session 1)
-- **Project:** own folder and public repo, https://github.com/ritzcrackers12/algorithm-graffiti. Auto-deploys to
-  https://ritzcrackers12.github.io/algorithm-graffiti/ on every push (GitHub Actions).
-- **Settings in one place:** `src/shared/config.ts`.
-- **Queue (one visitor at a time):** 240s turns (covers the whole sequence), 40s idle handoff, vanished phones
-  dropped after 12s, waiting phones kept for 3 min even with a locked screen. Covered by SQL tests
-  (`npm run test:sql`, all passing).
-- **Visitor picks the object:** iPad stays on the desktop (`CLICK AN ICON TO START.`) until the phone taps an
-  icon. Then the iPad opens that window and the phone shows that object's controls. **BACK TO ICONS** returns
-  to the picker without ending the visit. A red **I AM DONE WITH ALL THE MEDIA OBJECTS** button (top right of
-  every controller screen) is how they hand off to the next person. Rewriting an article no longer ends the
-  session. Reel / image / song stay on the picker as OFFLINE until their sessions.
-- **Staff console `#/admin`:** passcode, live status, today's generation counts, reset / skip / clear queue /
-  mock on-off.
-- **iPad `#/library`:** tap-to-begin (sound, wake lock, fullscreen), XP desktop, 5 icons (idle, click and
-  "altered" glitch animations), XP windows, green progress dialog with countdown, Original/Altered tabs, QR sticky
-  note, taskbar with connection status, auto-update when a new version is deployed.
-- **Phone `#/controller`:** vintage metal faceplate (Supreme type, brass knobs, no page scroll), queue,
-  MM:SS timer, object picker, Home, Original/Altered, lock while processing, idle warning, End Session.
-  Background photos go in `public/assets/bg-*.jpg` when you have them.
-- **Article:** Story 1 **The MAGA Coalition Disintegrates** (opinion, huddle photo). Story 2 **AI Companies
-  Scramble to Navigate a World Hostile to Data Centers** (tech, construction photo, dek under the headline).
-  Phone has
-  two panels: FRAME (lean, connotation, sensationalism) and AUDIENCE (6-level education, income slider
-  unset until touched, location autocomplete). Mock rewrites follow the spec order. State profiles are
-  a **DRAFT** — verify `src/shared/stateProfiles.ts` / `public/content/state-profiles.json` before the show.
-- **Website:** era / country model / mood. iPad shows **Block Safety** fullscreen (no desktop icons / QR while
-  the site is open). Original and altered keep the **same photos and layout**; only rewriteable text and mood
-  colors change. Placeholder photos look for `.jpg` first, then fall back to `.svg`.
-- **Supabase connected** (project `nkmeiqwhwuuysdahyzju`, region us-west-2): database pushed, both functions deployed,
-  GitHub variables set, live site rebuilt. Verified live: phone takes control, mock rewrite reaches the iPad.
-- **Server:** `generate` and `admin` Edge Functions. They enforce the daily cap
-  (200), the 5s rate limit, the 30s timeout with fallback, and input validation, and build every prompt
-  server-side.
-- **Mock mode** works everywhere with zero API keys. **Local mode** (no Supabase yet) lets browser tabs act as
-  iPad and phones.
-- **Tested:** two-window end-to-end test in local mode (article flow, website flow, Original toggle, queue
-  handoff, per-visitor reset, admin).
+## Phase A (done)
 
-## Next
-1. **User:** set the `ADMIN_PASSCODE` secret in Supabase, then test on the real iPad and a phone.
-2. Fix anything that shows up on real devices (iOS Safari quirks, sizing).
-3. **User:** Replicate token in Supabase secrets. Then pick and **pin the exact model version** in
-   `CONFIG.TEXT_MODEL` (currently uses the latest `meta/meta-llama-3-8b-instruct`, version not pinned yet).
-4. Real-AI test with a few generations, then back to mock until the show if you prefer.
-5. **User:** verify the state profiles (2024 lean, industries, issues) before the show.
-6. Drop remaining photos (see `public/assets/README.txt`). Desktop wallpaper, icons, phone backgrounds,
-   Block Safety shots, and the other article lead photos. MAGA article photo is in.
-7. Later sessions: Reel (Supabase Storage + caption/embed prep), Song (stems + Tone.js), Image becoming ads.
+- **Spec:** `PROJECT_SPEC.md` is Version 2.
+- **Removed:** Image, Website, and Block Safety (files, icons, routes, Edge Function paths, config slots). Desktop is four icons: Article, Reel, Song, Game.
+- **Timer gone:** `TURN_SECONDS` is 0. No countdown on the phone or iPad. Idle handoff is 60s and invisible. Queue, admin skip, and `RESET_MODE` are unchanged.
+- **Visitor profile:** anonymous, per turn, no IP lookup. Device + behavior + Article knobs. Rule-based inferred traits in `src/shared/profile.ts`. Deleted at end of turn unless `RESET_MODE = persist`. Wired into Article generate.
+- **Ads:** 6 placeholder rows in `public/content/ads.csv` + `public/assets/ads/`. Scoring, mock personalization, XP pop-ups (max 3, first after leaving the first object, 45s gap, only at home or while loading), ⓘ “Why am I seeing this?” with official line + FULL REPORT from real scores.
+- **Article:** controls unchanged. Every rewrite weaves a sponsored paragraph (`%%SPONSORED%%`) marked “Sponsored content” with ⓘ. Live mode still uses the Llama rewrite, then inserts the paragraph so source facts are not edited.
+- **Game icon:** locked (`ACCESS RESTRICTED. INSUFFICIENT DATA.`) with ⓘ. Unlock logic is Phase D.
+- **Reel / Song:** open to a stub window (`NO SIGNAL.`). Real flows are Phases B and C.
+- **On-screen copy:** visitor-facing strings checked against Section 0 (no show title, no commentary). Internal name is `MEDIA STATION`.
+- **SQL:** `supabase/migrations/20261107180000_v2_phase_a.sql` (profile column, `signal` command, turn=0, used[], objects article|reel|song|game).
+- **Tests:** `npm run test:sql`, `npm run build`.
+
+## Next (wait for “continue”)
+
+1. **Phase B:** Reel CSV + videos (or 10 placeholders), embeddings, new chatbot/rating flow, round-3 sponsored reel.
+2. Phase C Song, Phase D Game, Phase E end screen + `npm run test:replicate`.
 
 ## Needed from the user
-- Supabase account and project: Project URL and the publishable (anon) key.
-- A staff passcode (set as a Supabase secret `ADMIN_PASSCODE`; the default `1116` in the public repo is only for
-  local testing).
-- Replicate account and API token (only needed to leave mock mode).
 
-## Decisions / notes
-- Own folder and repo, not inside the Sigma Chi repo. Renamed to "Algorithm Graffiti"; "Who tunes your reality?"
-  is the tagline.
-- **The repo is public** (free GitHub Pages requires it). No secrets in it; staff passcode is a Supabase secret.
-- **Explicit send buttons** ("REWRITE ARTICLE", "REBUILD WEBSITE") instead of sending on every knob twist. This
-  keeps AI calls (and the daily cap) under control and makes the moment of "transmitting" feel deliberate.
-- **Typewriter instead of true streaming:** the server returns the whole rewrite; the iPad types it out. Simpler
-  and survives fallbacks the same way.
-- **Waiting phones** are kept for 3 minutes without check-ins (locked screens pause the page), but are skipped
-  when it's their turn if they haven't checked in within 12s.
-- **Reset mode `per_visitor`:** when a turn ends, the iPad goes back to the originals. Switch to `persist` in
-  config to let changes pile up.
-- Phone always shows an article-title dropdown (native select, so a long library does not scroll the page).
-- Reel, Image and Song appear on the iPad but are "offline" on the phone until their sessions.
-- Ball Street Journal / Block Safety match Flock Safety and WSJ **layout, type and color** from their live
-  sites. Their photos, logos, CSS files and marketing sentences are not copied. Free stand-ins: Supreme
-  (controller), Source Serif 4 + Source Sans 3 (journal), Instrument Serif + Schibsted Grotesk (Block Safety).
-- User asked for the company name "blocksaftey"; the site uses **Block Safety** to parallel Flock Safety.
+- Nothing required to test Phase A in two browser tabs (local or live mock).
+- For **Phase B:** `content/reels.csv` and the MP4 folder, or say to use placeholders.
+- For **Phase C:** song files + metadata, or say to use placeholders.
+- Before the show: `ADMIN_PASSCODE` and `REPLICATE_API_TOKEN` as Supabase secrets; pin `CONFIG.TEXT_MODEL.version`; confirm state profiles.
 
-## Known issues
-- In desktop browser testing, hidden background tabs get throttled and can be dropped from the queue. Real phones
-  behave normally while the page is open.
+## Decisions / notes (Version 2)
+
+- Sponsored paragraph is inserted after the rewrite (mock templates now; live uses the same post-insert so facts never change). Same-call weaving can wait until a later pass.
+- Pop-up scheduling lives on the phone (active session) and the iPad only displays `profile.lastAd`.
+- Game stays locked until Phase D even if two objects are used.
+- Finance category scoring currently boosts higher income; `income<=60k` rules still add a match bonus for placeholder 2.
+
+## Earlier (Session 1, still true)
+
+- Public repo https://github.com/ritzcrackers12/algorithm-graffiti → GitHub Pages. Supabase `nkmeiqwhwuuysdahyzju` us-west-2.
+- Article stories: MAGA coalition, data centers, military AI. Phone chooser before dials. Mock-first. Daily cap 200, 5s rate limit, 30s timeout.
+- State profiles are a **DRAFT** — verify before the show.
+- Waiting phones kept 3 minutes; skipped if gone 12s when their turn comes.
+- Typewriter on the iPad, not true streaming.

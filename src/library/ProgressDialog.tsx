@@ -4,9 +4,8 @@ import { useNow } from '../lib/live.ts'
 import { XpWindow } from './XpWindow.tsx'
 
 const PHASES: Record<string, string[]> = {
-  article: ['PARSING SOURCE TEXT', 'ADJUSTING NARRATIVE BIAS', 'RECALIBRATING OUTPUT'],
-  website: ['SAMPLING ERA SIGNATURES', 'APPLYING GOVERNANCE MODEL', 'RECALIBRATING OUTPUT'],
-  default: ['ANALYZING INPUT', 'RECALIBRATING OUTPUT'],
+  article: ['PARSING SOURCE TEXT', 'APPLYING INPUT PARAMETERS', 'WRITING OUTPUT'],
+  default: ['ANALYZING INPUT', 'WRITING OUTPUT'],
 }
 
 export default function ProgressDialog({ busy }: { busy: Busy }) {

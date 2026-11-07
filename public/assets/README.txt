@@ -11,36 +11,30 @@ iPad desktop — public/assets/
   start-button.png       ~220 x 64       taskbar start (no Windows logo)
 
 Desktop icons — public/assets/  (512 x 512, transparent PNG)
-  icon-reel.png
-  icon-website.png
   icon-article.png
-  icon-image.png
+  icon-reel.png
   icon-song.png
+  icon-game.png
 Optional after-altered versions: icon-<name>-altered.png
 
 Phone controller backgrounds — public/assets/  (1170 x 2532)
-  bg-reel.jpg
-  bg-website.jpg
   bg-article.jpg
-  bg-image.jpg
+  bg-reel.jpg
   bg-song.jpg
+  bg-game.jpg
 
-Block Safety website photos — public/content/website/base/photos/
-  hero.jpg               dusk street with LPR cameras on poles (Flock homepage hero)
-  news-1.jpg news-2.jpg news-3.jpg     square story photos
-  product-lpr.jpg product-video.jpg product-trailer.jpg    product shots
-  account.jpg            dark desk / dashboard
-  See photos/README.txt for the exact picture to shoot or find.
+Ad images — public/assets/ads/
+  Placeholder SVGs (ph-1.svg … ph-6.svg) are already here.
+  Later real ads: put the file named in content/ads.csv `image` column.
 
 Ball Street Journal article photos — public/content/articles/photos/
-  maga-coalition.jpg     IN — election-night huddle / MAGA hat
-  ai-data-centers.jpg    IN — data-center construction site
-  campus-cameras.jpg     school entrance
-  waterfront-readers.jpg harbor promenade
+  maga-coalition.jpg     election-night huddle / MAGA hat
+  ai-data-centers.jpg    data-center construction site
+  military-ai.jpg        explosion still from a military demo
   See photos/README.txt. Name must match the article id in index.json.
 
 ======== Supabase Storage (large media — do NOT put in GitHub) ========
 
-  reels/     ~100 vertical MP4s   (Session 2)
-  songs/     vocals + instrumentals WAV/MP3  (Session 3)
-  ads/       later, when Image becomes advertisements
+  reels/     vertical MP4s   (Phase B)
+  songs/     vocals + instrumentals  (Phase C)
+  ads/       generated ad images if a CSV row has no file (Phase A caches here later)

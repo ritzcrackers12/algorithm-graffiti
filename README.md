@@ -1,10 +1,12 @@
 # Algorithm Graffiti
 
-**WHO TUNES YOUR REALITY?**: a gallery installation for NYU IMA (opens November 16).
+Gallery installation for NYU IMA (opens November 16). An iPad shows a Windows XP–style desktop with
+four objects (Article, Reel, Song, Game). A visitor scans the QR note; their phone is the remote.
+One visitor at a time, with a queue. There is no turn timer. A turn ends when they press END SESSION,
+close the page, or sit idle for 60 seconds.
 
-An iPad shows a Windows XP–style desktop with five media objects. A visitor scans the QR note on the
-iPad's screen, and their phone becomes the remote: one visitor at a time, with a queue. They twist
-knobs and sliders, and the object on the iPad gets rewritten or restyled.
+**Wall label (draft, rewrite as you like):** This station records device type, the controls you move,
+and the ratings or choices you make. The record is anonymous. It is deleted when the session ends.
 
 | Page | Address | Who uses it |
 |---|---|---|
@@ -12,9 +14,7 @@ knobs and sliders, and the object on the iPad gets rewritten or restyled.
 | Controller (phone) | https://ritzcrackers12.github.io/algorithm-graffiti/#/controller | Visitors (via QR code) |
 | Staff console | https://ritzcrackers12.github.io/algorithm-graffiti/#/admin | Staff (needs passcode) |
 
-Session 1 built: queue, admin, iPad desktop, phone controller, **Article** and **Website** objects.
-Reel, Image and Song show as "offline" until later sessions. See `PROGRESS.md` for status, and
-`PROJECT_SPEC.md` for the full brief.
+See `PROGRESS.md` for status and `PROJECT_SPEC.md` for the Version 2 brief.
 
 ---
 
@@ -41,7 +41,7 @@ address to force local mode even after Supabase is connected, e.g.
 |---|---|
 | **All settings** (timers, mock mode, daily cap, passcode, AI model) | `src/shared/config.ts` |
 | Articles | `public/content/articles/` |
-| Website that gets restyled | `public/content/website/base/` |
+| Placeholder ads | `public/content/ads.csv` and `public/assets/ads/` |
 | Your artwork (wallpaper, icons, backgrounds) | `public/assets/` |
 | Database logic (queue, cap, rate limit) | `supabase/migrations/` |
 | Server code (AI calls, staff actions) | `supabase/functions/` |
@@ -55,9 +55,9 @@ placeholder art, so you can add them one at a time.
 |---|---|---|
 | `wallpaper.jpg` | 2732 × 2048 | iPad desktop background (no Microsoft Bliss) |
 | `start-button.png` | about 220 × 64, transparent | iPad taskbar (no Windows logo) |
-| `icon-reel.png`, `icon-website.png`, `icon-article.png`, `icon-image.png`, `icon-song.png` | 512 × 512, transparent | iPad desktop icons and phone picker |
+| `icon-article.png`, `icon-reel.png`, `icon-song.png`, `icon-game.png` | 512 × 512, transparent | iPad desktop icons and phone picker |
 | `icon-<name>-altered.png` (optional, e.g. `icon-article-altered.png`) | 512 × 512 | iPad icon after it's been altered |
-| `bg-reel.jpg`, `bg-website.jpg`, `bg-article.jpg`, `bg-image.jpg`, `bg-song.jpg` | 1170 × 2532 | Phone background for that object's controls |
+| `bg-article.jpg`, `bg-reel.jpg`, `bg-song.jpg`, `bg-game.jpg` | 1170 × 2532 | Phone background for that object's controls |
 
 Keep big media (video, audio) **out** of this repo. Later sessions will put it in Supabase Storage.
 A checklist of file names is also in `public/assets/README.txt`.
@@ -65,26 +65,29 @@ A checklist of file names is also in `public/assets/README.txt`.
 ### Articles: `public/content/articles/` (Ball Street Journal)
 
 The iPad shows each story in a Wall Street Journal–style page titled **The Ball Street Journal**.
-The phone lists stories **by title** in a metal dropdown. Add as many as you like:
+The phone lists stories **by title** on a chooser screen. Add as many as you like:
 
 1. Write the article as a Markdown file, e.g. `my-story.md`. First line is `# Headline`.
    Optional byline: `*By Name, Ball Street Journal*`. Then paragraphs separated by a blank line.
 2. Add it to `index.json`: `{ "id": "my-story", "title": "The Headline Visitors Will See" }`.
    The `id` must match the file name without `.md`.
-3. Delete the sample Harbor Point stories when yours are in. See `public/content/articles/README.txt`.
+3. See `public/content/articles/README.txt`.
 
-### Website: `public/content/website/base/` (Block Safety)
+### Ads: `public/content/ads.csv`
 
-This is a Flock Safety–style homepage renamed **Block Safety**. Layout, cream/green palette and
-serif headlines follow their public site; the words, logo and street drawing are original.
+Placeholder rows (`PLACEHOLDER BRAND 1` … `6`) are in place so scoring and pop-ups can be tested.
+Replace them later with fictional brands. Columns:
 
-Optional photo: drop `hero.jpg` in that same folder to replace the drawing.
-
-Keep these two rules if you edit the HTML:
-
-- Text the AI may rewrite carries `data-editable="some-id"` with plain text inside (no child tags).
-- Colors and fonts come from the CSS variables on `:root` in `style.css`. Restyles only change
-  those variables. Allowed fonts are listed in `src/shared/website.ts`.
+| Column | Meaning |
+|---|---|
+| `id` | Short id, e.g. `ph-1`. Must be unique. |
+| `category` | Bucket the scorer matches (wellness, finance, security, civic, education, lifestyle). |
+| `brand` | Brand name shown on the ad. |
+| `product` | Product name. |
+| `tagline` | Default headline before personalization. |
+| `image` | File under `public/assets/ads/` (example: `ads/ph-1.svg`). |
+| `voice_script` | Spoken line for the later radio ad. |
+| `target_rules` | Conditions on the visitor profile, combined with `AND` / `OR`. Examples: `income<=60k`, `mood=anxious`, `lean>=1`, `lean<=-1`, `age=18-24`. |
 
 ## Deploying
 
@@ -128,10 +131,10 @@ With real AI on, the following limits are enforced on the server:
    it from the home screen (full screen, no browser bars). Tap **TAP TO BEGIN** (this turns on sound
    and keeps the screen awake). In Settings → Display & Brightness, set Auto-Lock to Never. For the
    gallery, also use Settings → Accessibility → **Guided Access**.
-3. **Phone:** scan the QR note in the iPad's bottom-left corner with the camera. You get control,
-   and a 1:30 timer starts.
+3. **Phone:** scan the QR note in the iPad's bottom-left corner with the camera. You get control.
+   There is no countdown.
 4. **Second phone:** scan too. It should say "QUEUE POSITION: 1. YOU ARE NEXT." When the first
-   phone taps END SESSION (or stops touching for 20 seconds), the second phone takes over and the
+   phone taps END SESSION (or stops touching for 60 seconds), the second phone takes over and the
    iPad resets to the originals.
 5. **Staff:** open `#/admin` on any device and enter the passcode. You can reset, skip a visitor,
    clear the queue, and switch mock mode.

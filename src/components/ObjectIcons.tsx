@@ -28,24 +28,19 @@ function Reel() {
   )
 }
 
-function Website() {
+function Game() {
   return (
     <svg viewBox="0 0 128 128">
       <defs>
-        <linearGradient id="web-w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fdfdfd" /><stop offset="1" stopColor="#d9e3f2" /></linearGradient>
-        <radialGradient id="web-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stopColor="#7fd3ff" /><stop offset="0.6" stopColor="#1f7be0" /><stop offset="1" stopColor="#0b3d9c" /></radialGradient>
-        <Gloss id="web-s" />
+        <linearGradient id="game-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6ad08a" /><stop offset="1" stopColor="#1a6a38" /></linearGradient>
+        <Gloss id="game-g" />
       </defs>
-      <rect x="6" y="14" width="96" height="78" rx="6" fill="url(#web-w)" stroke="#2c5fbf" strokeWidth="3" />
-      <rect x="6" y="14" width="96" height="16" rx="6" fill="#2a63d8" />
-      <circle cx="16" cy="22" r="3" fill="#ff6b5b" /><circle cx="26" cy="22" r="3" fill="#ffd25b" /><circle cx="36" cy="22" r="3" fill="#6bdc6b" />
-      <rect x="16" y="40" width="44" height="7" rx="2" fill="#9db4d8" /><rect x="16" y="53" width="60" height="5" rx="2" fill="#c3d1e8" /><rect x="16" y="63" width="52" height="5" rx="2" fill="#c3d1e8" />
-      <circle cx="88" cy="86" r="32" fill="url(#web-g)" stroke="#0b3d9c" strokeWidth="2" />
-      <g fill="none" stroke="#c8f0ff" strokeOpacity="0.8" strokeWidth="2.2">
-        <ellipse cx="88" cy="86" rx="13" ry="32" /><path d="M56 86 H120 M60 70 H116 M60 102 H116" />
-      </g>
-      <path d="M68 70 q8 -6 14 2 q6 8 -4 12 q-8 4 -4 12 q-12 -6 -6 -26z" fill="#4fd06a" opacity="0.9" />
-      <circle cx="88" cy="86" r="32" fill="url(#web-s)" />
+      <rect x="14" y="40" width="100" height="56" rx="18" fill="url(#game-b)" stroke="#0d3d1e" strokeWidth="3" />
+      <rect x="28" y="54" width="28" height="28" rx="4" fill="#0d3d1e" />
+      <rect x="36" y="46" width="12" height="44" rx="3" fill="#0d3d1e" />
+      <circle cx="86" cy="62" r="8" fill="#d24a3a" />
+      <circle cx="100" cy="74" r="8" fill="#3a6ad2" />
+      <rect x="14" y="40" width="100" height="24" rx="18" fill="url(#game-g)" />
     </svg>
   )
 }
@@ -68,23 +63,6 @@ function Article() {
   )
 }
 
-function Picture() {
-  return (
-    <svg viewBox="0 0 128 128">
-      <defs>
-        <linearGradient id="img-f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffe08a" /><stop offset="0.5" stopColor="#c8911e" /><stop offset="1" stopColor="#8a5a08" /></linearGradient>
-        <linearGradient id="img-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3aa0ff" /><stop offset="1" stopColor="#bde3ff" /></linearGradient>
-        <Gloss id="img-g" />
-      </defs>
-      <rect x="8" y="16" width="112" height="96" rx="4" fill="url(#img-f)" stroke="#6b4300" strokeWidth="2" />
-      <rect x="20" y="28" width="88" height="72" fill="url(#img-s)" />
-      <circle cx="86" cy="48" r="10" fill="#fff36b" />
-      <path d="M20 100 L48 58 L66 82 L80 66 L108 100 Z" fill="#2f8f46" />
-      <path d="M20 100 L48 58 L56 70 L38 100 Z" fill="#46b35f" />
-      <rect x="20" y="28" width="88" height="36" fill="url(#img-g)" />
-    </svg>
-  )
-}
 
 function Song() {
   return (
@@ -111,9 +89,8 @@ function Song() {
 export function ObjectIcon({ id }: { id: ObjectId }) {
   switch (id) {
     case 'reel': return <Reel />
-    case 'website': return <Website />
     case 'article': return <Article />
-    case 'image': return <Picture />
     case 'song': return <Song />
+    case 'game': return <Game />
   }
 }

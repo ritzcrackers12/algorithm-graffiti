@@ -1,157 +1,276 @@
-# Cursor prompt: "Library + Controller" (Session 1)
+# Algorithm Graffiti — PROJECT SPEC (Version 2)
 
-Open an empty folder in Cursor, start a new Agent chat, and paste everything below the line.
-For Sessions 2 and 3, start a **new** chat and say: "Read PROJECT_SPEC.md and PROGRESS.md, then do Session 2" (or 3).
+NYU IMA gallery installation. Opens **November 16**.
 
----
+This file is the brief. Version 2 replaces the parts it covers. Anything not changed here stays from Version 1 (device roles, XP look, tech stack, AI/key rules, reliability, how we work).
 
-You're building an interactive art installation with me for an NYU IMA gallery show due **November 16**. I'm not a programmer: I'm vibe coding, so **you do all the coding, run all commands, and test your own work**. Whenever you need something only I can do (create an account, log in, paste a key, upload a file), stop and tell me in plain, numbered steps exactly what to do and where to click.
-
-**First, save this entire message as `PROJECT_SPEC.md` in the project root.** Keep a `PROGRESS.md` file updated with what's done, what's next and any known issues, so later chats can pick up where we left off.
-
-**Only build Session 1 now.** Before writing code, give me a short plan for Session 1 and list anything you need from me.
+I'm not a programmer: **you write all code, run all commands, and test your own work**. When something needs me (a file, a login, a key), give numbered click-by-click steps. Work **one phase at a time** (Section 11). After each phase: commit, update `PROGRESS.md`, tell me in plain sentences what works and how to test it, and wait for me to say **"continue."**
 
 ---
 
-## 1. The concept
+## 0. Important: no theme or commentary on screen
 
-A Windows XP–style "desktop" on an iPad shows five media objects as large, animated icons. Visitors scan a QR code and use **their own phone** as a remote control. The phone shows a custom controller for whichever object is open; the visitor's choices reshape that object using AI or algorithms, and the result appears on the iPad. Theme: who tunes your reality?
+The piece must feel like a **neutral, real-seeming system**. Nowhere on the iPad or phones (labels, dialogs, chatbot lines, end screen, public pages) should there be any text that comments on, explains or hints at the concept: no mentions of algorithms shaping people, "the usual," manipulation, surveillance, critique, or a show title.
 
-## 2. Roles of each device
+Everything visitors see is **plain cold machine system language**, the way real software talks about itself. If you're unsure whether a line counts as commentary, leave it out.
 
-- **iPad (`#/library`): display only.** No touch interaction is needed except an initial "tap to begin" (required for audio on iOS). Audio plays through headphones plugged into the iPad.
-- **Phone (`#/controller`): does all the choosing.** The visitor picks an object, operates its controls, and can press a **Home** button that returns the iPad to the desktop.
-- When the visitor picks an object on the phone, the matching icon on the iPad plays a "clicked" animation, then opens as an XP-style window ("file") containing that object.
-- When a change is processing, the iPad shows an **XP-style progress dialog** (classic green block progress bar), with a cold machine status line, e.g. `RECALIBRATING OUTPUT. 3 SECONDS REMAINING.`
-- When the result is ready it appears in the iPad window. The phone controller stays on the same controls (so the visitor can keep adjusting).
-- Every object window has an **Original / Altered toggle** (controlled from the phone) to flip between the original and the current altered version.
+---
 
-## 3. Visitor queue (one person at a time)
+## 1. What Version 2 changed
 
-- A QR code shown on the iPad desktop (small, in a corner, like a desktop sticky note) opens the controller URL.
-- Only **one visitor controls at a time**. The first to arrive gets control for **90 seconds**, or until **20 seconds of inactivity**, then control passes to the next person.
-- Everyone else sees a queue screen with their position: `QUEUE POSITION: 3. STAND BY.`
-- The active visitor sees a visible countdown timer.
-- Make the turn length and idle timeout settings in one config file.
-- The queue must survive phones locking or closing the tab: if the active visitor disappears, control passes on automatically.
+**Removed:** Image and Website objects (icons, controllers, routes, Edge Function paths, config, asset slots). **Block Safety** entirely (photos, files, references, ads).
 
-## 4. Persistence and reset
+**Kept as is:** the **Article** object. Don't change its controls or behavior except Section 5 (sponsored paragraph + feeding the profile).
 
-- Add a setting `RESET_MODE` in config with two options: `"per_visitor"` (each visitor starts from the originals) and `"persist"` (changes build up across visitors). I haven't decided yet; default to `"per_visitor"`.
-- Add a hidden staff page (`#/admin`, protected by a simple passcode set in config) with: reset everything to originals, skip the current visitor, clear the queue, turn mock mode on/off, see today's generation count.
+**Updated:** Reel (Section 4) and Song (Section 7: radio ad + male/female voice toggle).
 
-## 5. The five media objects
+**New:** visitor profile (Section 3), advertising in each object plus 2–3 pop-up ads (Section 6), first version of a Game (Section 8), neutral end-of-turn screen (Section 9).
 
-### A. Reel (Session 2)
-- Content: ~100 vertical MP4 reels I will upload to Supabase Storage.
-- **Prep script (run once, before the show):** for each reel, grab a frame (or a few), use a vision/captioning model on Replicate to describe it, then create an embedding of that description and store it in Supabase (pgvector). Let me edit tags/descriptions afterward.
-- **Controller:** a chatbot interface. The bot asks for **one word**. The word is embedded and matched to the closest reel by meaning. The reel plays on the iPad.
-- The visitor then rates the reel **HIGH / MEDIUM / LOW**. The next reel adapts: HIGH → move closer to that reel's meaning, MEDIUM → small shift, LOW → move away toward a different cluster. Never repeat a reel within a visit.
-- This loop runs **5 times**, then the bot ends the session with a cold summary, e.g. `PROFILE COMPLETE. 5 PREFERENCES RECORDED.`
-- Filter offensive words before matching (simple blocklist in config).
+**UI:** don't redesign yet. Keep new screens functional and plain, consistent with the current XP + cold machine style.
 
-### B. Website (Session 1: controller + system only)
-- **I will supply the base website myself later.** For now, build with a simple placeholder homepage (generic, invented company, no real brands) so everything works end to end.
-- Load the base site from `public/content/website/base/` so I can swap it later. Elements that the AI may rewrite get a `data-editable` attribute; colors/fonts come from CSS variables.
-- **Controls:** an **era dial** (1996 / 2006 / 2016 / 2026), a **country model** the visitor either types or picks from a flag grid (e.g. "hyper-capitalist", "heavy state moderation"), and a **mood slider** that shifts color tones and details by emotion.
-- On change, call the AI (via the server function, see §8), which returns JSON: new CSS variable values + rewritten text for each `data-editable` element. Apply it in the iPad window.
+**Desktop icons (4):** Article, Reel, Song, Game. Visitors choose freely which to open.
 
-### C. Article (Session 1)
-- 1–3 source articles I'll provide as Markdown in `public/content/articles/`.
-- **Controls (6):** facts stay fixed; only framing, emphasis, vocabulary, tone and packaging change.
-- Phone is two panels — **FRAME** (lean, connotation, sensationalism) and **AUDIENCE** (education, income, location).
+---
 
-| Control | Settings | Effect |
-|---|---|---|
-| Political lean | Far left → Far right | Who the story is for. MAGA as villain vs. elite overreach. |
-| Education | 6-stop knob. Default: College graduate | Who it is written for. No diploma = short and concrete. Graduate degree = KEY TAKEAWAYS + measured close. Never mocking. |
-| Connotation | Neg / Neutral / Pos | Emotional color, separate from left/right. |
-| Sensationalism | None → Maximum | Packaging last. Maximum is clickbait. |
-| Income | 6-stop slider, **unset until touched** | Which wallet issues get the extra line (rent vs. 401(k) vs. markets). |
-| Location | State / DC / country autocomplete | Local angle from `state-profiles` (DRAFT). International = observer, no partisan lean. |
+## 2. Roles of each device (unchanged)
 
-- Apply order: lean → income → location → education → connotation → sensationalism.
-- The AI rewrites the article accordingly. The iPad types the result. Live output is JSON `{headline, body}`; invented numbers fall back to mock.
+- **iPad (`#/library`): display only.** Tap-to-begin for audio on iOS. Audio through headphones on the iPad.
+- **Phone (`#/controller`): all choosing.** Visitor picks an object, uses its controls, **BACK TO ICONS** returns the iPad to the desktop without ending the turn. **END SESSION** ends the turn.
+- Picking an object on the phone: matching iPad icon "clicks," then opens as an XP window.
+- While a change is processing: XP progress dialog, cold status line, green block progress bar.
+- Result appears in the iPad window. Phone stays on the same controls.
+- Every object window: **Original / Altered** toggle from the phone.
 
-### D. Image (Session 2)
-- **Controller:** asks the visitor a series of questions, one at a time (store the questions in a config file; I'll write the real ones later; use 5 placeholder questions for now).
-- Their answers are turned into an image prompt on the server, and a fast, cheap image model on Replicate (e.g. a FLUX "schnell"-type model; check replicate.com for the current name) generates their "ideal" art piece.
+---
 
-### E. Song (Session 3)
-- **No live AI.** Library of 2–4 songs. For each song I'll provide: a **vocals-only** track and **4–6 instrumentals in other genres at the same tempo and key**, plus a metadata file (title, BPM, key, genre of each instrumental).
-- **Radio dial:** the visitor turns a tuning dial through static to land on a song ("station").
-- **Genre swap:** keep the vocals, swap the instrumental underneath. Keep them perfectly in sync (start all tracks together, switch by crossfading volumes rather than restarting).
-- **Pitch control** for the vocals.
-- **Emotion sliders** that control effects under the hood (editable mapping in config): Melancholy → lower pitch, slower, reverb · Euphoria → higher pitch, brighter, faster · Anxiety → accelerating echo, slight wobble · Anger → distortion, boosted drums · Numbness → muffled low-pass filter · Nostalgia → vinyl crackle, warm detune.
-- Use the Web Audio API (Tone.js is fine).
+## 3. Visitor turns
 
-### Logging (Session 2)
-- Log every visitor action to a Supabase table: timestamp, object, controls used, word typed, rating, etc. No personal data.
-- **Stretch goals (only if time allows, after everything else works):** "collective drift" (in persist mode, each visitor's choices nudge defaults for the next visitor) and an audience-data screen (`#/stats`) with a word cloud of typed words and a "distance from original" meter.
+**No turn length and no countdown timer.** No time limit. No timer shown anywhere.
 
-## 6. Design
+A turn ends only when the visitor presses **END SESSION**, closes the page, or is idle for **60 seconds** (config). The idle check is **invisible**: no countdown.
 
-- **iPad = Windows XP aesthetic:** blue taskbar, glossy rounded window title bars, XP-style dialogs and progress bars. You may use the open-source XP.css library or recreate the look in CSS. **Do not use Microsoft's actual Bliss wallpaper or Windows logo:** I'll supply my own wallpaper and Start button image.
-- **Desktop icons:** much larger and more prominent than real XP icons. Each has a gentle **idle animation**, a **"clicked" animation** when selected, and a visible **"altered" state** (e.g. glitch, badge, tint) once visitors have changed it.
-- **Phone controllers:** each object has a **custom full-screen background image I'll supply**. You design and animate the actual controls on top (knobs, dials, sliders, chat bubbles, the radio dial), with satisfying motion and haptics (`navigator.vibrate` where supported). Controls must be large and easy to use with a thumb.
-- **Voice of all text: cold machine.** Short, uppercase or clinical system language: `INPUT RECEIVED.`, `PREFERENCE PROFILE UPDATED.`, `OUTPUT GENERATED.`
-- Target screens: iPad in landscape (design for 4:3, scale responsively) and phones in portrait.
-- Disable page scroll, pull-to-refresh and pinch-zoom on the controller so dragging a knob never moves the page.
+Queue (one person at a time, queue position screen), admin (staff can skip the current visitor) and `RESET_MODE` stay the same.
 
-### Asset slots (build with placeholders, I'll drop real files in)
-Put all of these in `public/assets/` and list them in the README:
-- `wallpaper.jpg`: 2732×2048
-- `start-button.png`: my custom Start button
-- `icon-reel.png`, `icon-website.png`, `icon-article.png`, `icon-image.png`, `icon-song.png`: 512×512, transparent PNG (optional `icon-*-altered.png` variants)
-- `bg-reel.jpg`, `bg-website.jpg`, `bg-article.jpg`, `bg-image.jpg`, `bg-song.jpg`: 1170×2532 phone backgrounds
+Gone / waiting-phone rules from Version 1 stay (active phone dropped if it stops checking in; waiting phones keep a place with a locked screen).
 
-## 7. Tech stack (use exactly this)
+---
 
-- **Only GitHub and Supabase** (plus Replicate for AI). No Vercel or other hosts.
-- **Front end:** Vite + React + TypeScript + Tailwind, deployed to **GitHub Pages** with a GitHub Actions workflow. Use hash routing (`#/library`, `#/controller`, `#/admin`, `#/stats`) and set Vite's `base` correctly.
-- **Realtime sync:** Supabase Realtime (broadcast channel for live control messages; database tables for the queue, state and logs).
-- **Server code:** Supabase Edge Functions. All AI calls go through them.
-- **Media storage:** Supabase Storage (reels, songs). Large files must not go in the GitHub repo.
-- **AI:** Replicate, for text (an LLM hosted on Replicate), images, captioning and embeddings.
+## 4. Persistence and staff (unchanged except timer)
 
-## 8. Rules for AI calls, keys and cost
+- `RESET_MODE`: `"per_visitor"` (default) or `"persist"`.
+- Hidden staff page `#/admin`, passcode. Reset to originals, skip visitor, clear queue, mock on/off, today's generation count.
+- Profile is deleted at the end of the turn, or kept across visitors only if `RESET_MODE = "persist"`. The anonymous action log keeps working.
 
-- The Replicate token lives **only** in Supabase secrets. Never in front-end code or the repo.
-- The phone sends **only object IDs and control values**, never prompts. The server builds every prompt from fixed templates and validates all inputs.
-- **`MOCK_MODE`** (default ON): returns pre-made fallback content after a fake 2–5 second delay. Everything must work with zero API keys.
-- **Daily generation cap** (config, default 200), enforced in the Edge Function; after the cap, show pre-made content. Also rate-limit to 1 generation per 5 seconds.
-- Any AI call that fails or takes over 30 seconds falls back to pre-made content: never show an error screen to visitors.
-- Pin exact model versions once chosen.
+---
 
-## 9. Reliability
+## 5. The visitor profile (temporary data)
 
-- Auto-reconnect when the connection drops; small "CONNECTED / RECONNECTING" status indicator on both devices.
-- Avoid double-firing realtime events (React StrictMode / duplicate subscriptions).
-- Lock controls while a generation is running.
-- Cache-busting on deploy so the iPad never shows an old version.
-- iOS: "tap to begin" screen on the iPad for audio; videos use `muted` + `playsinline` until audio is unlocked.
-- Add a web app manifest so both pages can be added to the Home Screen and run full screen.
+Each turn gets an anonymous, temporary profile: no names, accounts or contact info.
 
-## 10. Sessions
+### Signals
 
-**Session 1 (now):**
-1. Project setup, GitHub repo, GitHub Pages deploy, Supabase connection (tell me exactly what to create and paste).
-2. QR code + one-at-a-time queue + admin page.
-3. iPad XP desktop with 5 placeholder icons (idle / clicked / altered animations), XP windows, progress dialog, Original/Altered toggle.
-4. Phone controller shell: queue screen, timer, object picker, Home button, per-object background slots.
-5. **Article** controller + AI rewrite (mock mode first, then real).
-6. **Website** controller + restyle/rewrite system using the placeholder site.
-7. Test the whole loop yourself in two browser windows, then give me steps to test on a real iPad and phone.
+| Source | Signals |
+|---|---|
+| Device (from the moment they connect, no permission prompts) | device type/OS, approximate screen size, browser language, local time of day |
+| Behavior | how fast they move controls, hesitation before ratings/choices, whether they push controls to extremes |
+| Article | political lean, education, income bracket, location (state/country), connotation, sensationalism |
+| Reel | words typed, HIGH/MEDIUM/LOW ratings, tags of reels rated HIGH vs LOW, how they rated the sponsored reel |
+| Song | stations landed on, genres chosen, emotion slider positions, vocal pitch, male/female voice choice |
+| Game | which game, choices, risk-taking, whether they engaged with the shop offer |
 
-**Session 2:** Reel (prep script + chatbot + rating loop), Image (question flow + generation), logging.
+### Inferred traits (rule-based, editable config)
 
-**Session 3:** Song, adding my real assets, final device testing, gallery-day checklist (Guided Access, Auto-Lock off, notifications off, brightness, Supabase not paused).
+Income bracket, region, political lean, dominant mood, top interests, age-range guess, "susceptibility" (sensationalism + ad engagement), and a ranked list of ad categories they match, each with a confidence score.
 
-**Stretch:** collective drift, `#/stats` screen.
+Rules:
 
-## 11. How to work with me
+- Do **not** look up location from network/IP.
+- Profile deleted at end of turn (or kept if `RESET_MODE = "persist"`).
+- README gets a short factual line (for the wall label): what's collected, that it's anonymous, and that it's deleted after each turn.
 
-- Commit to Git after each working step with a clear message, so we can roll back.
-- After each step, tell me in one or two plain sentences what now works and how to see it.
-- If something is ambiguous, make a sensible choice, note it in `PROGRESS.md`, and keep going: don't stall.
-- Keep `README.md` up to date: setup, where to put my assets and content, how to deploy, how to test on devices.
+---
+
+## 6. The four media objects
+
+### A. Article (done — small additions only)
+
+Controls unchanged (FRAME: lean, connotation, sensationalism; AUDIENCE: education, income, location). Visitor picks the original from thumbnails before the dials.
+
+Additions:
+
+- Every control value feeds the profile.
+- **Sponsored paragraph:** weave one short sponsored paragraph into the rewritten article: a product mention from the visitor's best-matching ad, written in the same voice the knobs produced. Faint "Sponsored content" label and an ⓘ button. Must **not** change any facts in the article. Live mode: same Replicate call. Mock mode: template paragraph.
+
+### B. Reel (Phase B)
+
+**Content workflow.** `content/reels.csv` columns: `id, link, file, creator, tags, description, mood, notes, sponsored, ad_category`. `file` = video file name = row id (e.g. `014.mp4`). `notes` = ordering rules. `sponsored=yes` marks sponsored reels.
+
+I supply the CSV and a folder of MP4s I downloaded. You: check row↔file match; compress to vertical H.264 ~5 MB; flag Instagram end cards/watermarks then trim; upload to Supabase Storage bucket `reels`; import CSV; embed tags+description (Replicate, Section 10) with pgvector.
+
+Never show Instagram branding, player or links. Creator handles only on `#/creditspage` + README.
+
+**Visitor flow.** Phone chatbot (cold machine): `ENTER ONE WORD.` Filtered (blocklist), embedded, closest reel by meaning. iPad: our own player, vertical, autoplay, loop, inside the XP window. Rate HIGH / MEDIUM / LOW. Next reel adapts (HIGH closer, MEDIUM small shift, LOW different cluster). Never repeat within a turn. Apply notes rules. **Round 3 is always a sponsored reel** matching the profile, small "Sponsored" label + ⓘ. Rating feeds the profile. After 5 rounds: `SESSION RECORDED. 5 PREFERENCES SAVED.` Mock: tag-word overlap, no embeddings.
+
+If CSV/videos aren't in yet, build with 10 placeholder reels and a sample CSV.
+
+### C. Song (Phase C)
+
+2–4 songs. Either full song (split once on Replicate) or vocals-only + instrumental I already separated. Plus 4–6 other-genre instrumentals at the same tempo and key. Metadata per song: title, bpm, key, original_voice (male/female), voice_notes, genre of each instrumental. Audio in Supabase Storage bucket `songs`.
+
+**Controls:** radio dial through static; genre swap (vocals stay, instrumentals crossfade in sync); **MALE / FEMALE** voice toggle (starts at `original_voice`; converted vocals cached from Replicate; fallback formant-preserving pitch shift); vocal pitch; emotion sliders (mapping in config): Melancholy, Euphoria, Anxiety, Anger, Numbness, Nostalgia.
+
+**Radio ad:** after the first station change, a short radio ad before the next station: personalized `voice_script` via browser TTS over a jingle bed. Optional Replicate TTS behind a config flag. Web Audio API / Tone.js.
+
+If song files aren't in yet, build with placeholder audio.
+
+### D. Game (Phase D — first version, expect changes)
+
+Modular so games can be swapped later.
+
+Icon starts **locked:** `ACCESS RESTRICTED. INSUFFICIENT DATA.` ⓘ "Why can't I open this?" in plain system language. Unlocks after the visitor has used **2 other objects:** `UNLOCKED BASED ON YOUR ACTIVITY.`
+
+Profile picks 1 of 3 tiny games ("RECOMMENDED FOR YOU"); the other two locked with their own ⓘ:
+
+1. Slot machine: tap to pull; outcomes and near-misses tuned by profile
+2. Choose a door: three doors, a few rounds, risk vs. safe
+3. Clicker: tap for points, upgrades for sale
+
+Phone is the controller. Short delay phone→iPad: slow, timing-forgiving, nothing twitchy. Each game includes the in-game shop offer (Section 8), priced by income. Choices feed the profile.
+
+---
+
+## 7. Advertising system
+
+### Ad library
+
+`content/ads.csv`: `id, category, brand, product, tagline, image, voice_script, target_rules`.
+
+I'll add real (fictional) ads later. Until then: **6 placeholder rows** (PLACEHOLDER BRAND 1…), generic categories, so the system can be built. `target_rules` = conditions on the profile (e.g. `income<=60k AND mood=anxious`). `image` = file in `public/assets/ads/`. If missing, generate once with Replicate, cache in Supabase Storage `ads/`, reuse.
+
+README guide: how to add ads, what columns mean, how to write `target_rules`.
+
+### Personalization
+
+Score every ad against the **full profile** every time an ad is chosen, using all signals available at that moment. The first ad already uses device + early behavior + whatever inputs exist. Each new input updates scores. Don't repeat an ad within a turn.
+
+Personalize copy with the profile (headline, framing, tone), matched to education, lean, mood, income. Replicate text live; template fallback in mock. Keep each ad's **score breakdown** for the FULL REPORT.
+
+### Where ads appear
+
+| Object | Native ad |
+|---|---|
+| Reel | Sponsored reel in round 3 |
+| Article | Sponsored paragraph |
+| Song | Radio ad between stations |
+| Game | In-game shop offer or banner, priced/worded by income |
+
+Plus **2–3 pop-up ads** per turn on the iPad: XP-style windows, fake-looking close (real close works), ad image + personalized headline.
+
+**Timing.** Native ads in every object, including the first one opened. Pop-ups: max 3 per turn; first after the visitor finishes their first object; at least 45 seconds apart; only during loading dialogs or when switching objects; never during a rating, a game move, or the end screen.
+
+### "Why am I seeing this?"
+
+Every ad (native and pop-up) has ⓘ → two-layer panel:
+
+1. Official: vague, like real platforms: `You're seeing this ad based on your activity.`
+2. **FULL REPORT** button: exact signals, source, time, match confidence. 100% accurate from actual scores and rules that fired, never AI guessing. Plain system language only.
+
+---
+
+## 8. End of turn (Phase E)
+
+When a turn ends (END SESSION, page closed, or idle):
+
+iPad XP dialog: `SESSION COMPLETE.` Buttons **OK** and **VIEW SESSION DATA**.
+
+VIEW SESSION DATA lists what was collected and inferred, with sources and times, plain system language, no commentary.
+
+Then clear the profile and pass control to the next visitor.
+
+---
+
+## 9. Design (unchanged except copy and icons)
+
+- iPad = Windows XP. No Microsoft Bliss or Windows logo.
+- Desktop icons large, idle / clicked / altered animations.
+- Phone: per-object background photos I'll supply; large thumb-friendly controls; haptics; no page scroll / pinch-zoom.
+- Voice: cold machine. Short, uppercase or clinical.
+- iPad landscape 4:3 scaled; phones portrait.
+
+### Asset slots
+
+`public/assets/`:
+
+- `wallpaper.jpg` 2732×2048
+- `start-button.png`
+- `icon-article.png`, `icon-reel.png`, `icon-song.png`, `icon-game.png` (512×512, optional `icon-*-altered.png`)
+- `bg-article.jpg`, `bg-reel.jpg`, `bg-song.jpg`, `bg-game.jpg` (1170×2532)
+- `ads/` — placeholder and later real ad images
+
+Large video/audio: **Supabase Storage only, never git.**
+
+---
+
+## 10. Tech stack (unchanged)
+
+Only GitHub and Supabase (plus Replicate). Vite + React + TypeScript + Tailwind. GitHub Pages, hash routing, `base: '/algorithm-graffiti/'`. Supabase Realtime + Edge Functions. Media in Supabase Storage.
+
+---
+
+## 11. AI calls, keys and cost (unchanged rules)
+
+- `REPLICATE_API_TOKEN` only in Supabase secrets.
+- Phone sends IDs and values, never prompts. Server builds templates and validates.
+- `MOCK_MODE` default ON. Daily cap 200, 1 per 5 seconds, 30-second timeout, fallbacks. Pin exact model versions.
+
+### Jobs (all Replicate)
+
+| Job | When | Model type | Fallback |
+|---|---|---|---|
+| Article rewrite + sponsored paragraph | Live, per change | llama text (already in use) | Mock rules + template paragraph |
+| Ad copy personalization | Live, per ad | Same text | Template with profile values |
+| Radio ad personalized script | Live, per radio ad | Same text | Template |
+| Reel embeddings | Once, at import | Text embedding | Tag-word overlap |
+| Visitor word embedding | Live, per word | Same embedding | Tag-word overlap |
+| Reel auto-description (blank rows) | Once, at import | Vision/caption on an ffmpeg frame | Leave blank and tell me |
+| Ad images (no image) | Once per ad, cached | FLUX schnell-type | Text-only pop-up |
+| Song stem separation | Once per full song | Stem separation | I separate them |
+| Male/female vocal conversion | Once per song, cached | Voice conversion | Formant-preserving pitch shift |
+| Radio ad voice (optional, off) | Live | TTS | Browser TTS |
+
+Look up current model names, pin versions, list in `PROGRESS.md` with cost per run. `npm run test:replicate` calls each workflow once (pass/fail + timing).
+
+---
+
+## 12. Reliability (unchanged)
+
+Auto-reconnect, CONNECTED / RECONNECTING, no double realtime, lock controls while generating, cache-busting, iOS tap-to-begin, muted+playsinline until unlocked, Home Screen manifests.
+
+---
+
+## 13. Logging
+
+Anonymous action log: timestamp, object, controls, word, rating, etc. No personal data. Stretch later: collective drift, `#/stats`.
+
+---
+
+## 14. Phases
+
+**Phase A:** Remove Image, Website and Block Safety. Remove turn length and countdown. Profile system (device + behavior) wired into Article. Ad library (placeholders) + scoring/personalization + "Why am I seeing this?" + pop-ups. Sponsored paragraph in Article. Check every on-screen string against Section 0.
+
+**Phase B:** Reel content workflow + new flow with round-3 sponsored reel. Placeholders if CSV/videos aren't in.
+
+**Phase C:** Song file prep, controls, male/female toggle, radio ad. Placeholder audio if files aren't in.
+
+**Phase D:** Game (lock/unlock, 3 tiny games, shop offer).
+
+**Phase E:** Neutral end-of-turn screen + session data view, `npm run test:replicate`, full two-window test, real iPad/phone steps. Then README: where files go, how to add ads, mock vs live, gallery-day checklist.
+
+---
+
+## 15. How to work with me
+
+- Commit after each working phase with a clear message.
+- After each phase, say in one or two plain sentences what now works and how to see it. Wait for **continue**.
+- If something is ambiguous, make a sensible choice, note it in `PROGRESS.md`, and keep going.
+- Keep `README.md` accurate.

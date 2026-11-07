@@ -8,6 +8,7 @@ import { isBlocked } from '../shared/text.ts'
 import type { ArticleParams, Snapshot } from '../shared/types.ts'
 import { loadArticleIndex, type ArticleInfo } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
+import { recordControl } from '../lib/profileClient.ts'
 import { DetentSlider, Knob, Section, Segmented } from './controls.tsx'
 import type { Transmit } from './Controller.tsx'
 import { useControls } from './useControls.ts'
@@ -17,11 +18,21 @@ export default function ArticleControls({
 }: { snap: Snapshot; articleId: string; locked: boolean; transmit: Transmit; say: (t: string) => void }) {
   const [articles, setArticles] = useState<ArticleInfo[]>([])
   const [panel, setPanel] = useState<'frame' | 'audience'>('frame')
-  const [p, set] = useControls<ArticleParams>('article', snap.turnStartedAt, () => ({
+  const [p, setRaw] = useControls<ArticleParams>('article', snap.turnStartedAt, () => ({
     articleId,
     ...DEFAULT_ARTICLE_PARAMS,
     ...(snap.altered.article?.params.articleId === articleId ? snap.altered.article.params : {}),
   }))
+  const set = (patch: Partial<ArticleParams>) => {
+    const next = { ...p, ...patch }
+    const extreme =
+      next.lean === -2 || next.lean === 2 ||
+      next.sensationalism === 4 ||
+      next.education === 0 || next.education === 5 ||
+      next.income === 0 || next.income === 5
+    recordControl(extreme)
+    setRaw(patch)
+  }
   const [locDraft, setLocDraft] = useState(p.location)
   const [locOpen, setLocOpen] = useState(false)
 

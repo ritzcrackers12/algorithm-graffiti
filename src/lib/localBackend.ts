@@ -1,13 +1,14 @@
 // LOCAL MODE: used when Supabase isn't configured (or with ?local in the URL).
 // Mirrors the SQL rules in supabase/migrations using localStorage, so several tabs in the
 // same browser can act as iPad + phones. Generation is always mock here.
-import { CONFIG, OBJECTS } from '../shared/config.ts'
+import { pickAd, personalizeAd, weaveSponsored } from '../shared/ads.ts'
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
+import { CONFIG, OBJECTS } from '../shared/config.ts'
 import { resolveLocation } from '../shared/locations.ts'
-import { extractEditables, mockWebsite, validateWebsiteParams } from '../shared/website.ts'
-import type { AdminStatus, Altered, DisplayState, Snapshot, Source } from '../shared/types.ts'
+import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
+import type { AdminStatus, Altered, ArticleResult, DisplayState, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
-import { loadArticle, loadBaseSiteHtml } from './content.ts'
+import { loadArticle } from './content.ts'
 
 interface DB {
   activeSession: string | null
@@ -15,18 +16,19 @@ interface DB {
   lastActivityAt: number | null
   display: DisplayState
   altered: Altered
+  profile: VisitorProfile
   mockMode: boolean
   version: number
   queue: { id: string; joinedAt: number; lastSeen: number }[]
   generations: { id: number; at: number; object: string; source: string }[]
 }
 
-const KEY = 'ag-local-db-v1'
-const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [], articleId: null }
+const KEY = 'ag-local-db-v2'
+const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [], used: [], articleId: null }
 
 function fresh(): DB {
   return {
-    activeSession: null, turnStartedAt: null, lastActivityAt: null, display: { ...HOME }, altered: {},
+    activeSession: null, turnStartedAt: null, lastActivityAt: null, display: { ...HOME }, altered: {}, profile: emptyProfile(),
     mockMode: true, version: 0, queue: [], generations: [],
   }
 }
@@ -62,12 +64,16 @@ export function createLocalBackend(): Backend {
     db.queue = db.queue.filter((q) => q.lastSeen >= now - CONFIG.WAITING_GONE_SECONDS * 1000)
     const reset = () => {
       db.display = { ...HOME, busy }
-      if (CONFIG.RESET_MODE === 'per_visitor') db.altered = {}
+      if (CONFIG.RESET_MODE === 'per_visitor') {
+        db.altered = {}
+        db.profile = emptyProfile()
+      }
     }
+    const turnOver = CONFIG.TURN_SECONDS > 0 && db.turnStartedAt! <= now - CONFIG.TURN_SECONDS * 1000
     if (
       db.activeSession &&
       (!db.queue.some((q) => q.id === db.activeSession && fresh(q)) ||
-        db.turnStartedAt! <= now - CONFIG.TURN_SECONDS * 1000 ||
+        turnOver ||
         (!busy && db.lastActivityAt! <= now - CONFIG.IDLE_SECONDS * 1000))
     ) {
       db.queue = db.queue.filter((q) => q.id !== db.activeSession)
@@ -99,7 +105,8 @@ export function createLocalBackend(): Backend {
     }
     return {
       hasActive: !!db.activeSession, turnStartedAt: db.turnStartedAt, lastActivityAt: db.lastActivityAt,
-      display: { ...db.display, completed: db.display.completed ?? [], articleId: db.display.articleId ?? null }, altered: db.altered, mockMode: db.mockMode, version: db.version,
+      display: { ...db.display, completed: db.display.completed ?? [], used: db.display.used ?? [], articleId: db.display.articleId ?? null },
+      altered: db.altered, profile: db.profile ?? emptyProfile(), mockMode: db.mockMode, version: db.version,
       serverNow: Date.now(), waiting: waitingRows.length, position,
     }
   }
@@ -116,14 +123,14 @@ export function createLocalBackend(): Backend {
     }
   }
 
-  function finish(id: number, session: string, object: 'article' | 'website', result: unknown, source: Source) {
+  function finish(id: number, session: string, object: 'article', result: unknown, source: Source) {
     const db = read()
     const g = db.generations.find((x) => x.id === id)
     if (g) g.source = source
     const keep = db.activeSession === session || CONFIG.RESET_MODE === 'persist'
     if (db.display.busy?.id === id) db.display = { ...db.display, busy: null }
     if (keep && result) {
-      db.altered = { ...db.altered, [object]: result }
+      db.altered = { ...db.altered, [object]: result as ArticleResult }
       if (db.display.open === object) db.display = { ...db.display, view: 'altered' }
     }
     if (db.activeSession === session) db.lastActivityAt = Date.now()
@@ -162,22 +169,31 @@ export function createLocalBackend(): Backend {
       if (row) row.lastSeen = Date.now()
       db.lastActivityAt = Date.now()
       const completed = db.display.completed ?? []
-      if (cmd === 'story' && arg && /^[a-z0-9-]{1,40}$/.test(arg)) {
+      if (cmd === 'signal' && arg) {
+        try {
+          const patch = JSON.parse(arg) as Partial<VisitorProfile>
+          db.profile = hydrateProfile({ ...db.profile, ...patch })
+        } catch { /* ignore */ }
+      } else if (cmd === 'story' && arg && /^[a-z0-9-]{1,40}$/.test(arg)) {
+        const used = db.display.used ?? []
         db.display = {
           ...db.display,
           open: 'article',
           articleId: arg,
           view: db.altered.article?.params.articleId === arg ? 'altered' : 'original',
           openedAt: Date.now(),
+          used: used.includes('article') ? used : [...used, 'article'],
         }
       } else if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
-        const obj = arg as keyof Altered
+        const obj = arg as 'article' | 'reel' | 'song' | 'game'
+        const used = db.display.used ?? []
         db.display = {
           ...db.display,
           open: obj,
-          view: db.altered[obj] ? 'altered' : 'original',
+          view: obj === 'article' && db.altered.article ? 'altered' : 'original',
           openedAt: Date.now(),
           articleId: obj === 'article' ? db.display.articleId : null,
+          used: used.includes(obj) ? used : [...used, obj],
         }
       } else if (cmd === 'home') db.display = { ...db.display, open: null, articleId: null }
       else if (cmd === 'done') {
@@ -195,8 +211,8 @@ export function createLocalBackend(): Backend {
       return { ...snapshot(db, session), ok: true }
     },
     async generate(req) {
-      const params = req.object === 'article' ? validateArticleParams(req.params) : validateWebsiteParams(req.params)
-      if (!params) return { ok: false, reason: req.object === 'website' ? 'blocked' : 'invalid' }
+      const params = req.object === 'article' ? validateArticleParams(req.params) : null
+      if (!params) return { ok: false, reason: 'invalid' }
       const db = read()
       if (db.activeSession !== req.session) return { ok: false, reason: 'not_active' }
       if (db.display.busy && db.display.busy.startedAt > Date.now() - 90_000) return { ok: false, reason: 'busy' }
@@ -219,13 +235,20 @@ export function createLocalBackend(): Backend {
         let result: unknown = null
         try {
           if (req.object === 'article') {
-            const p = params as typeof req.params
-            result = { params: canonicalArticleParams(p), ...mockArticle(p, await loadArticle(p.articleId), resolveLocation(p.location)) }
-          } else {
-            const p = params as typeof req.params
-            result = { params: p, ...mockWebsite(p, extractEditables(await loadBaseSiteHtml())) }
+            const p = params
+            const out = mockArticle(p, await loadArticle(p.articleId), resolveLocation(p.location))
+            const profile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
+            const match = pickAd(profile)
+            const sponsored = match ? personalizeAd(match, profile) : undefined
+            result = {
+              params: canonicalArticleParams(p),
+              ...out,
+              body: sponsored ? weaveSponsored(out.body, sponsored.paragraph) : out.body,
+              sponsored,
+              source: 'mock',
+              at: Date.now(),
+            }
           }
-          result = { ...(result as object), source: 'mock', at: Date.now() }
         } catch (e) {
           console.error(e)
         }
@@ -242,10 +265,12 @@ export function createLocalBackend(): Backend {
       const db = read()
       if (action === 'reset') {
         db.altered = {}
+        db.profile = emptyProfile()
         db.display = { ...HOME }
       } else if (action === 'skip' || action === 'clear_queue') {
         db.queue = action === 'skip' ? db.queue.filter((q) => q.id !== db.activeSession) : []
         db.activeSession = db.turnStartedAt = db.lastActivityAt = null
+        db.profile = emptyProfile()
         db.display = { ...HOME }
       } else if (action === 'mock_on' || action === 'mock_off') {
         db.mockMode = action === 'mock_on'

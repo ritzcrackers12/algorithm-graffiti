@@ -1,0 +1,7 @@
+id,category,brand,product,tagline,image,voice_script,target_rules
+ph-1,wellness,PLACEHOLDER BRAND 1,Calm Pack,A quieter hour.,ads/ph-1.svg,"When the day runs long, Calm Pack is built for a slower minute.",mood=anxious OR mood=restless OR mood=concerned
+ph-2,finance,PLACEHOLDER BRAND 2,Ledger Plus,Keep more of what you keep.,ads/ph-2.svg,Ledger Plus is a simple account for people watching every line.,income<=60k
+ph-3,security,PLACEHOLDER BRAND 3,Home Watch Kit,Know the perimeter.,ads/ph-3.svg,"Home Watch Kit logs the door, the lot, and the late hours.",lean>=1
+ph-4,civic,PLACEHOLDER BRAND 4,Block Brief,What your block actually voted.,ads/ph-4.svg,"Block Brief is a weekly digest of local votes, strikes, and hearings.",lean<=-1
+ph-5,education,PLACEHOLDER BRAND 5,Night Class,"One skill, twelve weeks.",ads/ph-5.svg,Night Class is a short course you can finish after work.,age=18-24 OR age=25-34
+ph-6,lifestyle,PLACEHOLDER BRAND 6,Replay Radio,The year you still hum.,ads/ph-6.svg,Replay Radio is a station built from the decade you keep going back to.,mood=upbeat OR mood=neutral

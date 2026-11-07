@@ -91,7 +91,6 @@ export default function Admin() {
   }
 
   const s = status
-  const turnLeft = s?.turnStartedAt ? Math.max(0, Math.ceil((s.turnStartedAt + CONFIG.TURN_SECONDS * 1000 - s.serverNow) / 1000)) : null
   const btn = 'rounded-xl px-4 py-4 text-sm font-bold tracking-[0.15em] disabled:opacity-40'
 
   return (
@@ -103,7 +102,7 @@ export default function Admin() {
         <div className="mb-5 rounded-2xl border border-white/15 bg-white/5 px-4 py-2">
           <Row k="LINK" v={kind === 'local' ? 'LOCAL MODE (this browser only)' : 'SUPABASE'} />
           <Row k="MOCK MODE" v={s ? (s.mockMode ? 'ON (no AI calls)' : 'OFF (live AI)') : '…'} />
-          <Row k="OPERATOR" v={s ? (s.hasActive ? `ACTIVE · ${turnLeft}s left` : 'NONE') : '…'} />
+          <Row k="OPERATOR" v={s ? (s.hasActive ? 'ACTIVE' : 'NONE') : '…'} />
           <Row k="WAITING IN QUEUE" v={s?.waiting ?? '…'} />
           <Row k="OPEN OBJECT" v={s?.open ?? 'DESKTOP'} />
           <Row k="PROCESSING" v={s?.busy ? `${s.busy.object.toUpperCase()}…` : 'IDLE'} />
@@ -113,7 +112,7 @@ export default function Admin() {
             v={s ? `${s.today.total} total · ${s.today.ai} AI / ${CONFIG.DAILY_GENERATION_CAP} cap · ${s.today.mock} mock · ${s.today.fallback} fallback` : '…'}
           />
           <Row k="RESET MODE" v={CONFIG.RESET_MODE.toUpperCase()} />
-          <Row k="TURN / IDLE" v={`${CONFIG.TURN_SECONDS}s / ${CONFIG.IDLE_SECONDS}s`} />
+          <Row k="TURN / IDLE" v={`NONE / ${CONFIG.IDLE_SECONDS}s (hidden)`} />
         </div>
 
         <div className="grid grid-cols-1 gap-3">

@@ -1,6 +1,6 @@
 {
-  "name": "Algorithm Graffiti: Controller",
-  "short_name": "AG Control",
+  "name": "CONTROLLER",
+  "short_name": "Controller",
   "start_url": "./#/controller",
   "scope": "./",
   "display": "standalone",

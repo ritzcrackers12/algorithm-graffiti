@@ -3,7 +3,6 @@ import { parseArticleMarkdown } from '../shared/article.ts'
 const BASE = import.meta.env.BASE_URL
 
 export const asset = (name: string) => `${BASE}assets/${name}`
-export const baseSiteUrl = `${BASE}content/website/base/index.html`
 
 export interface ArticleInfo {
   id: string
@@ -29,8 +28,4 @@ export async function loadArticleIndex(): Promise<ArticleInfo[]> {
 
 export async function loadArticle(id: string) {
   return parseArticleMarkdown(await getText(`content/articles/${id}.md`))
-}
-
-export function loadBaseSiteHtml() {
-  return getText('content/website/base/index.html')
 }

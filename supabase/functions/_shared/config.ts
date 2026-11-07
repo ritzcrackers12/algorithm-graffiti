@@ -1,21 +1,24 @@
 // GENERATED COPY of src/shared/config.ts. Edit that file instead, then run `npm run sync-shared`.
 // ============================================================
-//  ALGORITHM GRAFFITI: INSTALLATION CONFIG
+//  INSTALLATION CONFIG
 //  This is the one file to edit for show settings.
 //  After editing, run `npm run deploy` (site) and
 //  `npm run deploy:functions` (server) so both sides match.
 // ============================================================
 
 export const CONFIG = {
-  /** Title shown on the desktop and controller. */
-  TITLE: 'ALGORITHM GRAFFITI',
-  TAGLINE: 'WHO TUNES YOUR REALITY?',
+  /** Internal name. Not shown on the iPad or phones. */
+  TITLE: 'MEDIA STATION',
+  TAGLINE: '',
 
   // ---------- Visitor queue ----------
-  /** Seconds each visitor controls the installation (covers the full media sequence). */
-  TURN_SECONDS: 240,
-  /** Seconds without touching anything before control passes on. */
-  IDLE_SECONDS: 40,
+  /**
+   * Seconds a visitor may hold control. 0 = no time limit (Version 2).
+   * Do not show a countdown on the iPad or phones.
+   */
+  TURN_SECONDS: 0,
+  /** Seconds without touching anything before control passes on. Invisible — no countdown. */
+  IDLE_SECONDS: 60,
   /** The visitor in control is dropped if their phone stops checking in (locked / tab closed) this long. */
   GONE_SECONDS: 12,
   /** People waiting in line keep their place this long with a locked phone (they're skipped if their turn comes while away). */
@@ -42,11 +45,11 @@ export const CONFIG = {
   /** Minimum seconds between generations. */
   RATE_LIMIT_SECONDS: 5,
   /** Any AI call slower than this falls back to pre-made content. */
-  AI_TIMEOUT_SECONDS: 40,
+  AI_TIMEOUT_SECONDS: 30,
   /** Fake delay range for mock mode, in seconds. */
   MOCK_DELAY_SECONDS: [2, 5] as [number, number],
   /** Rough expected time for real generations (drives the progress bar). */
-  EXPECTED_SECONDS: { article: 18, website: 12 } as Record<string, number>,
+  EXPECTED_SECONDS: { article: 18, reel: 8, song: 6, game: 4 } as Record<string, number>,
   /** Time zone used for the daily cap and the staff page counter. */
   TIME_ZONE: 'America/New_York',
 
@@ -60,8 +63,16 @@ export const CONFIG = {
     version: '', // filled in when we switch off mock mode (see PROGRESS.md)
   },
 
+  // ---------- Ads ----------
+  /** Maximum XP pop-up ads per turn. */
+  AD_POPUP_MAX: 3,
+  /** Minimum seconds between pop-ups. */
+  AD_POPUP_GAP_SECONDS: 45,
+  /** Optional Replicate TTS for radio ads. Off = browser speechSynthesis. */
+  RADIO_AD_TTS: false,
+
   // ---------- Content ----------
-  /** Public address of the deployed site; the server reads articles and the base website from here. */
+  /** Public address of the deployed site; the server reads articles and ads from here. */
   SITE_URL: 'https://ritzcrackers12.github.io/algorithm-graffiti',
 
   /** Words that are rejected anywhere a visitor can type. Lowercase. Add more as needed. */
@@ -72,14 +83,13 @@ export const CONFIG = {
   ],
 } as const
 
-export type ObjectId = 'reel' | 'website' | 'article' | 'image' | 'song'
+export type ObjectId = 'article' | 'reel' | 'song' | 'game'
 
 export const OBJECTS: { id: ObjectId; label: string; file: string; ready: boolean }[] = [
-  { id: 'reel', label: 'REEL', file: 'reel.mp4', ready: false },
-  { id: 'website', label: 'WEBSITE', file: 'homepage.htm', ready: true },
   { id: 'article', label: 'ARTICLE', file: 'article.txt', ready: true },
-  { id: 'image', label: 'IMAGE', file: 'ideal.bmp', ready: false },
-  { id: 'song', label: 'SONG', file: 'station.wav', ready: false },
+  { id: 'reel', label: 'REEL', file: 'reel.mp4', ready: true },
+  { id: 'song', label: 'SONG', file: 'station.wav', ready: true },
+  { id: 'game', label: 'GAME', file: 'game.exe', ready: false },
 ]
 
 /** Ready objects, in the order a visitor must finish them. */

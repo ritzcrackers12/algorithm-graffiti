@@ -1,15 +1,14 @@
 // Builds every AI prompt from fixed templates. The phone only sends an object id and control values.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { pickAd, personalizeAd, weaveSponsored } from '../_shared/ads.ts'
 import { CONFIG } from '../_shared/config.ts'
-import type { ArticleParams, WebsiteParams } from '../_shared/types.ts'
+import type { ArticleParams } from '../_shared/types.ts'
 import {
   articlePrompt, canonicalArticleParams, inventedNumbers, mockArticle, parseArticleMarkdown, parseArticleOutput, tooShort, validateArticleParams,
 } from '../_shared/article.ts'
 import { resolveLocation } from '../_shared/locations.ts'
+import { emptyProfile, inferProfile, type VisitorProfile } from '../_shared/profile.ts'
 import { isBlocked } from '../_shared/text.ts'
-import {
-  extractEditables, mockWebsite, parseWebsiteOutput, validateWebsiteParams, websitePrompt,
-} from '../_shared/website.ts'
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
@@ -64,46 +63,56 @@ async function replicateText(system: string, prompt: string, token: string, dead
   return Array.isArray(pred.output) ? pred.output.join('') : String(pred.output)
 }
 
-async function produce(object: string, params: ArticleParams | WebsiteParams, useAi: boolean, token: string) {
+function attachSponsored(body: string, profile: VisitorProfile) {
+  const match = pickAd(profile)
+  if (!match) return { body, sponsored: undefined }
+  const sponsored = personalizeAd(match, profile)
+  return { body: weaveSponsored(body, sponsored.paragraph), sponsored }
+}
+
+function asProfile(raw: unknown, params: ArticleParams): VisitorProfile {
+  const base = emptyProfile()
+  const incoming = raw && typeof raw === 'object' ? raw as VisitorProfile : base
+  return inferProfile({
+    ...base,
+    ...incoming,
+    article: {
+      lean: params.lean,
+      education: params.education,
+      income: params.income,
+      location: params.location,
+      connotation: params.connotation,
+      sensationalism: params.sensationalism,
+    },
+  })
+}
+
+async function produce(params: ArticleParams, profile: VisitorProfile, useAi: boolean, token: string) {
   const deadline = Date.now() + CONFIG.AI_TIMEOUT_SECONDS * 1000
-  if (object === 'article') {
-    const p = params as ArticleParams
-    const original = parseArticleMarkdown(await fetchSite(`content/articles/${p.articleId}.md`))
-    const loc = resolveLocation(p.location)
-    const logged = canonicalArticleParams(p)
-    const fallback = () => ({ params: logged, ...mockArticle(p, original, loc) })
-    if (!useAi) return { result: fallback(), ai: false }
-    try {
-      const { system, prompt } = articlePrompt(p, original, loc)
-      const out = parseArticleOutput(await replicateText(system, prompt, token, deadline))
-      const sourceText = `${original.title}\n${original.body}`
-      if (
-        out &&
-        !inventedNumbers(sourceText, `${out.title}\n${out.body}`) &&
-        !tooShort(original.body, out.body)
-      ) {
-        return { result: { params: logged, ...out }, ai: true }
-      }
-      console.error('article: unusable model output, invented numbers, or too short')
-    } catch (e) {
-      console.error('article AI failed', e)
-    }
-    return { result: fallback(), ai: false, failed: true }
+  const original = parseArticleMarkdown(await fetchSite(`content/articles/${params.articleId}.md`))
+  const loc = resolveLocation(params.location)
+  const logged = canonicalArticleParams(params)
+  const fallback = () => {
+    const mock = mockArticle(params, original, loc)
+    const extra = attachSponsored(mock.body, profile)
+    return { params: logged, title: mock.title, body: extra.body, sponsored: extra.sponsored }
   }
-  const p = params as WebsiteParams
-  const original = extractEditables(await fetchSite('content/website/base/index.html'))
-  const fallback = () => ({ params: p, ...mockWebsite(p, original) })
   if (!useAi) return { result: fallback(), ai: false }
   try {
-    const { system, prompt } = websitePrompt(p, original)
-    const out = parseWebsiteOutput(await replicateText(system, prompt, token, deadline), original)
-    if (out) {
-      const base = fallback()
-      return { result: { params: p, vars: { ...base.vars, ...out.vars }, texts: { ...original, ...out.texts } }, ai: true }
+    const { system, prompt } = articlePrompt(params, original, loc)
+    const out = parseArticleOutput(await replicateText(system, prompt, token, deadline))
+    const sourceText = `${original.title}\n${original.body}`
+    if (
+      out &&
+      !inventedNumbers(sourceText, `${out.title}\n${out.body}`) &&
+      !tooShort(original.body, out.body)
+    ) {
+      const extra = attachSponsored(out.body, profile)
+      return { result: { params: logged, title: out.title, body: extra.body, sponsored: extra.sponsored }, ai: true }
     }
-    console.error('website: unusable model output')
+    console.error('article: unusable model output, invented numbers, or too short')
   } catch (e) {
-    console.error('website AI failed', e)
+    console.error('article AI failed', e)
   }
   return { result: fallback(), ai: false, failed: true }
 }
@@ -119,16 +128,16 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'invalid' })
   }
   const session = typeof body.session === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(body.session) ? body.session : null
-  const object = body.object === 'article' || body.object === 'website' ? body.object : null
+  const object = body.object === 'article' ? body.object : null
   if (!session || !object) return json({ ok: false, reason: 'invalid' })
-  const params = object === 'article' ? validateArticleParams(body.params) : validateWebsiteParams(body.params)
+  const params = validateArticleParams(body.params)
   if (!params) {
-    const loc = object === 'article' && body.params && typeof body.params === 'object'
+    const loc = body.params && typeof body.params === 'object'
       ? String((body.params as Record<string, unknown>).location ?? '')
       : ''
-    const blocked = object === 'website' || (object === 'article' && loc && isBlocked(loc))
-    return json({ ok: false, reason: blocked ? 'blocked' : 'invalid' })
+    return json({ ok: false, reason: loc && isBlocked(loc) ? 'blocked' : 'invalid' })
   }
+  const profile = asProfile(body.profile, params)
 
   const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
   const mockDelay = Math.round(lo + Math.random() * (hi - lo))
@@ -150,7 +159,7 @@ Deno.serve(async (req) => {
     let result: unknown = null
     let source = 'mock'
     try {
-      const out = await produce(object, params, useAi, token)
+      const out = await produce(params, profile, useAi, token)
       result = { ...out.result, at: Date.now() }
       source = out.ai ? 'ai' : out.failed ? 'fallback' : begin.capReached && !begin.mockMode ? 'cap' : 'mock'
       ;(result as { source: string }).source = source

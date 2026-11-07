@@ -4,12 +4,14 @@ import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
 import type { Live } from '../lib/live.ts'
 import { OBJECTS, type ObjectId } from '../shared/config.ts'
+import { hydrateProfile } from '../shared/profile.ts'
+import type { AdPlacement } from '../shared/ads.ts'
+import AdPopup from './AdPopup.tsx'
 import ArticleView from './ArticleView.tsx'
 import PlaceholderView from './PlaceholderView.tsx'
 import ProgressDialog from './ProgressDialog.tsx'
 import QrNote from './QrNote.tsx'
 import Taskbar from './Taskbar.tsx'
-import WebsiteView from './WebsiteView.tsx'
 import { XpWindow } from './XpWindow.tsx'
 
 const CLICK_MS = 750
@@ -23,8 +25,8 @@ export default function Desktop({ live }: { live: Live }) {
   const [clicking, setClicking] = useState<ObjectId | null>(null)
   const [shown, setShown] = useState<ObjectId | null>(null)
   const [closing, setClosing] = useState(false)
+  const [adClosed, setAdClosed] = useState(0)
 
-  // Picking an object on the phone: icon "click" animation first, then the window opens.
   useEffect(() => {
     if (open) {
       setClosing(false)
@@ -46,28 +48,32 @@ export default function Desktop({ live }: { live: Live }) {
   }, [open, openedAt])
 
   const obj = OBJECTS.find((o) => o.id === shown)
-  const fill = shown === 'website'
   const completed = snap?.display.completed ?? []
+  const profile = hydrateProfile(snap?.profile)
+  const place = profile.lastAd && profile.lastAd.at !== adClosed ? profile.lastAd as AdPlacement : null
 
   return (
-    <div className={`desktop desktop-fallback ${fill ? 'site-fill' : ''}`}>
+    <div className="desktop desktop-fallback">
       <div className="wallpaper" style={{ backgroundImage: `url("${asset('wallpaper.jpg')}")` }} />
 
       <div className="icon-grid">
         {OBJECTS.map((o) => {
           const altered = !!snap?.altered[o.id as keyof typeof snap.altered]
           const done = completed.includes(o.id)
+          const locked = !o.ready
           const cls = [
             'desk-icon',
             clicking === o.id && 'clicking',
             shown === o.id && 'is-open',
             altered && 'altered',
             done && 'done',
+            locked && 'locked',
           ].filter(Boolean).join(' ')
           return (
             <div key={o.id} className={cls}>
               {done && <span className="altered-badge done-badge">DONE</span>}
               {altered && !done && <span className="altered-badge">ALTERED</span>}
+              {locked && <span className="altered-badge">LOCKED</span>}
               <div className="art">
                 <AssetImg
                   names={altered ? [`icon-${o.id}-altered.png`, `icon-${o.id}.png`] : [`icon-${o.id}.png`]}
@@ -92,16 +98,18 @@ export default function Desktop({ live }: { live: Live }) {
       {obj && (
         <XpWindow
           key={`${obj.id}-${openedAt}`}
-          className={`${closing ? 'closing' : 'opening'}${fill ? ' fill' : ''}`}
-          style={fill ? { left: 0, top: 0, width: '100%', height: 'calc(100% - 48px)', borderRadius: 0 } : WINDOW_RECT}
+          className={`${closing ? 'closing' : 'opening'}`}
+          style={WINDOW_RECT}
           title={`${obj.file} - ${view === 'altered' ? 'ALTERED' : 'ORIGINAL'}`}
           icon={<ObjectIcon id={obj.id} />}
-          menu={fill ? null : undefined}
         >
           {obj.id === 'article' ? (
-            <ArticleView view={view} result={snap?.altered.article} selectedId={snap?.display.articleId} />
-          ) : obj.id === 'website' ? (
-            <WebsiteView view={view} result={snap?.altered.website} />
+            <ArticleView
+              view={view}
+              result={snap?.altered.article}
+              selectedId={snap?.display.articleId}
+              profile={profile}
+            />
           ) : (
             <PlaceholderView id={obj.id} />
           )}
@@ -109,6 +117,9 @@ export default function Desktop({ live }: { live: Live }) {
       )}
 
       {snap?.display.busy && <ProgressDialog busy={snap.display.busy} />}
+      {place && (!open || snap?.display.busy) && (
+        <AdPopup place={place} profile={profile} onClose={() => setAdClosed(place.at)} />
+      )}
       <Taskbar live={live} openId={shown} />
     </div>
   )

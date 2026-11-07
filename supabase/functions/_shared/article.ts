@@ -132,7 +132,7 @@ export function articlePrompt(
     : `Income: ${INCOME_LABELS[p.income]}. ${INCOME_PROMPT[p.income]}`
 
   const system =
-    'You rewrite news articles for an art installation about how algorithms reshape reality. ' +
+    'You rewrite news articles. ' +
     'Write a COMPLETE article, not a recap. Same facts, names, numbers, dates, quotes and episodes as the source, ' +
     'told in a different newsroom voice — the way CNN and Fox cover the same story for different audiences. ' +
     'The altered piece must be noticeably different from the source in headline, lede and phrasing, while remaining comparable in length and facts. ' +

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { SPONSORED_MARK } from '../shared/ads.ts'
 import { CONNOTATION_LABELS, EDUCATION_LABELS, INCOME_LABELS, LEAN_LABELS, SENSATION_LABELS } from '../shared/article.ts'
 import { resolveLocation } from '../shared/locations.ts'
+import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult, View } from '../shared/types.ts'
 import { loadArticle, loadArticleIndex } from '../lib/content.ts'
 import ViewTabs from './ViewTabs.tsx'
+import { WhyButton } from './WhyAd.tsx'
 
 const typedAlready = new Set<number>()
 
@@ -48,11 +51,25 @@ function useTypewriter(text: string, animateKey: number | null) {
   return count
 }
 
-function renderBody(body: string, caret: ReactNode) {
+function renderBody(body: string, caret: ReactNode, result?: ArticleResult, profile?: VisitorProfile | null) {
   const paras = body.split(/\n\s*\n/)
   return paras.map((p, i) => {
     const last = i === paras.length - 1
     const t = p.trim()
+    if (t.startsWith('%%')) {
+      if (!t.startsWith(SPONSORED_MARK) || t.length <= SPONSORED_MARK.length) return null
+    }
+    if (t.startsWith(SPONSORED_MARK)) {
+      return (
+        <div key={i} className="sponsored-block">
+          <div className="sponsored-kicker">
+            Sponsored content
+            {result?.sponsored && <WhyButton place={result.sponsored} profile={profile} />}
+          </div>
+          <p>{t.slice(SPONSORED_MARK.length).replace(/\*\*/g, '')}{last && caret}</p>
+        </div>
+      )
+    }
     if (/^>\s*/.test(t)) return <p key={i} className="bsj-dek">{t.replace(/^>\s*/, '')}{last && caret}</p>
     if (/^##\s+/.test(t)) return <h2 key={i}>{t.replace(/^##\s+/, '')}{last && caret}</h2>
     if (/^KEY TAKEAWAYS/i.test(t)) return <p key={i} className="bsj-takeaways">{t}{last && caret}</p>
@@ -69,8 +86,8 @@ function todayLine() {
 }
 
 export default function ArticleView({
-  view, result, selectedId,
-}: { view: View; result?: ArticleResult; selectedId?: string | null }) {
+  view, result, selectedId, profile,
+}: { view: View; result?: ArticleResult; selectedId?: string | null; profile?: VisitorProfile | null }) {
   const [firstId, setFirstId] = useState<string | null>(null)
   const [original, setOriginal] = useState<{ title: string; body: string } | null>(null)
   const articleId = (view === 'altered' && result?.params.articleId)
@@ -139,7 +156,7 @@ export default function ArticleView({
             <div className="bsj-kicker">{(articleId && KICKER[articleId]) || 'U.S. NEWS'}</div>
             {altered && p && (
               <div className="doc-profile">
-                PROFILE: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
+                APPLY: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
                 {CONNOTATION_LABELS[p.connotation + 1]} · SENSATIONALISM {SENSATION_LABELS[p.sensationalism]}
                 {p.income !== null && p.income !== undefined ? ` · INCOME ${INCOME_LABELS[p.income]}` : ''}
                 {(() => {
@@ -167,7 +184,7 @@ export default function ArticleView({
                 <figcaption>{PHOTO_CAP[articleId] ?? 'Lead photograph.'}</figcaption>
               </figure>
             )}
-            {rest ? renderBody(rest, caret) : null}
+            {rest ? renderBody(rest, caret, altered ? result : undefined, profile) : null}
           </article>
         </div>
       </div>

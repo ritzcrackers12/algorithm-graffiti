@@ -1,6 +1,6 @@
 import type { AdminAction, AdminStatus, GenerateRequest, GenerateResponse, Snapshot } from '../shared/types.ts'
 
-export type Command = 'touch' | 'open' | 'home' | 'view' | 'end' | 'done' | 'story'
+export type Command = 'touch' | 'open' | 'home' | 'view' | 'end' | 'done' | 'story' | 'signal'
 
 export interface Backend {
   kind: 'supabase' | 'local'

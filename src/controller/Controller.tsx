@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
-import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive, useNow } from '../lib/live.ts'
+import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
+import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile } from '../lib/profileClient.ts'
+import { pickAd, personalizeAd } from '../shared/ads.ts'
 import { CONFIG, type ObjectId } from '../shared/config.ts'
-import type { ArticleParams, GenerateRequest, WebsiteParams } from '../shared/types.ts'
+import { hydrateProfile } from '../shared/profile.ts'
+import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
 import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
-import WebsiteControls from './WebsiteControls.tsx'
 
-export type Transmit = (req: { object: 'article'; params: ArticleParams } | { object: 'website'; params: WebsiteParams }) => void
+export type Transmit = (req: { object: 'article'; params: ArticleParams }) => void
 
 let gesturesLocked = false
 function lockGestures() {
@@ -26,11 +28,6 @@ function lockGestures() {
     { passive: false },
   )
   document.addEventListener('dblclick', (e) => e.preventDefault())
-}
-
-const fmt = (ms: number) => {
-  const s = Math.max(0, Math.ceil(ms / 1000))
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
 function Background({ id }: { id: ObjectId | null }) {
@@ -63,11 +60,7 @@ function QueueScreen({ position }: { position: number }) {
         <br />
         <em>{position === 1 ? 'YOU ARE NEXT.' : 'STAND BY.'}</em>
       </div>
-      <div className="ctl-label">
-        MAX WAIT {fmt(position * CONFIG.TURN_SECONDS * 1000)}
-        <br />
-        KEEP THIS PAGE OPEN.
-      </div>
+      <div className="ctl-label">KEEP THIS PAGE OPEN.</div>
     </Centered>
   )
 }
@@ -75,7 +68,7 @@ function QueueScreen({ position }: { position: number }) {
 function DoneAllButton({ onDone }: { onDone: () => void }) {
   return (
     <button className="done-all" onClick={onDone}>
-      I AM DONE WITH ALL THE MEDIA OBJECTS
+      END SESSION
     </button>
   )
 }
@@ -91,11 +84,11 @@ const REASONS: Record<string, string> = {
 
 export default function Controller() {
   const live = useLive()
-  const now = useNow(250)
   const snap = live.snap
   const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
   const [choosingArticle, setChoosingArticle] = useState(false)
   const lastTouch = useRef(0)
+  const lastPopup = useRef(0)
 
   useEffect(() => {
     startLive('controller')
@@ -108,12 +101,10 @@ export default function Controller() {
   const open = active ? snap.display.open : null
   const storyId = active ? snap.display.articleId : null
   const busy = active ? snap.display.busy : null
-  const idleLeft = active && snap.lastActivityAt ? snap.lastActivityAt + CONFIG.IDLE_SECONDS * 1000 - now : Infinity
-  const turnLeft = active && snap.turnStartedAt ? snap.turnStartedAt + CONFIG.TURN_SECONDS * 1000 - now : 0
-  const idleWarning = active && !busy && idleLeft < 7000
 
   const endVisit = useCallback(() => {
     haptic('press')
+    resetLocalProfile()
     void sendCommand('end')
   }, [])
 
@@ -128,15 +119,47 @@ export default function Controller() {
 
   const wasActive = useRef(false)
   useEffect(() => {
-    if (active && !wasActive.current) haptic('success')
+    if (active && !wasActive.current) {
+      haptic('success')
+      bootProfile()
+    }
     if (!active) setChoosingArticle(false)
+    if (live.ended) resetLocalProfile()
     wasActive.current = active
-  }, [active])
+  }, [active, live.ended])
+
+  const usedCount = snap?.display.used?.length ?? 0
+  const popups = snap?.profile?.popups ?? 0
+  useEffect(() => {
+    if (!active || !snap) return
+    const used = snap.display.used ?? []
+    if (used.length < 1) return
+    const p = hydrateProfile(snap.profile)
+    if (p.popups >= CONFIG.AD_POPUP_MAX) return
+    const now = Date.now()
+    if (p.lastPopupAt && now - p.lastPopupAt < CONFIG.AD_POPUP_GAP_SECONDS * 1000) return
+    if (now - lastPopup.current < 2000) return
+    const atHome = !snap.display.open && !choosingArticle
+    const loading = !!snap.display.busy
+    const first = p.popups === 0 && atHome
+    const later = p.popups >= 1 && (atHome || loading)
+    if (!first && !later) return
+    const match = pickAd(p)
+    if (!match) return
+    const place = personalizeAd(match, p)
+    lastPopup.current = now
+    void sendCommand('signal', JSON.stringify({
+      lastAd: place,
+      popups: p.popups + 1,
+      lastPopupAt: now,
+      adsShown: [...p.adsShown, place.adId],
+    }))
+  }, [active, snap, choosingArticle, usedCount, popups, busy?.id, open])
 
   const markActivity = () => {
     if (!active) return
     const t = Date.now()
-    if (t - lastTouch.current > 3000 || idleWarning) {
+    if (t - lastTouch.current > 3000) {
       lastTouch.current = t
       void sendCommand('touch')
     }
@@ -144,7 +167,8 @@ export default function Controller() {
 
   const transmit: Transmit = async (req) => {
     haptic('press')
-    const res = await sendGenerate({ ...req, session: sessionId() } as GenerateRequest)
+    const profile = req.object === 'article' ? recordArticle(req.params) : getLocalProfile()
+    const res = await sendGenerate({ ...req, session: sessionId(), profile } as GenerateRequest)
     if (res.ok) say('INPUT RECEIVED.')
     else {
       haptic('error')
@@ -163,7 +187,7 @@ export default function Controller() {
           <br />
           <em>CONTROL TRANSFERRED.</em>
         </div>
-        <div className="ctl-label">YOUR INPUT HAS BEEN RECORDED.</div>
+        <div className="ctl-label">INPUT RECORDED.</div>
         <button className="big-btn ghost" onClick={() => { haptic('press'); rejoinQueue() }}>
           REJOIN QUEUE
         </button>
@@ -176,6 +200,7 @@ export default function Controller() {
   } else if (!open && !choosingArticle) {
     content = (
       <Picker
+        used={snap.display.used ?? []}
         onPick={(id) => {
           if (id === 'article') setChoosingArticle(true)
           else void sendCommand('open', id)
@@ -198,24 +223,31 @@ export default function Controller() {
   } else {
     const hasAltered = open === 'article'
       ? snap.altered.article?.params.articleId === storyId
-      : !!snap.altered[open as keyof typeof snap.altered]
+      : false
     content = (
       <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
-        <Segmented
-          options={[
-            { value: 'original', label: 'ORIGINAL' },
-            { value: 'altered', label: 'ALTERED', disabled: !hasAltered },
-          ]}
-          value={hasAltered ? snap.display.view : 'original'}
-          pinkWhen="altered"
-          disabled={!!busy}
-          onChange={(v) => void sendCommand('view', v)}
-        />
+        {open === 'article' && (
+          <Segmented
+            options={[
+              { value: 'original', label: 'ORIGINAL' },
+              { value: 'altered', label: 'ALTERED', disabled: !hasAltered },
+            ]}
+            value={hasAltered ? snap.display.view : 'original'}
+            pinkWhen="altered"
+            disabled={!!busy}
+            onChange={(v) => void sendCommand('view', v)}
+          />
+        )}
         <div className="ctl-object-body">
           {open === 'article' && storyId && (
             <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} />
           )}
-          {open === 'website' && <WebsiteControls snap={snap} locked={!!busy} transmit={transmit} say={say} />}
+          {open && open !== 'article' && (
+            <div className="ctl-center">
+              <div className="ctl-display">{open.toUpperCase()}</div>
+              <div className="ctl-label">CONTROLS NOT INSTALLED.</div>
+            </div>
+          )}
           {busy && (
             <div className="lock-shade">
               <div>
@@ -245,30 +277,14 @@ export default function Controller() {
       <div className="ctl-main">
         <div className="ctl-top">
           <div className="ctl-top-meta">
-            <span className="chip">{active && (open || choosingArticle) ? (open ?? 'article').toUpperCase() : CONFIG.TITLE}</span>
+            <span className="chip">{active && (open || choosingArticle) ? (open ?? 'article').toUpperCase() : 'CONTROLLER'}</span>
             <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
           </div>
-          <div className="ctl-timer">
-            {active && (
-              <>
-                <div className={`ctl-clock ${turnLeft < 15000 ? 'hot' : ''}`}>{fmt(turnLeft)}</div>
-                <div className="ctl-meter">
-                  <div style={{ width: `${Math.max(0, turnLeft / (CONFIG.TURN_SECONDS * 10))}%` }} />
-                </div>
-              </>
-            )}
-          </div>
+          <div className="ctl-timer" />
           {active && <DoneAllButton onDone={endVisit} />}
         </div>
         {content}
       </div>
-      {idleWarning && (
-        <div className="idle-warn">
-          INACTIVITY DETECTED.
-          <br />
-          RELEASING CONTROL IN {Math.max(0, Math.ceil(idleLeft / 1000))}.
-        </div>
-      )}
       {toast && <div key={toast.key} className="toast" onAnimationEnd={() => setToast(null)}>{toast.text}</div>}
     </div>
   )

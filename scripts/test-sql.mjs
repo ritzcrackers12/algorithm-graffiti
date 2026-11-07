@@ -48,12 +48,18 @@ await age(`update ag_state set last_activity_at = now() - interval '21 seconds'`
 r = await hb(B); assert.equal(r.position, 0, 'B takes over after A idles')
 assert.deepEqual(r.altered, {}, 'per_visitor reset')
 assert.equal(r.display.open, null)
+assert.deepEqual(r.profile, {}, 'profile cleared on idle handoff')
 r = await hb(C); assert.equal(r.position, 1)
 r = await hb(A, false); assert.equal(r.position, -1, 'A is out of the queue')
 
-// turn length
+// p_turn = 0 never expires on elapsed time
+const P0 = [0, 20, 12, 180, "per_visitor"]
 await age(`update ag_state set turn_started_at = now() - interval '91 seconds'`)
-r = await hb(C); assert.equal(r.position, 0, 'C takes over after 90s')
+r = await hb(B, true, P0); assert.equal(r.position, 0, 'turn=0 does not expire')
+
+// turn length still works when configured
+await age(`update ag_state set turn_started_at = now() - interval '91 seconds'`)
+r = await hb(C); assert.equal(r.position, 0, 'C takes over after 90s when p_turn=90')
 
 // vanished phone (locked / tab closed)
 r = await hb(A); assert.equal(r.position, 1)
@@ -75,11 +81,11 @@ await admin('clear_queue'); await hb(A)
 // persist mode keeps changes across visitors
 const PP = [90, 20, 12, 180, "persist"]
 await age(`update ag_generations set created_at = now() - interval '1 minute'`)
-g = await one(`select ag_begin_generation($1,'website',12,3,5,200,'America/New_York')`, [A])
-await one(`select ag_finish_generation($1,$2,'website','{"v":1}'::jsonb,'mock','persist')`, [g.id, A])
+g = await one(`select ag_begin_generation($1,'article',12,3,5,200,'America/New_York')`, [A])
+await one(`select ag_finish_generation($1,$2,'article','{"title":"kept"}'::jsonb,'mock','persist')`, [g.id, A])
 r = await hb(B, true, PP); assert.equal(r.position, 1)
 r = await cmd(A, 'end', null, PP); r = await hb(B, true, PP)
-assert.equal(r.position, 0); assert.ok(r.altered.website, 'persist keeps altered')
+assert.equal(r.position, 0); assert.ok(r.altered.article, 'persist keeps altered')
 
 // voluntary end + admin
 r = await admin('status'); assert.equal(r.today.mock, 2); assert.equal(r.hasActive, true)
@@ -92,11 +98,16 @@ r = await admin('clear_queue'); assert.equal(r.waiting, 0); assert.equal(r.hasAc
 // bad input
 await assert.rejects(hb('x'), /invalid session/)
 r = await hb(A); await assert.rejects(cmd(A, 'open', 'evil'), /invalid object/)
-r = await cmd(A, 'open', 'website'); assert.equal(r.ok, true)
+await assert.rejects(cmd(A, 'open', 'website'), /invalid object/)
+r = await cmd(A, 'open', 'reel'); assert.equal(r.ok, true)
+assert.deepEqual(r.display.used, ['reel'])
+r = await cmd(A, 'signal', JSON.stringify({ device: { os: 'iOS', type: 'phone' } }))
+assert.equal(r.ok, true)
+assert.equal(r.profile.device.os, 'iOS')
 r = await cmd(A, 'done')
 assert.equal(r.display.open, null)
-assert.deepEqual(r.display.completed, ['website'])
-r = await cmd(A, 'open', 'website'); assert.equal(r.ok, true, 'can reopen a finished object')
+assert.deepEqual(r.display.completed, ['reel'])
+r = await cmd(A, 'open', 'reel'); assert.equal(r.ok, true, 'can reopen a finished object')
 r = await cmd(A, 'home'); assert.equal(r.display.open, null)
 r = await cmd(A, 'open', 'article'); assert.equal(r.ok, true)
 r = await cmd(A, 'home')

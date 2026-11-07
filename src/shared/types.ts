@@ -1,4 +1,6 @@
 import type { ObjectId } from './config.ts'
+import type { VisitorProfile } from './profile.ts'
+import type { AdPlacement } from './ads.ts'
 
 export type View = 'original' | 'altered'
 export type Source = 'ai' | 'mock' | 'fallback' | 'cap'
@@ -15,8 +17,10 @@ export interface DisplayState {
   view: View
   busy: Busy | null
   openedAt: number
-  /** Objects this visitor has already finished. Locked on the desktop. */
+  /** Objects this visitor has already finished. */
   completed: ObjectId[]
+  /** Objects opened this turn (unlocks Game after 2). */
+  used: ObjectId[]
   /** Which original story is open. Set before article controls appear. */
   articleId: string | null
 }
@@ -43,29 +47,11 @@ export interface ArticleResult {
   body: string
   source: Source
   at: number
-}
-
-export interface WebsiteParams {
-  era: 1996 | 2006 | 2016 | 2026
-  /** preset id from COUNTRY_MODELS, or "custom" */
-  country: string
-  /** free text when country === "custom" */
-  countryText: string
-  /** 0 despair … 4 elation */
-  mood: number
-}
-
-export interface WebsiteResult {
-  params: WebsiteParams
-  vars: Record<string, string>
-  texts: Record<string, string>
-  source: Source
-  at: number
+  sponsored?: AdPlacement
 }
 
 export interface Altered {
   article?: ArticleResult
-  website?: WebsiteResult
 }
 
 export interface Snapshot {
@@ -74,6 +60,7 @@ export interface Snapshot {
   lastActivityAt: number | null
   display: DisplayState
   altered: Altered
+  profile: VisitorProfile
   mockMode: boolean
   version: number
   serverNow: number
@@ -84,8 +71,7 @@ export interface Snapshot {
 }
 
 export type GenerateRequest =
-  | { session: string; object: 'article'; params: ArticleParams }
-  | { session: string; object: 'website'; params: WebsiteParams }
+  | { session: string; object: 'article'; params: ArticleParams; profile?: VisitorProfile }
 
 export interface GenerateResponse {
   ok: boolean
