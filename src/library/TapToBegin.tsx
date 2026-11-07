@@ -3,7 +3,7 @@ import { unlockAudio } from '../lib/audio.ts'
 
 export default function TapToBegin({ onBegin }: { onBegin: () => void }) {
   const begin = async () => {
-    unlockAudio()
+    unlockAudio() // must stay in this pointerdown turn so iPad audio unlocks
     try {
       await document.documentElement.requestFullscreen?.()
     } catch {

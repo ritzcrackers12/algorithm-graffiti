@@ -40,11 +40,10 @@ export default function Library() {
 
   return (
     <div className="stage-outer">
-      <div className="stage" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+      <div className="stage" style={{ zoom: scale }}>
         <Desktop live={live} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
-      <div id="ag-reel-host" className="reel-host" />
     </div>
   )
 }
