@@ -416,6 +416,31 @@ button:disabled { cursor: default; }
 .tile .sub { font: 700 9px/1 var(--font-supreme); letter-spacing: 0.12em; color: rgba(232,226,212,0.5); }
 .tile .tag { position: absolute; top: 6px; right: 6px; font: 800 8px/1 var(--font-supreme); letter-spacing: 0.1em; padding: 3px 5px; background: #c45c2a; }
 
+.story-pick { gap: 8px; }
+.story-list {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+}
+.story-card {
+  flex: 1; min-height: 88px; display: grid; grid-template-columns: 118px 1fr; gap: 10px;
+  align-items: center; text-align: left; padding: 8px;
+  border: 1px solid rgba(0,0,0,0.55); border-radius: 4px;
+  background: linear-gradient(180deg, #33322e, #1f1e1c); color: #e8e2d4;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.story-card:active { transform: translateY(1px); }
+.story-card .thumb {
+  width: 118px; height: 78px; overflow: hidden; background: #111; border: 1px solid #000;
+}
+.story-card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.story-card .story-copy { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.story-card .kicker { font: 800 9px/1 var(--font-supreme); letter-spacing: 0.18em; color: #c9a227; }
+.story-card .name { font: 800 13px/1.25 var(--font-supreme); letter-spacing: 0.06em; text-transform: uppercase; }
+.story-locked {
+  font: 700 12px/1.35 var(--font-supreme); letter-spacing: 0.04em; color: #e8e2d4;
+  padding: 8px 10px; background: #141412; border: 1px solid rgba(0,0,0,0.65);
+  box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);
+}
+
 .flag-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .flag-btn {
   border: 1px solid rgba(0,0,0,0.55); border-radius: 3px; padding: 5px 3px 4px; background: #1c1c1a; color: #e8e2d4;

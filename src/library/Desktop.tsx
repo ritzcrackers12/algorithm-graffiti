@@ -99,7 +99,7 @@ export default function Desktop({ live }: { live: Live }) {
           menu={fill ? null : undefined}
         >
           {obj.id === 'article' ? (
-            <ArticleView view={view} result={snap?.altered.article} />
+            <ArticleView view={view} result={snap?.altered.article} selectedId={snap?.display.articleId} />
           ) : obj.id === 'website' ? (
             <WebsiteView view={view} result={snap?.altered.website} />
           ) : (

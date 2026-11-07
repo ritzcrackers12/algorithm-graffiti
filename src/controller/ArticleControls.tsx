@@ -13,14 +13,14 @@ import type { Transmit } from './Controller.tsx'
 import { useControls } from './useControls.ts'
 
 export default function ArticleControls({
-  snap, locked, transmit, say,
-}: { snap: Snapshot; locked: boolean; transmit: Transmit; say: (t: string) => void }) {
+  snap, articleId, locked, transmit, say,
+}: { snap: Snapshot; articleId: string; locked: boolean; transmit: Transmit; say: (t: string) => void }) {
   const [articles, setArticles] = useState<ArticleInfo[]>([])
   const [panel, setPanel] = useState<'frame' | 'audience'>('frame')
   const [p, set] = useControls<ArticleParams>('article', snap.turnStartedAt, () => ({
-    articleId: '',
+    articleId,
     ...DEFAULT_ARTICLE_PARAMS,
-    ...(snap.altered.article?.params ?? {}),
+    ...(snap.altered.article?.params.articleId === articleId ? snap.altered.article.params : {}),
   }))
   const [locDraft, setLocDraft] = useState(p.location)
   const [locOpen, setLocOpen] = useState(false)
@@ -29,7 +29,6 @@ export default function ArticleControls({
     loadArticleIndex().then(setArticles).catch(console.error)
   }, [])
 
-  const articleId = p.articleId || articles[0]?.id || ''
   const selected = articles.find((a) => a.id === articleId)
   const loc = resolveLocation(p.location)
   const locStatus = !p.location.trim()
@@ -74,17 +73,8 @@ export default function ArticleControls({
 
       {panel === 'frame' ? (
         <>
-          <Section label="STORY" value={selected ? 'SELECTED' : '—'}>
-            <select
-              className="metal-select"
-              disabled={locked || articles.length === 0}
-              value={articleId}
-              onChange={(e) => set({ articleId: e.target.value })}
-            >
-              {articles.map((a) => (
-                <option key={a.id} value={a.id}>{a.title}</option>
-              ))}
-            </select>
+          <Section label="STORY" value="LOCKED">
+            <div className="story-locked">{selected?.title ?? articleId}</div>
           </Section>
           <Section label="POLITICAL LEAN" value={LEAN_LABELS[p.lean + 2]}>
             <DetentSlider

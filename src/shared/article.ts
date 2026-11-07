@@ -71,11 +71,11 @@ export function tooShort(source: string, out: string) {
 // ---------- real AI prompt (fixed template; the phone only sends values) ----------
 
 const LEAN_PROMPT = [
-  'Far left / CNN-style: rewrite the FULL article in that newsroom’s voice, the way CNN would file the same story Fox is also covering. Same events, names, quotes and numbers; different wording, framing and who gets the benefit of the doubt. MAGA / GOP losses read as a collapse they earned. Linger on workers, communities, corporate power and public action. Every episode stays. Not a summary and not a word-swap.',
-  'Left / center-left cable: full rewrite, slightly softer than CNN. Setbacks, backlash, same facts, every episode still present, different wording throughout.',
-  'Center / wire service: full rewrite in AP/Reuters voice. Neutral, complete, still a different wording of every paragraph — not a copy of the source.',
-  'Right / center-right cable: full rewrite. Democrats as "the left," "wave of revulsion" as media-driven backlash. Same facts, different wording, every episode still present.',
-  'Far right / Fox-style: rewrite the FULL article in that newsroom’s voice, the way Fox would file the same story CNN is also covering. Democrats as "the far left," progressives as "radicals," the rout as a rough night and elite overreach. Same facts, names, quotes and numbers; different wording and emphasis. Every episode stays. Not a summary and not a word-swap.',
+  'Far left / CNN-style: rewrite the FULL article in that newsroom’s voice. Same events, names, quotes and numbers; different wording, framing and who gets the benefit of the doubt. HEADLINE must change. LEDE must be a fresh wording of the same facts — a reader should tell CNN from Fox in the first two sentences. Example of how far to go (do not copy): source “The dust from the midterms had hardly settled Wednesday when OpenAI leaders began reckoning…” could become “It’s no surprise that after a working-class wave at the ballot box, OpenAI CEO Sam Altman was already in a panic over data centers.” MAGA / GOP losses read as a collapse they earned. Military AI lingers on civilian harm, the school strike, who is on the trigger. Linger on workers, communities, corporate power and public action. Every episode stays. Not a summary and not a word-swap.',
+  'Left / center-left cable: full rewrite, slightly softer than CNN. New headline, new lede wording, same facts, every episode still present.',
+  'Center / wire service: full rewrite in AP/Reuters voice. Neutral, complete, still a different wording of every paragraph — not a copy of the source. Headline may stay close.',
+  'Right / center-right cable: full rewrite. New headline, new lede. Democrats as "the left," Congress as a brake, military speed as overdue. Same facts, every episode still present.',
+  'Far right / Fox-style: rewrite the FULL article in that newsroom’s voice. HEADLINE must change. LEDE must be a fresh wording of the same facts. Democrats as "the far left," progressives as "radicals," MAGA losses as a rough night, military AI as catching up while Congress ties its hands, companies’ safety deal as industry standards. Same facts, names, quotes and numbers. Every episode stays. Not a summary and not a word-swap.',
 ]
 const EDUCATION_PROMPT = [
   'Did not finish high school: FULL article, same length. Short clear sentences, everyday words, concrete effects (prices, jobs, rent). Respectful, never childish, never shorter.',
@@ -86,9 +86,9 @@ const EDUCATION_PROMPT = [
   'Graduate degree: FULL article, same length. Precise, readable, careful qualifiers. A short KEY TAKEAWAYS box is extra, on top of the complete story, not instead of it.',
 ]
 const CONNOTATION_PROMPT = [
-  'Negative: "remarkable" → "alarming," "won" → "seized," "flipped" → "captured." Headline adds "Amid Growing Concerns."',
-  'Neutral: no extra coloring.',
-  'Positive: "losses" → "setbacks," "rout" → "sweep." Headline adds "a Step Forward."',
+  'Negative: rewrite the HEADLINE so the connotation is obvious — darker verbs, higher alarm. "remarkable" → "alarming," "won" → "seized," "considers" → "scrambles to contain." Do not keep the source headline. Do not just append a suffix.',
+  'Neutral: no extra coloring on top of lean.',
+  'Positive: rewrite the HEADLINE so the connotation is obvious — "losses" → "setbacks," "rout" → "sweep," "considers safeguards" → "moves to set rules." Do not keep the source headline. Do not just append a suffix.',
 ]
 const SENSATION_PROMPT = [
   'None: dry, factual, understated.',
@@ -134,11 +134,14 @@ export function articlePrompt(
     'You rewrite news articles for an art installation about how algorithms reshape reality. ' +
     'Write a COMPLETE article, not a recap. Same facts, names, numbers, dates, quotes and episodes as the source, ' +
     'told in a different newsroom voice — the way CNN and Fox cover the same story for different audiences. ' +
+    'The altered piece must be noticeably different from the source in headline, lede and phrasing, while remaining comparable in length and facts. ' +
+    'HEADLINE: rewrite it whenever lean or connotation is not center/neutral. The headline is the most direct connotation of the controls. Do not reuse the source headline in those cases. ' +
+    'LEDE: rewrite the first paragraph in that newsroom’s voice. Do not copy the source’s first sentence. ' +
     'Every named person, company, quote, figure and episode in the source must appear in the rewrite. ' +
-    'If the source has a dek under the headline, keep a rewritten dek of similar length. ' +
+    'If the source has a dek under the headline, keep a rewritten dek of similar length. If it has no dek, do not invent one. ' +
     'LENGTH: keep approximately the same number of paragraphs and within about 15% of the source word count. ' +
     'Do not summarize. Do not output a short version. A 800-word source must come back at about 800 words. ' +
-    'Never invent facts, statistics, quotes or events. Do not name the reader’s state or country. '
+    'Never invent facts, statistics, quotes or events. Do not name the reader’s state or country. ' +
     'Respect the reader: simpler is not dumber. Location and income change emphasis, never intelligence. No slurs. ' +
     'Apply controls in this order: 1 political lean, 2 income, 3 location, 4 education, 5 connotation, 6 sensationalism (packaging last). ' +
     'Reply with JSON only: {"headline":"...","body":"..."}  Body is plain paragraphs separated by blank lines.'
@@ -191,6 +194,10 @@ const LEAN_SWAPS: Record<number, Record<string, string>> = {
     'changed reality': 'a public that has run out of patience', moratoriums: 'freezes on new building',
     'data-center opposition': 'a grassroots fight over water, power and land',
     'Scramble to Navigate a World Hostile to': 'Face a Public Turned Against',
+    'speed the use of': 'rush', 'policing themselves': 'left to police themselves',
+    'considering restrictions': 'trying to put limits on', 'cut through red tape': 'strip away the rules that slow weapons programs',
+    'tear down parts of the bureaucracy': 'blow through the bureaucracy',
+    'on the loop': 'supposed to be watching',
   },
   [-1]: {
     GOP: 'Republican Party', losses: 'setbacks', rout: 'defeat', 'wave of revulsion': 'backlash',
@@ -208,13 +215,70 @@ const LEAN_SWAPS: Record<number, Record<string, string>> = {
     opposition: 'pushback', moratoriums: 'building freezes', 'hostile to': 'wary of',
     regulations: 'new rules from incoming officials',
     'Scramble to Navigate a World Hostile to': 'Work Through a Tougher Climate for',
+    'speed the use of': 'get on with', 'policing themselves': 'agreeing to industry standards',
+    'considering restrictions': 'weighing limits that could slow the Pentagon',
+    'cut through red tape': 'cut through red tape holding the services back',
+    'grappling with': 'second-guessing',
   },
 }
-const LEAN_FRAMES: Record<number, string> = {
-  [-2]: 'The numbers describe a popular demand for public action and a rejection of concentrated power.',
-  [-1]: 'Organizers say the details will matter most for people with the least slack in their budgets.',
-  [1]: 'Critics say one night of returns is being asked to carry more meaning than it can bear.',
-  [2]: 'Critics warn this is yet another case of elite overreach, paid for by families who never asked for it.',
+const HEADLINES: Record<string, Partial<Record<number, string>>> = {
+  'maga-coalition': {
+    [-2]: 'The MAGA Coalition Comes Apart — a Collapse They Earned',
+    [-1]: 'The MAGA Coalition Is Breaking Up',
+    [1]: "MAGA's Rough Midterm Night Is Being Read as a Collapse",
+    [2]: 'One Rough Night Does Not Mean the MAGA Coalition Is Finished',
+  },
+  'ai-data-centers': {
+    [-2]: "AI Giants Face a Public That's Done Hosting Their Data Centers",
+    [-1]: 'AI Companies Face a Backlash Over New Data Centers',
+    [1]: 'AI Firms Look for a Way Around New Limits on Data Centers',
+    [2]: 'AI Firms Navigate a Political Climate Suddenly Wary of Data Centers',
+  },
+  'military-ai': {
+    [-2]: 'The Pentagon Races Drones and AI Onto the Battlefield as Congress Scrambles for Guardrails',
+    [-1]: 'The Military Speeds Up Drones and AI. Congress Asks Who Pulls the Trigger.',
+    [1]: 'Pentagon Pushes Drones and AI as Congress Weighs New Limits',
+    [2]: 'Military Moves Fast on Drones and AI. Congress Threatens to Tie Its Hands.',
+  },
+}
+
+const LEDES: Record<string, Partial<Record<number, string>>> = {
+  'maga-coalition': {
+    [-2]: '“The president always loses, for whatever reason, the midterms,” President Trump said a few weeks ago. What the country just watched was not a normal sixth-year dip. It was a rout of the MAGA coalition — and the political left turn those losses now make possible.',
+    [-1]: '“The president always loses, for whatever reason, the midterms,” President Trump said a few weeks ago. What makes 2026 different is the size of the setback, and the leftward shift it now points toward.',
+    [1]: '“The president always loses, for whatever reason, the midterms,” President Trump said a few weeks ago. What the political class is already calling a collapse is, first, a midterm the president’s party almost always eats.',
+    [2]: '“The president always loses, for whatever reason, the midterms,” President Trump said a few weeks ago. What Washington is selling as the end of MAGA is a rough night the president’s party almost always has — and a map the left is already over-reading.',
+  },
+  'ai-data-centers': {
+    [-2]: 'It’s no surprise that after a working-class wave at the ballot box, OpenAI CEO Sam Altman was already in a panic over data centers. The midterms had barely ended Wednesday when his company faced a hard question: would voters make it harder to lock down the computing power it needs to keep growing?',
+    [-1]: 'The midterms had barely ended Wednesday when OpenAI CEO Sam Altman was already facing the political cost of the data-center buildout: would the new map make it harder to secure the computing power the company needs to keep growing?',
+    [1]: 'The midterms had barely ended Wednesday when OpenAI’s leaders were already warning that politics — not engineering — might be what slows the next wave of data centers, and the computing power the company says it needs to keep growing.',
+    [2]: 'The midterms had barely ended Wednesday when OpenAI’s leaders were already sounding the alarm that a tougher political climate, not a shortage of ideas, might be the thing that slows the AI buildout and the computing power the company needs to keep growing.',
+  },
+  'military-ai': {
+    [-2]: 'The Pentagon wants machines to find targets, fly the last mile, and fire faster than a human can think — and Defense Secretary Pete Hegseth just stood up a major new command to make sure that happens. Congress is only now asking whether anyone will still be left on the trigger.',
+    [-1]: 'Defense Secretary Pete Hegseth announced a major new command to rush drones and artificial intelligence across the military, even as Congress is still asking the basic question: does a human have to take the shot?',
+    [1]: 'Defense Secretary Pete Hegseth announced a major new command to get drones and artificial intelligence into the fight faster, a speed-up Pentagon officials say is overdue while Congress debates new limits.',
+    [2]: 'Defense Secretary Pete Hegseth announced a major new command to get drones and artificial intelligence onto the battlefield faster — the kind of speed Pentagon leaders say the military cannot wait on while Congress talks about tying its hands.',
+  },
+}
+
+const CONNOTATION_TITLE: Record<number, Record<string, string>> = {
+  [-1]: {
+    considers: 'scrambles to contain',
+    safeguards: 'belated guardrails',
+    Disintegrates: 'Collapses',
+    'speeds up': 'rushes',
+    Tests: 'Pushes',
+    Weighs: 'Forces Through',
+  },
+  [1]: {
+    considers: 'moves to set',
+    safeguards: 'common-sense safeguards',
+    Disintegrates: 'Hits a Setback',
+    Hostile: 'Skeptical',
+    Tests: 'Rolls Out',
+  },
 }
 const CONNOTATION_SWAPS: Record<number, Record<string, string>> = {
   [-1]: {
@@ -239,6 +303,8 @@ const HS_SWAPS = {
   electorate: 'voters', approximately: 'about', counterparts: 'other side',
   'approval rating': 'how many people like the job he is doing',
   protectionism: 'import taxes', intervention: 'war', charisma: 'star power',
+  autonomous: 'on its own', autonomously: 'on its own', procurement: 'buying weapons',
+  bureaucracy: 'slow office rules', 'red tape': 'slow office rules',
 }
 const COLLEGE_DEFS = {
   gerrymandering: 'gerrymandering (redrawing district maps to favor one party)',
@@ -362,6 +428,12 @@ const CNN_PHRASES: [RegExp, string][] = [
   [/\bnew hurdles\b/gi, 'new political barriers'],
   [/\bwill have to get much better at talking about its product\b/gi, 'will have to get much better at defending what it builds'],
   [/\breduce concentration risks associated with\b/gi, 'spread the risk of'],
+  [/\bspeed the use of drones and artificial intelligence\b/gi, 'rush drones and AI onto the battlefield'],
+  [/\bgrappling with the military version of a question\b/gi, 'scrambling to answer a question the workforce at the big AI shops is already asking'],
+  [/\bessentially has them policing themselves\b/gi, 'essentially leaves them to police themselves'],
+  [/\bis considering restrictions on military AI\b/gi, 'is trying to put limits on military AI after the fact'],
+  [/\ban overreliance on AI\b/gi, 'a dangerous overreliance on AI'],
+  [/\btear down parts of the bureaucracy that move slowly and cut through red tape\b/gi, 'blow through the rules that keep weapons programs slow'],
 ]
 
 const FOX_PHRASES: [RegExp, string][] = [
@@ -375,6 +447,12 @@ const FOX_PHRASES: [RegExp, string][] = [
   [/\bincreasingly considering\b/gi, 'also considering'],
   [/\bnew hurdles\b/gi, 'new rules'],
   [/\bwill have to get much better at talking about its product\b/gi, 'will have to get better at making the case'],
+  [/\bspeed the use of drones and artificial intelligence\b/gi, 'get drones and AI into the fight faster'],
+  [/\bgrappling with the military version of a question\b/gi, 'debating a question AI companies have also raised'],
+  [/\bessentially has them policing themselves\b/gi, 'sets industry standards the companies agreed to'],
+  [/\bis considering restrictions on military AI\b/gi, 'is weighing limits that could slow military AI'],
+  [/\ban overreliance on AI\b/gi, 'heavy use of AI'],
+  [/\btear down parts of the bureaucracy that move slowly and cut through red tape\b/gi, 'cut through red tape holding the services back'],
 ]
 
 function newsroomRetell(text: string, lean: number) {
@@ -453,6 +531,33 @@ function simplifyProse(p: string) {
     .join(' ')
 }
 
+function spinHeadline(articleId: string, title: string, lean: number, connotation: number) {
+  const banked = HEADLINES[articleId]?.[lean]
+  let out = banked ?? title
+  if (!banked && lean !== 0) {
+    const as = title.match(/^As (.+?), (.+)$/i)
+    if (as) {
+      const a = as[1]
+      const b = as[2]
+      out = lean < 0
+        ? `${a.charAt(0).toUpperCase()}${a.slice(1)}. ${b.charAt(0).toUpperCase()}${b.slice(1)} — late.`
+        : `${a.charAt(0).toUpperCase()}${a.slice(1)} as Washington second-guesses the job.`
+    }
+  }
+  if (connotation !== 0) out = swapWords(out, CONNOTATION_TITLE[connotation] ?? {})
+  return out
+}
+
+function replaceLede(articleId: string, paras: string[], lean: number) {
+  const lede = LEDES[articleId]?.[lean]
+  if (!lede || lean === 0) return paras
+  const i = paras.findIndex(isProse)
+  if (i === -1) return paras
+  const next = paras.slice()
+  next[i] = lede
+  return next
+}
+
 function applyMap(title: string, paras: string[], map: Record<string, string> | undefined) {
   if (!map) return { title, paras }
   const body = (x: string) => mapUnquoted(x, (t) => swapWords(t, map))
@@ -493,7 +598,8 @@ export function mockArticle(
   ;({ title, paras } = applyMap(title, paras, LEAN_SWAPS[p.lean]))
   title = newsroomRetell(title, p.lean)
   paras = paras.map((x) => restyleBlock(x, p.lean))
-  if (LEAN_FRAMES[p.lean]) insertAfterByline(paras, LEAN_FRAMES[p.lean], 1)
+  paras = replaceLede(p.articleId, paras, p.lean)
+  title = spinHeadline(p.articleId, title, p.lean, 0)
 
   // 2. Income
   if (p.income !== null && INCOME_LINES[p.income]) insertAfterByline(paras, INCOME_LINES[p.income], 1)
@@ -515,31 +621,38 @@ export function mockArticle(
   }
 
   // 4. Education — same story, different register. Never drop paragraphs.
+  const maga = p.articleId === 'maga-coalition'
   if (p.education === 0) {
     ;({ title, paras } = applyMap(title, paras, HS_SWAPS))
     paras = paras.map((x) => (isProse(x) ? simplifyProse(x) : x))
   } else if (p.education === 1) {
     ;({ title, paras } = applyMap(title, paras, COLLEGE_DEFS))
-    insertAfterByline(
-      paras,
-      'Younger voters moved hardest, which is the group still paying for college and looking for a first job.',
-      2,
-    )
+    if (maga) {
+      insertAfterByline(
+        paras,
+        'Younger voters moved hardest, which is the group still paying for college and looking for a first job.',
+        2,
+      )
+    }
   } else if (p.education === 2) {
     ;({ title, paras } = applyMap(title, paras, TOP_SCHOOL_SWAPS))
-    insertAfterByline(
-      paras,
-      'Read as a generational shift, the coalition that won in 2024 did not hold among the young.',
-      2,
-    )
+    if (maga) {
+      insertAfterByline(
+        paras,
+        'Read as a generational shift, the coalition that won in 2024 did not hold among the young.',
+        2,
+      )
+    }
   } else if (p.education === 4) {
     ;({ title, paras } = applyMap(title, paras, ELITE_SWAPS))
-    title = swapWords(title, { 'GOP collapse': 'a historic repudiation', collapse: 'a historic repudiation' })
-    insertAfterByline(
-      paras,
-      'Historically, sixth-year midterms punish the president’s party; what is unusual here is the breadth, not the direction.',
-      2,
-    )
+    if (maga) {
+      title = swapWords(title, { 'GOP collapse': 'a historic repudiation', collapse: 'a historic repudiation' })
+      insertAfterByline(
+        paras,
+        'Historically, sixth-year midterms punish the president’s party; what is unusual here is the breadth, not the direction.',
+        2,
+      )
+    }
   } else if (p.education === 5) {
     ;({ title, paras } = applyMap(title, paras, GRAD_SWAPS))
     const facts = paras.flatMap((x) => (isProse(x) ? sentences(x) : [])).filter((s) => /\d/.test(s)).slice(0, 3)
@@ -549,18 +662,15 @@ export function mockArticle(
       const rest = paras.filter(isProse)
       paras = [...byline, box, ...rest]
     }
-    paras.push('The open question is whether this marks a durable realignment or a one-cycle reaction.')
+    if (maga) paras.push('The open question is whether this marks a durable realignment or a one-cycle reaction.')
   }
 
   // 5. Connotation (visitor setting always wins; skip if location already nudged from neutral)
   const locationNudged = loc.kind === 'state' && p.connotation === 0 && loc.profile.partisanLean !== 0
   if (!locationNudged) {
     ;({ title, paras } = applyMap(title, paras, CONNOTATION_SWAPS[p.connotation]))
-    if (p.connotation === -1) title += ' Amid Growing Concerns'
-    if (p.connotation === 1) title += ', a Step Forward'
-  } else {
-    if (loc.profile.partisanLean > 0) title += ' Amid Growing Concerns'
   }
+  title = spinHeadline(p.articleId, title, p.lean, p.connotation)
 
   // 6. Sensationalism
   if (p.sensationalism >= 2) title = title + ': What It Means for You'

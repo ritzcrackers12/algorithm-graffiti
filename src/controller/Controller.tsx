@@ -4,6 +4,7 @@ import { haptic } from '../lib/haptics.ts'
 import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive, useNow } from '../lib/live.ts'
 import { CONFIG, type ObjectId } from '../shared/config.ts'
 import type { ArticleParams, GenerateRequest, WebsiteParams } from '../shared/types.ts'
+import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
@@ -93,6 +94,7 @@ export default function Controller() {
   const now = useNow(250)
   const snap = live.snap
   const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
+  const [choosingArticle, setChoosingArticle] = useState(false)
   const lastTouch = useRef(0)
 
   useEffect(() => {
@@ -104,6 +106,7 @@ export default function Controller() {
 
   const active = snap?.position === 0
   const open = active ? snap.display.open : null
+  const storyId = active ? snap.display.articleId : null
   const busy = active ? snap.display.busy : null
   const idleLeft = active && snap.lastActivityAt ? snap.lastActivityAt + CONFIG.IDLE_SECONDS * 1000 - now : Infinity
   const turnLeft = active && snap.turnStartedAt ? snap.turnStartedAt + CONFIG.TURN_SECONDS * 1000 - now : 0
@@ -126,6 +129,7 @@ export default function Controller() {
   const wasActive = useRef(false)
   useEffect(() => {
     if (active && !wasActive.current) haptic('success')
+    if (!active) setChoosingArticle(false)
     wasActive.current = active
   }, [active])
 
@@ -169,12 +173,34 @@ export default function Controller() {
     content = <QueueScreen position={snap.position} />
   } else if (!active) {
     content = <Centered><div className="scanline" /><div className="ctl-label">REQUESTING ACCESS...</div></Centered>
-  } else if (!open) {
-    content = <Picker onPick={(id) => void sendCommand('open', id)} />
-  } else {
-    const hasAltered = !!snap.altered[open as keyof typeof snap.altered]
+  } else if (!open && !choosingArticle) {
     content = (
-      <div className="ctl-object" key={open}>
+      <Picker
+        onPick={(id) => {
+          if (id === 'article') setChoosingArticle(true)
+          else void sendCommand('open', id)
+        }}
+      />
+    )
+  } else if ((choosingArticle && !open) || (open === 'article' && !storyId)) {
+    content = (
+      <ArticleChooser
+        onPick={(id) => {
+          void sendCommand('story', id)
+        }}
+        onBack={() => {
+          haptic('press')
+          setChoosingArticle(false)
+          if (open) void sendCommand('home')
+        }}
+      />
+    )
+  } else {
+    const hasAltered = open === 'article'
+      ? snap.altered.article?.params.articleId === storyId
+      : !!snap.altered[open as keyof typeof snap.altered]
+    content = (
+      <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
         <Segmented
           options={[
             { value: 'original', label: 'ORIGINAL' },
@@ -186,7 +212,9 @@ export default function Controller() {
           onChange={(v) => void sendCommand('view', v)}
         />
         <div className="ctl-object-body">
-          {open === 'article' && <ArticleControls snap={snap} locked={!!busy} transmit={transmit} say={say} />}
+          {open === 'article' && storyId && (
+            <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} />
+          )}
           {open === 'website' && <WebsiteControls snap={snap} locked={!!busy} transmit={transmit} say={say} />}
           {busy && (
             <div className="lock-shade">
@@ -201,6 +229,7 @@ export default function Controller() {
           className="end-session"
           onClick={() => {
             haptic('press')
+            setChoosingArticle(false)
             void sendCommand('home')
           }}
         >
@@ -212,11 +241,11 @@ export default function Controller() {
 
   return (
     <div className="ctl" onPointerDownCapture={markActivity}>
-      <Background id={open} />
+      <Background id={open ?? (choosingArticle ? 'article' : null)} />
       <div className="ctl-main">
         <div className="ctl-top">
           <div className="ctl-top-meta">
-            <span className="chip">{active && open ? open.toUpperCase() : CONFIG.TITLE}</span>
+            <span className="chip">{active && (open || choosingArticle) ? (open ?? 'article').toUpperCase() : CONFIG.TITLE}</span>
             <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
           </div>
           <div className="ctl-timer">

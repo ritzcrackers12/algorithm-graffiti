@@ -22,7 +22,7 @@ interface DB {
 }
 
 const KEY = 'ag-local-db-v1'
-const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [] }
+const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [], articleId: null }
 
 function fresh(): DB {
   return {
@@ -99,7 +99,7 @@ export function createLocalBackend(): Backend {
     }
     return {
       hasActive: !!db.activeSession, turnStartedAt: db.turnStartedAt, lastActivityAt: db.lastActivityAt,
-      display: { ...db.display, completed: db.display.completed ?? [] }, altered: db.altered, mockMode: db.mockMode, version: db.version,
+      display: { ...db.display, completed: db.display.completed ?? [], articleId: db.display.articleId ?? null }, altered: db.altered, mockMode: db.mockMode, version: db.version,
       serverNow: Date.now(), waiting: waitingRows.length, position,
     }
   }
@@ -162,14 +162,28 @@ export function createLocalBackend(): Backend {
       if (row) row.lastSeen = Date.now()
       db.lastActivityAt = Date.now()
       const completed = db.display.completed ?? []
-      if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
+      if (cmd === 'story' && arg && /^[a-z0-9-]{1,40}$/.test(arg)) {
+        db.display = {
+          ...db.display,
+          open: 'article',
+          articleId: arg,
+          view: db.altered.article?.params.articleId === arg ? 'altered' : 'original',
+          openedAt: Date.now(),
+        }
+      } else if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
         const obj = arg as keyof Altered
-        db.display = { ...db.display, open: obj, view: db.altered[obj] ? 'altered' : 'original', openedAt: Date.now() }
-      } else if (cmd === 'home') db.display = { ...db.display, open: null }
+        db.display = {
+          ...db.display,
+          open: obj,
+          view: db.altered[obj] ? 'altered' : 'original',
+          openedAt: Date.now(),
+          articleId: obj === 'article' ? db.display.articleId : null,
+        }
+      } else if (cmd === 'home') db.display = { ...db.display, open: null, articleId: null }
       else if (cmd === 'done') {
         const cur = db.display.open
         const next = cur && !completed.includes(cur) ? [...completed, cur] : completed
-        db.display = { ...db.display, open: null, completed: next }
+        db.display = { ...db.display, open: null, articleId: null, completed: next }
       }
       else if (cmd === 'view' && (arg === 'original' || arg === 'altered')) db.display = { ...db.display, view: arg }
       else if (cmd === 'end') {

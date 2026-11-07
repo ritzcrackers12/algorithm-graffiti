@@ -17,6 +17,8 @@ export interface DisplayState {
   openedAt: number
   /** Objects this visitor has already finished. Locked on the desktop. */
   completed: ObjectId[]
+  /** Which original story is open. Set before article controls appear. */
+  articleId: string | null
 }
 
 export interface ArticleParams {

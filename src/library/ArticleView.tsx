@@ -10,12 +10,12 @@ const typedAlready = new Set<number>()
 const PHOTO_CAP: Record<string, string> = {
   'maga-coalition': 'Election night. A MAGA hat rests on a suit jacket as supporters huddle after the returns.',
   'ai-data-centers': 'A data-center campus under construction: cranes, orange fencing and workers on red earth.',
-  'campus-cameras': 'Harbor Point High School entrance. Replace this with a daytime photo of a school facade with cameras over the doors.',
-  'waterfront-readers': 'Harbor Point waterfront. Replace this with a photo of the promenade, water, and camera poles along the rail.',
+  'military-ai': 'A mine-clearing charge detonates during a demonstration of AI-equipped military vehicles.',
 }
 const KICKER: Record<string, string> = {
   'maga-coalition': 'OPINION',
   'ai-data-centers': 'TECH',
+  'military-ai': 'DEFENSE',
 }
 
 function takeDek(body: string): { dek: string; rest: string } {
@@ -68,10 +68,14 @@ function todayLine() {
   }).toUpperCase()
 }
 
-export default function ArticleView({ view, result }: { view: View; result?: ArticleResult }) {
+export default function ArticleView({
+  view, result, selectedId,
+}: { view: View; result?: ArticleResult; selectedId?: string | null }) {
   const [firstId, setFirstId] = useState<string | null>(null)
   const [original, setOriginal] = useState<{ title: string; body: string } | null>(null)
-  const articleId = result?.params.articleId ?? firstId
+  const articleId = (view === 'altered' && result?.params.articleId)
+    ? result.params.articleId
+    : (selectedId || result?.params.articleId || firstId)
   const scrollRef = useRef<HTMLDivElement>(null)
   const caretRef = useRef<HTMLSpanElement>(null)
 
