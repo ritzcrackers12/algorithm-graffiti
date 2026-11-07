@@ -4,8 +4,8 @@ import { pickAd, personalizeAd, weaveSponsored } from '../_shared/ads.ts'
 import { CONFIG } from '../_shared/config.ts'
 import type { ArticleParams, ReelParams } from '../_shared/types.ts'
 import {
-  AFFINITY_KEY, addRating, cleanWord, emptyReelResult, logRound, parseAffinity,
-  pickFirst, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
+  AFFINITY_KEY, addRating, emptyReelResult, logRound, parseAffinity,
+  pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
   type ReelResult, type ReelRow,
 } from '../_shared/reel.ts'
 import {
@@ -154,37 +154,21 @@ async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result
   const prev = ((state?.altered as { reel?: ReelResult } | null)?.reel) ?? emptyReelResult()
   const source = useAi ? 'ai' : 'mock'
 
-  if (params.action === 'start' || params.action === 'word') {
+  if (params.action === 'start') {
     if (prev.phase === 'done') return { result: prev }
     if (prev.currentId && (prev.phase === 'playing' || prev.phase === 'rate')) return { result: prev }
-    let pick = null as ReelRow | null
-    let word = ''
-    if (params.action === 'word') {
-      const w = cleanWord(params.word)
-      if ('blocked' in w || 'invalid' in w) {
-        return { result: { ...emptyReelResult(), phase: 'word', at: Date.now(), source: 'fallback' } }
-      }
-      word = w.word
-      let vec: number[] | null = null
-      if (useAi) {
-        const pred = await predict({ job: 'embed', input: { text: w.word } })
-        if (pred.ok && Array.isArray(pred.output)) vec = pred.output as number[]
-      }
-      pick = pickFirst(library, w.word, vec, !vec)
-    } else {
-      pick = pickStart(library, await loadAffinity())
-    }
+    const pick = pickStart(library, await loadAffinity(), params.seed || Date.now())
     if (!pick) {
       return {
         result: {
-          ...emptyReelResult(), word, phase: 'done', sessionLine: 'NO LIBRARY.',
+          ...emptyReelResult(), phase: 'done', sessionLine: 'NO LIBRARY.',
           at: Date.now(), source: 'fallback',
         },
       }
     }
     return {
       result: {
-        word, phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
+        word: '', phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
         rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
         source, at: Date.now(),
       },
@@ -259,15 +243,10 @@ Deno.serve(async (req) => {
     const p = body.params && typeof body.params === 'object' ? body.params as Record<string, unknown> : {}
     if (p.action !== 'start' && p.action !== 'word' && p.action !== 'rate') return json({ ok: false, reason: 'invalid' })
     reelParams = {
-      action: p.action,
-      word: typeof p.word === 'string' ? p.word : undefined,
+      action: p.action === 'rate' ? 'rate' : 'start',
+      seed: typeof p.seed === 'number' ? p.seed : Date.now(),
       rating: p.rating === 'HIGH' || p.rating === 'MEDIUM' || p.rating === 'LOW' ? p.rating : undefined,
       hesitationMs: typeof p.hesitationMs === 'number' ? p.hesitationMs : 0,
-    }
-    if (p.action === 'word') {
-      const w = cleanWord(p.word)
-      if ('blocked' in w) return json({ ok: false, reason: 'blocked' })
-      if ('invalid' in w) return json({ ok: false, reason: 'invalid' })
     }
   }
   const profile = articleParams

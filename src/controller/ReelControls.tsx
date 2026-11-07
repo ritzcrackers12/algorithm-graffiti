@@ -14,7 +14,7 @@ const CHOICES: { rating: ReelRating; label: string }[] = [
 
 export default function ReelControls({ snap, locked, say }: { snap: Snapshot; locked: boolean; say: (t: string) => void }) {
   const reel = snap.altered.reel
-  const phase = reel?.phase ?? 'word'
+  const phase = reel?.phase ?? 'idle'
   const busy = !!snap.display.busy
   const [ended, setEnded] = useState(false)
   const endedAt = useRef(0)
@@ -28,7 +28,7 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
       void sendGenerate({
         session: sessionId(),
         object: 'reel',
-        params: { action: 'start' },
+        params: { action: 'start', seed: snap.display.openedAt || Date.now() },
         profile: getLocalProfile(),
       }).then((res) => {
         if (cancelled || res.ok || res.reason === 'busy') return
@@ -37,7 +37,7 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
     }
     kick()
     return () => { cancelled = true }
-  }, [locked, phase, reel?.currentId, busy])
+  }, [locked, phase, reel?.currentId, busy, snap.display.openedAt])
 
   useEffect(() => {
     setEnded(false)

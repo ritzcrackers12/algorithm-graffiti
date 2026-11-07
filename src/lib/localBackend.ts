@@ -7,8 +7,8 @@ import { CONFIG, OBJECTS } from '../shared/config.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
 import {
-  AFFINITY_KEY, addRating, cleanWord, emptyAffinity, emptyReelResult, logRound,
-  parseAffinity, pickFirst, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
+  AFFINITY_KEY, addRating, emptyAffinity, emptyReelResult, logRound,
+  parseAffinity, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
   type ReelResult, type ReelRow,
 } from '../shared/reel.ts'
 import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
@@ -170,23 +170,17 @@ export function createLocalBackend(): Backend {
     return reelLibrary
   }
 
-  function produceReel(params: { action: string; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined): ReelResult {
+  function produceReel(params: { action: string; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined): ReelResult {
     const current = prev ?? emptyReelResult()
     if (params.action === 'start' || params.action === 'word') {
       if (current.phase === 'done') return current
       if (current.currentId && (current.phase === 'playing' || current.phase === 'rate')) return current
-      const pick = params.action === 'word'
-        ? (() => {
-            const w = cleanWord(params.word)
-            if ('blocked' in w || 'invalid' in w) return null
-            return pickFirst(library, w.word, null, true)
-          })()
-        : pickStart(library, loadAffinity())
+      const pick = pickStart(library, loadAffinity(), params.seed || Date.now())
       if (!pick) {
         return { ...emptyReelResult(), phase: 'done', sessionLine: 'NO LIBRARY.', at: Date.now(), source: 'fallback' }
       }
       return {
-        word: params.action === 'word' ? String(params.word ?? '').toLowerCase() : '',
+        word: '',
         phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
         rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
         source: 'mock', at: Date.now(),
@@ -285,8 +279,8 @@ export function createLocalBackend(): Backend {
             return { ...snapshot(db, session), ok: false }
           }
           const prevReel = db.altered.reel
-          if (!prevReel?.currentId || prevReel.phase === 'word') {
-            const pick = pickStart(library, loadAffinity())
+          if (!prevReel?.currentId || prevReel.phase === 'word' || prevReel.phase === 'idle') {
+            const pick = pickStart(library, loadAffinity(), Date.now())
             if (pick) {
               db.altered = {
                 ...db.altered,
@@ -333,18 +327,18 @@ export function createLocalBackend(): Backend {
     },
     async generate(req) {
       const articleParams = req.object === 'article' ? validateArticleParams(req.params) : null
-      let reelParams: { action: 'start' | 'word' | 'rate'; word?: string; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number } | null = null
+      let reelParams: { action: 'start' | 'rate'; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number } | null = null
       if (req.object === 'article') {
         if (!articleParams) return { ok: false, reason: 'invalid' }
       } else if (req.object === 'reel') {
-        const p = req.params
+        const p = req.params as { action?: string; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }
         if (p.action !== 'start' && p.action !== 'word' && p.action !== 'rate') return { ok: false, reason: 'invalid' }
-        if (p.action === 'word') {
-          const w = cleanWord(p.word)
-          if ('blocked' in w) return { ok: false, reason: 'blocked' }
-          if ('invalid' in w) return { ok: false, reason: 'invalid' }
+        reelParams = {
+          action: p.action === 'rate' ? 'rate' : 'start',
+          seed: typeof p.seed === 'number' ? p.seed : Date.now(),
+          rating: p.rating,
+          hesitationMs: p.hesitationMs,
         }
-        reelParams = p
       } else {
         return { ok: false, reason: 'invalid' }
       }

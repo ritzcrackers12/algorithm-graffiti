@@ -2,7 +2,7 @@
 import { isBlocked } from './text.ts'
 
 export type ReelRating = 'HIGH' | 'MEDIUM' | 'LOW'
-export type ReelPhase = 'word' | 'playing' | 'rate' | 'done'
+export type ReelPhase = 'idle' | 'word' | 'playing' | 'rate' | 'done'
 
 const ENERGY = ['low', 'medium', 'high'] as const
 export type Energy = (typeof ENERGY)[number]
@@ -303,14 +303,20 @@ function lookup(library: ReelRow[], id: string): ReelRow | undefined {
   return library.find((r) => r.id === id)
 }
 
-/** First clip: closest to what other visitors liked. If nobody has rated yet, random. */
-export function pickStart(library: ReelRow[], affinity: CrowdAffinity): ReelRow | null {
+function seededIndex(n: number, seed: number) {
+  if (n <= 0) return 0
+  const x = Math.sin(seed || 1) * 10000
+  return Math.abs(Math.floor(x)) % n
+}
+
+/** First clip: closest to what other visitors liked. If nobody has rated yet, seeded random. */
+export function pickStart(library: ReelRow[], affinity: CrowdAffinity, seed = 1): ReelRow | null {
   const pool = library.filter((r) => !notesBlock(r, [], null, 0))
   const src = pool.length ? pool : library
   if (!src.length) return null
   const scored = src.map((r) => ({ r, s: affinityScore(r, affinity) }))
-  scored.sort((a, b) => b.s - a.s || Math.random() - 0.5)
-  if (!scored[0] || scored[0].s <= 0) return src[Math.floor(Math.random() * src.length)]
+  scored.sort((a, b) => b.s - a.s || a.r.id.localeCompare(b.r.id))
+  if (!scored[0] || scored[0].s <= 0) return src[seededIndex(src.length, seed)]
   return scored[0].r
 }
 
@@ -432,7 +438,7 @@ export function sessionLine(rounds: ReelRoundLog[]): string {
 export function emptyReelResult(): ReelResult {
   return {
     word: '',
-    phase: 'word',
+    phase: 'idle',
     currentId: null,
     videoUrl: null,
     rounds: [],

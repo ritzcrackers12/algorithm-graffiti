@@ -112,7 +112,7 @@ export default function Desktop({ live }: { live: Live }) {
               profile={profile}
             />
           ) : obj.id === 'reel' ? (
-            <ReelView result={snap?.altered.reel} />
+            <ReelView result={snap?.altered.reel} openedAt={openedAt} />
           ) : (
             <PlaceholderView id={obj.id} />
           )}

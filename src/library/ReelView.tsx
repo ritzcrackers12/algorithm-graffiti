@@ -1,21 +1,41 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getBackend } from '../lib/backend.ts'
 import { isAudioUnlocked } from '../lib/audio.ts'
-import { reelFile } from '../lib/content.ts'
-import type { ReelResult } from '../shared/reel.ts'
+import { loadReelLibrary, reelUrls } from '../lib/content.ts'
+import { emptyAffinity, pickStart, type ReelResult } from '../shared/reel.ts'
 
-export default function ReelView({ result }: { result?: ReelResult }) {
+export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult; openedAt?: number }) {
   const unlocked = isAudioUnlocked()
-  const phase = result?.phase ?? 'word'
-  const id = result?.currentId
-  const src = id ? reelFile(id) : ''
+  const phase = result?.phase ?? 'idle'
+  const [bootId, setBootId] = useState<string | null>(null)
+  const id = phase === 'done' ? null : (result?.currentId || bootId)
+  const urls = id ? reelUrls(id) : []
+  const [srcIndex, setSrcIndex] = useState(0)
+  const src = urls[srcIndex] ?? ''
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    setSrcIndex(0)
+  }, [id])
+
+  useEffect(() => {
+    if (result?.currentId || phase === 'done') return
+    let go = true
+    void loadReelLibrary().then((rows) => {
+      if (!go || !rows.length) return
+      const pick = pickStart(rows, emptyAffinity(), openedAt || 1)
+      if (pick) setBootId(pick.id)
+    })
+    return () => { go = false }
+  }, [result?.currentId, phase, openedAt])
 
   useEffect(() => {
     const el = videoRef.current
     if (!el || !src) return
-    el.muted = !unlocked
-    void el.play().catch(() => {
+    el.muted = true
+    void el.play().then(() => {
+      if (unlocked) el.muted = false
+    }).catch(() => {
       el.muted = true
       void el.play().catch(() => {})
     })
@@ -40,15 +60,18 @@ export default function ReelView({ result }: { result?: ReelResult }) {
         ) : src ? (
           <video
             ref={videoRef}
-            key={id}
+            key={`${id}:${src}`}
             className="reel-video"
             src={src}
             autoPlay
+            muted
             playsInline
             preload="auto"
-            muted={!unlocked}
+            {...{ 'webkit-playsinline': 'true' }}
             onLoadedMetadata={(e) => report(false, e.currentTarget.duration)}
+            onPlaying={() => report(false, videoRef.current?.duration)}
             onEnded={() => report(true)}
+            onError={() => setSrcIndex((i) => (i + 1 < urls.length ? i + 1 : i))}
           />
         ) : (
           <div className="machine-line" style={{ color: '#c6ff3d', textAlign: 'center' }}>

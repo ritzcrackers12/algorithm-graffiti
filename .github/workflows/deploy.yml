@@ -24,6 +24,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
+      # Keep the Pages artifact small; the live player loads clips from Supabase Storage.
+      - run: rm -f public/content/reels/*.mp4
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}

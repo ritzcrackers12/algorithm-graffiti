@@ -74,8 +74,8 @@ export interface Snapshot {
 }
 
 export interface ReelParams {
-  action: 'start' | 'word' | 'rate'
-  word?: string
+  action: 'start' | 'rate'
+  seed?: number
   rating?: ReelRating
   hesitationMs?: number
 }
