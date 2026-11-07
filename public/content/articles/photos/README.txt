@@ -1,6 +1,6 @@
 One lead photo per article. File name = the article id in index.json.
 
-maga-coalition.jpg       1200×675 (16:9). Night outdoor rally after midnight: floodlights, thinning crowd, red signs unreadable, no faces.
+maga-coalition.jpg       IN. Election-night huddle, MAGA hat on a suit jacket. 1024×675.
 campus-cameras.jpg       1200×675. Daytime high-school entrance, cameras over the doors.
 waterfront-readers.jpg   1200×675. Harbor promenade, water, camera poles along the rail.
 

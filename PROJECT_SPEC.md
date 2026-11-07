@@ -57,9 +57,21 @@ A Windows XP–style "desktop" on an iPad shows five media objects as large, ani
 - On change, call the AI (via the server function, see §8), which returns JSON: new CSS variable values + rewritten text for each `data-editable` element. Apply it in the iPad window.
 
 ### C. Article (Session 1)
-- 1–3 source articles I'll provide as Markdown in `public/content/articles/`. Use a placeholder article until then.
-- **Controls:** political lean (left ↔ right), education level, connotation (negative / neutral / positive), sensationalism.
-- The AI rewrites the article accordingly. Stream the text so it "types itself" in the iPad window.
+- 1–3 source articles I'll provide as Markdown in `public/content/articles/`.
+- **Controls (6):** facts stay fixed; only framing, emphasis, vocabulary, tone and packaging change.
+- Phone is two panels — **FRAME** (lean, connotation, sensationalism) and **AUDIENCE** (education, income, location).
+
+| Control | Settings | Effect |
+|---|---|---|
+| Political lean | Far left → Far right | Who the story is for. MAGA as villain vs. elite overreach. |
+| Education | 6-stop knob. Default: College graduate | Who it is written for. No diploma = short and concrete. Graduate degree = KEY TAKEAWAYS + measured close. Never mocking. |
+| Connotation | Neg / Neutral / Pos | Emotional color, separate from left/right. |
+| Sensationalism | None → Maximum | Packaging last. Maximum is clickbait. |
+| Income | 6-stop slider, **unset until touched** | Which wallet issues get the extra line (rent vs. 401(k) vs. markets). |
+| Location | State / DC / country autocomplete | Local angle from `state-profiles` (DRAFT). International = observer, no partisan lean. |
+
+- Apply order: lean → income → location → education → connotation → sensationalism.
+- The AI rewrites the article accordingly. The iPad types the result. Live output is JSON `{headline, body}`; invented numbers fall back to mock.
 
 ### D. Image (Session 2)
 - **Controller:** asks the visitor a series of questions, one at a time (store the questions in a config file; I'll write the real ones later; use 5 placeholder questions for now).

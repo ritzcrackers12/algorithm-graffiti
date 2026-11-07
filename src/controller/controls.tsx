@@ -67,7 +67,7 @@ export function Knob({
 
 /** Horizontal metal fader that snaps to detents. */
 export function DetentSlider({
-  steps, value, onChange, disabled, track, left, right,
+  steps, value, onChange, disabled, track, left, right, unset,
 }: {
   steps: number
   value: number
@@ -76,6 +76,8 @@ export function DetentSlider({
   track?: string
   left?: string
   right?: string
+  /** Grayed, no effect until the visitor touches it. */
+  unset?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const fromPointer = (e: RPointerEvent) => {
@@ -87,10 +89,10 @@ export function DetentSlider({
       onChange(i)
     }
   }
-  const pct = (value / (steps - 1)) * 100
-  const thumb: CSSProperties = { left: `${pct}%` }
+  const pct = unset ? 0 : (value / (steps - 1)) * 100
+  const thumb: CSSProperties = { left: `${pct}%`, opacity: unset ? 0.35 : 1 }
   return (
-    <div className="fader" style={{ opacity: disabled ? 0.4 : 1 }}>
+    <div className={`fader${unset ? ' unset' : ''}`} style={{ opacity: disabled ? 0.4 : 1 }}>
       <div
         ref={ref}
         className="fader-track"
@@ -101,7 +103,7 @@ export function DetentSlider({
         }}
         onPointerMove={(e) => !disabled && e.currentTarget.hasPointerCapture(e.pointerId) && fromPointer(e)}
       >
-        <div className="fader-groove" style={track ? { background: track } : undefined} />
+        <div className="fader-groove" style={!unset && track ? { background: track } : undefined} />
         {Array.from({ length: steps }, (_, i) => (
           <i key={i} className="fader-notch" style={{ left: `${(i / (steps - 1)) * 100}%` }} />
         ))}

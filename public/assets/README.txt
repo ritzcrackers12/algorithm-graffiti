@@ -33,7 +33,7 @@ Block Safety website photos — public/content/website/base/photos/
   See photos/README.txt for the exact picture to shoot or find.
 
 Ball Street Journal article photos — public/content/articles/photos/
-  maga-coalition.jpg     thinning night rally, no faces (16:9)
+  maga-coalition.jpg     IN — election-night huddle / MAGA hat
   campus-cameras.jpg     school entrance
   waterfront-readers.jpg harbor promenade
   See photos/README.txt. Name must match the article id in index.json.

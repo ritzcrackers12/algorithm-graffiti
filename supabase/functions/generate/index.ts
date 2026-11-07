@@ -3,8 +3,10 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { CONFIG } from '../_shared/config.ts'
 import type { ArticleParams, WebsiteParams } from '../_shared/types.ts'
 import {
-  articlePrompt, mockArticle, parseArticleMarkdown, parseArticleOutput, validateArticleParams,
+  articlePrompt, canonicalArticleParams, inventedNumbers, mockArticle, parseArticleMarkdown, parseArticleOutput, validateArticleParams,
 } from '../_shared/article.ts'
+import { resolveLocation } from '../_shared/locations.ts'
+import { isBlocked } from '../_shared/text.ts'
 import {
   extractEditables, mockWebsite, parseWebsiteOutput, validateWebsiteParams, websitePrompt,
 } from '../_shared/website.ts'
@@ -47,7 +49,7 @@ async function replicateText(system: string, prompt: string, token: string, dead
   const url = m.version
     ? 'https://api.replicate.com/v1/predictions'
     : `https://api.replicate.com/v1/models/${m.owner}/${m.name}/predictions`
-  const input = { prompt, system_prompt: system, max_tokens: 1800, temperature: 0.8 }
+  const input = { prompt, system_prompt: system, max_tokens: 2400, temperature: 0.8 }
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'wait=25' }
   const signal = AbortSignal.timeout(Math.max(1000, deadline - Date.now()))
   let pred = await (await fetch(url, {
@@ -67,13 +69,18 @@ async function produce(object: string, params: ArticleParams | WebsiteParams, us
   if (object === 'article') {
     const p = params as ArticleParams
     const original = parseArticleMarkdown(await fetchSite(`content/articles/${p.articleId}.md`))
-    const fallback = () => ({ params: p, ...mockArticle(p, original) })
+    const loc = resolveLocation(p.location)
+    const logged = canonicalArticleParams(p)
+    const fallback = () => ({ params: logged, ...mockArticle(p, original, loc) })
     if (!useAi) return { result: fallback(), ai: false }
     try {
-      const { system, prompt } = articlePrompt(p, original)
+      const { system, prompt } = articlePrompt(p, original, loc)
       const out = parseArticleOutput(await replicateText(system, prompt, token, deadline))
-      if (out) return { result: { params: p, ...out }, ai: true }
-      console.error('article: unusable model output')
+      const sourceText = `${original.title}\n${original.body}`
+      if (out && !inventedNumbers(sourceText, `${out.title}\n${out.body}`)) {
+        return { result: { params: logged, ...out }, ai: true }
+      }
+      console.error('article: unusable model output or invented numbers')
     } catch (e) {
       console.error('article AI failed', e)
     }
@@ -111,7 +118,13 @@ Deno.serve(async (req) => {
   const object = body.object === 'article' || body.object === 'website' ? body.object : null
   if (!session || !object) return json({ ok: false, reason: 'invalid' })
   const params = object === 'article' ? validateArticleParams(body.params) : validateWebsiteParams(body.params)
-  if (!params) return json({ ok: false, reason: object === 'website' ? 'blocked' : 'invalid' })
+  if (!params) {
+    const loc = object === 'article' && body.params && typeof body.params === 'object'
+      ? String((body.params as Record<string, unknown>).location ?? '')
+      : ''
+    const blocked = object === 'website' || (object === 'article' && loc && isBlocked(loc))
+    return json({ ok: false, reason: blocked ? 'blocked' : 'invalid' })
+  }
 
   const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
   const mockDelay = Math.round(lo + Math.random() * (hi - lo))

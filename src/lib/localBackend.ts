@@ -2,7 +2,8 @@
 // Mirrors the SQL rules in supabase/migrations using localStorage, so several tabs in the
 // same browser can act as iPad + phones. Generation is always mock here.
 import { CONFIG, OBJECTS } from '../shared/config.ts'
-import { mockArticle, validateArticleParams } from '../shared/article.ts'
+import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
+import { resolveLocation } from '../shared/locations.ts'
 import { extractEditables, mockWebsite, validateWebsiteParams } from '../shared/website.ts'
 import type { AdminStatus, Altered, DisplayState, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
@@ -205,7 +206,7 @@ export function createLocalBackend(): Backend {
         try {
           if (req.object === 'article') {
             const p = params as typeof req.params
-            result = { params: p, ...mockArticle(p, await loadArticle(p.articleId)) }
+            result = { params: canonicalArticleParams(p), ...mockArticle(p, await loadArticle(p.articleId), resolveLocation(p.location)) }
           } else {
             const p = params as typeof req.params
             result = { params: p, ...mockWebsite(p, extractEditables(await loadBaseSiteHtml())) }

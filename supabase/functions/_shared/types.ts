@@ -24,12 +24,16 @@ export interface ArticleParams {
   articleId: string
   /** -2 far left … 2 far right */
   lean: number
-  /** 0 primary … 3 doctoral */
+  /** 0 no diploma … 5 master's/PhD. Default 3 = college graduate. */
   education: number
   /** -1 negative, 0 neutral, 1 positive */
   connotation: number
   /** 0 none … 4 maximum */
   sensationalism: number
+  /** 0 under $30k … 5 $500k+. null until the visitor touches the slider. */
+  income: number | null
+  /** Free text: state, DC, or country. Empty = no location effect. */
+  location: string
 }
 
 export interface ArticleResult {

@@ -1,0 +1,1024 @@
+{
+  "_draft": "DRAFT: verify before the show. 2024 presidential lean is approximate. Edit src/shared/stateProfiles.ts and re-export.",
+  "states": [
+    {
+      "name": "Alabama",
+      "abbr": "AL",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "manufacturing",
+        "agriculture",
+        "aerospace",
+        "healthcare"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "energy costs",
+        "rural healthcare",
+        "trade"
+      ],
+      "notes": "Heavy manufacturing and farm counties."
+    },
+    {
+      "name": "Alaska",
+      "abbr": "AK",
+      "region": "West",
+      "partisanLean": 1,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "oil and gas",
+        "fishing",
+        "federal government",
+        "tourism"
+      ],
+      "topIssues": [
+        "energy",
+        "cost of living",
+        "rural healthcare",
+        "federal land"
+      ],
+      "notes": "Resource extraction and high living costs."
+    },
+    {
+      "name": "Arizona",
+      "abbr": "AZ",
+      "region": "West",
+      "partisanLean": 1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "semiconductors",
+        "tourism",
+        "defense",
+        "real estate"
+      ],
+      "topIssues": [
+        "housing costs",
+        "water",
+        "border",
+        "retirement"
+      ],
+      "notes": "Phoenix growth, water and housing pressure."
+    },
+    {
+      "name": "Arkansas",
+      "abbr": "AR",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "logistics",
+        "poultry",
+        "retail HQs"
+      ],
+      "topIssues": [
+        "farm prices",
+        "rural healthcare",
+        "wages",
+        "trade"
+      ],
+      "notes": "Agriculture and warehouse logistics."
+    },
+    {
+      "name": "California",
+      "abbr": "CA",
+      "region": "West",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "tech",
+        "entertainment",
+        "agriculture",
+        "ports"
+      ],
+      "topIssues": [
+        "housing costs",
+        "AI and regulation",
+        "wildfire",
+        "immigration"
+      ],
+      "notes": "Tech and housing dominate the conversation."
+    },
+    {
+      "name": "Colorado",
+      "abbr": "CO",
+      "region": "West",
+      "partisanLean": -1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "tech",
+        "energy",
+        "aerospace",
+        "tourism"
+      ],
+      "topIssues": [
+        "housing costs",
+        "water",
+        "energy",
+        "outdoors"
+      ],
+      "notes": "Front Range tech meets energy counties."
+    },
+    {
+      "name": "Connecticut",
+      "abbr": "CT",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "finance",
+        "insurance",
+        "defense",
+        "healthcare"
+      ],
+      "topIssues": [
+        "taxes",
+        "housing",
+        "commuting",
+        "schools"
+      ],
+      "notes": "Finance and high costs around New York."
+    },
+    {
+      "name": "Delaware",
+      "abbr": "DE",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "finance",
+        "chemicals",
+        "logistics",
+        "healthcare"
+      ],
+      "topIssues": [
+        "corporate law",
+        "wages",
+        "coastal flooding",
+        "healthcare"
+      ],
+      "notes": "Banking and chemicals along the corridor."
+    },
+    {
+      "name": "District of Columbia",
+      "abbr": "DC",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "federal government",
+        "lobbying",
+        "education",
+        "hospitality"
+      ],
+      "topIssues": [
+        "federal jobs",
+        "housing costs",
+        "public services",
+        "inequality"
+      ],
+      "notes": "The federal workforce is the local economy."
+    },
+    {
+      "name": "Florida",
+      "abbr": "FL",
+      "region": "South",
+      "partisanLean": 1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "tourism",
+        "logistics",
+        "agriculture",
+        "healthcare"
+      ],
+      "topIssues": [
+        "insurance",
+        "housing",
+        "hurricanes",
+        "retirement"
+      ],
+      "notes": "Insurance, storms and in-migration."
+    },
+    {
+      "name": "Georgia",
+      "abbr": "GA",
+      "region": "South",
+      "partisanLean": 1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "logistics",
+        "film",
+        "agriculture",
+        "auto"
+      ],
+      "topIssues": [
+        "jobs",
+        "housing in Atlanta",
+        "rural hospitals",
+        "trade"
+      ],
+      "notes": "Atlanta logistics plus farm and auto country."
+    },
+    {
+      "name": "Hawaii",
+      "abbr": "HI",
+      "region": "West",
+      "partisanLean": -2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "tourism",
+        "military",
+        "agriculture",
+        "healthcare"
+      ],
+      "topIssues": [
+        "cost of living",
+        "housing",
+        "tourism jobs",
+        "climate"
+      ],
+      "notes": "Islands live on tourism and federal spending."
+    },
+    {
+      "name": "Idaho",
+      "abbr": "ID",
+      "region": "West",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "tech",
+        "timber",
+        "mining"
+      ],
+      "topIssues": [
+        "housing growth",
+        "water",
+        "farm prices",
+        "public land"
+      ],
+      "notes": "Boise growth over a farm-and-timber base."
+    },
+    {
+      "name": "Illinois",
+      "abbr": "IL",
+      "region": "Midwest",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "finance",
+        "manufacturing",
+        "agriculture",
+        "logistics"
+      ],
+      "topIssues": [
+        "taxes",
+        "Chicago housing",
+        "farm prices",
+        "pensions"
+      ],
+      "notes": "Chicago finance against downstate farms."
+    },
+    {
+      "name": "Indiana",
+      "abbr": "IN",
+      "region": "Midwest",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "manufacturing",
+        "agriculture",
+        "pharma",
+        "logistics"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "auto",
+        "farm prices",
+        "trade"
+      ],
+      "notes": "Auto and steel still define many towns."
+    },
+    {
+      "name": "Iowa",
+      "abbr": "IA",
+      "region": "Midwest",
+      "partisanLean": 1,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "insurance",
+        "manufacturing",
+        "biofuels"
+      ],
+      "topIssues": [
+        "crop prices",
+        "trade",
+        "rural healthcare",
+        "ethanol"
+      ],
+      "notes": "Corn, soy, insurance and caucuses."
+    },
+    {
+      "name": "Kansas",
+      "abbr": "KS",
+      "region": "Midwest",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "aviation",
+        "energy",
+        "military"
+      ],
+      "topIssues": [
+        "crop prices",
+        "trade",
+        "rural healthcare",
+        "energy"
+      ],
+      "notes": "Wheat, Wichita aviation and military bases."
+    },
+    {
+      "name": "Kentucky",
+      "abbr": "KY",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "manufacturing",
+        "agriculture",
+        "logistics",
+        "energy"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "rural hospitals",
+        "energy",
+        "opioids"
+      ],
+      "notes": "Auto plants and Appalachian counties."
+    },
+    {
+      "name": "Louisiana",
+      "abbr": "LA",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "oil and gas",
+        "ports",
+        "agriculture",
+        "tourism"
+      ],
+      "topIssues": [
+        "energy",
+        "hurricanes",
+        "coastal land loss",
+        "wages"
+      ],
+      "notes": "Gulf energy and port traffic."
+    },
+    {
+      "name": "Maine",
+      "abbr": "ME",
+      "region": "Northeast",
+      "partisanLean": -1,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "healthcare",
+        "fishing",
+        "forestry",
+        "tourism"
+      ],
+      "topIssues": [
+        "rural healthcare",
+        "heating costs",
+        "fisheries",
+        "aging"
+      ],
+      "notes": "Older, rural, heating-oil dependent."
+    },
+    {
+      "name": "Maryland",
+      "abbr": "MD",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "federal government",
+        "biotech",
+        "ports",
+        "defense"
+      ],
+      "topIssues": [
+        "federal jobs",
+        "housing",
+        "commuting",
+        "schools"
+      ],
+      "notes": "Beltway agencies and Baltimore port."
+    },
+    {
+      "name": "Massachusetts",
+      "abbr": "MA",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "education",
+        "biotech",
+        "finance",
+        "healthcare"
+      ],
+      "topIssues": [
+        "housing costs",
+        "colleges",
+        "healthcare",
+        "transit"
+      ],
+      "notes": "Universities and hospitals set the tone."
+    },
+    {
+      "name": "Michigan",
+      "abbr": "MI",
+      "region": "Midwest",
+      "partisanLean": 0,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "auto",
+        "manufacturing",
+        "agriculture",
+        "healthcare"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "auto transition",
+        "trade",
+        "Great Lakes"
+      ],
+      "notes": "The auto map still decides elections."
+    },
+    {
+      "name": "Minnesota",
+      "abbr": "MN",
+      "region": "Midwest",
+      "partisanLean": -1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "healthcare",
+        "agriculture",
+        "manufacturing",
+        "retail HQs"
+      ],
+      "topIssues": [
+        "healthcare costs",
+        "farm prices",
+        "Twin Cities housing",
+        "unions"
+      ],
+      "notes": "Medical devices and a farm hinterland."
+    },
+    {
+      "name": "Mississippi",
+      "abbr": "MS",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "manufacturing",
+        "energy",
+        "shipbuilding"
+      ],
+      "topIssues": [
+        "rural healthcare",
+        "wages",
+        "factory jobs",
+        "energy"
+      ],
+      "notes": "Lowest incomes, rural hospitals, Gulf yards."
+    },
+    {
+      "name": "Missouri",
+      "abbr": "MO",
+      "region": "Midwest",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "agriculture",
+        "manufacturing",
+        "logistics",
+        "healthcare"
+      ],
+      "topIssues": [
+        "farm prices",
+        "factory jobs",
+        "St. Louis / KC",
+        "rural hospitals"
+      ],
+      "notes": "Two cities and a large farm middle."
+    },
+    {
+      "name": "Montana",
+      "abbr": "MT",
+      "region": "West",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "energy",
+        "tourism",
+        "mining"
+      ],
+      "topIssues": [
+        "housing in boom towns",
+        "public land",
+        "energy",
+        "rural healthcare"
+      ],
+      "notes": "Ranching, energy and in-migration."
+    },
+    {
+      "name": "Nebraska",
+      "abbr": "NE",
+      "region": "Midwest",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "rail",
+        "finance",
+        "meatpacking"
+      ],
+      "topIssues": [
+        "crop prices",
+        "trade",
+        "immigration and packing plants",
+        "rural hospitals"
+      ],
+      "notes": "Beef, corn and Omaha finance."
+    },
+    {
+      "name": "Nevada",
+      "abbr": "NV",
+      "region": "West",
+      "partisanLean": 0,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "hospitality",
+        "mining",
+        "logistics",
+        "tech"
+      ],
+      "topIssues": [
+        "service jobs",
+        "housing in Las Vegas",
+        "tourism",
+        "water"
+      ],
+      "notes": "Casinos, warehouses and desert growth."
+    },
+    {
+      "name": "New Hampshire",
+      "abbr": "NH",
+      "region": "Northeast",
+      "partisanLean": -1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "healthcare",
+        "tech",
+        "manufacturing",
+        "tourism"
+      ],
+      "topIssues": [
+        "housing",
+        "property taxes",
+        "healthcare",
+        "energy costs"
+      ],
+      "notes": "No income tax, high property tax, Boston spillover."
+    },
+    {
+      "name": "New Jersey",
+      "abbr": "NJ",
+      "region": "Northeast",
+      "partisanLean": -1,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "pharma",
+        "finance",
+        "ports",
+        "logistics"
+      ],
+      "topIssues": [
+        "property taxes",
+        "commuting",
+        "housing",
+        "insurance"
+      ],
+      "notes": "Dense suburbs facing New York."
+    },
+    {
+      "name": "New Mexico",
+      "abbr": "NM",
+      "region": "West",
+      "partisanLean": -1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "federal labs",
+        "energy",
+        "tourism",
+        "agriculture"
+      ],
+      "topIssues": [
+        "oil and gas",
+        "water",
+        "rural healthcare",
+        "federal jobs"
+      ],
+      "notes": "Labs, energy and a large rural expanse."
+    },
+    {
+      "name": "New York",
+      "abbr": "NY",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "finance",
+        "media",
+        "healthcare",
+        "education"
+      ],
+      "topIssues": [
+        "housing costs",
+        "taxes",
+        "transit",
+        "upstate jobs"
+      ],
+      "notes": "NYC finance versus upstate decline."
+    },
+    {
+      "name": "North Carolina",
+      "abbr": "NC",
+      "region": "South",
+      "partisanLean": 1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "banking",
+        "tech",
+        "manufacturing",
+        "agriculture"
+      ],
+      "topIssues": [
+        "housing in the Triangle",
+        "factory jobs",
+        "hurricanes",
+        "rural hospitals"
+      ],
+      "notes": "Banks, research triangle, furniture towns."
+    },
+    {
+      "name": "North Dakota",
+      "abbr": "ND",
+      "region": "Midwest",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "energy",
+        "agriculture",
+        "mining"
+      ],
+      "topIssues": [
+        "oil jobs",
+        "farm prices",
+        "rural healthcare",
+        "energy regulation"
+      ],
+      "notes": "Bakken oil and wheat."
+    },
+    {
+      "name": "Ohio",
+      "abbr": "OH",
+      "region": "Midwest",
+      "partisanLean": 1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "manufacturing",
+        "healthcare",
+        "agriculture",
+        "energy"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "trade",
+        "energy costs",
+        "rural healthcare"
+      ],
+      "notes": "Factory towns still define the economy."
+    },
+    {
+      "name": "Oklahoma",
+      "abbr": "OK",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "energy",
+        "aerospace",
+        "agriculture",
+        "tribal enterprise"
+      ],
+      "topIssues": [
+        "energy",
+        "rural hospitals",
+        "tornadoes",
+        "wages"
+      ],
+      "notes": "Oil, gas and aviation."
+    },
+    {
+      "name": "Oregon",
+      "abbr": "OR",
+      "region": "West",
+      "partisanLean": -2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "tech",
+        "timber",
+        "agriculture",
+        "apparel"
+      ],
+      "topIssues": [
+        "housing in Portland",
+        "timber towns",
+        "wildfire",
+        "homelessness"
+      ],
+      "notes": "Portland tech against timber counties."
+    },
+    {
+      "name": "Pennsylvania",
+      "abbr": "PA",
+      "region": "Northeast",
+      "partisanLean": 0,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "healthcare",
+        "energy",
+        "manufacturing",
+        "education"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "fracking",
+        "Philadelphia / Pittsburgh",
+        "rural hospitals"
+      ],
+      "notes": "The original swing-state mix."
+    },
+    {
+      "name": "Rhode Island",
+      "abbr": "RI",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "healthcare",
+        "education",
+        "ports",
+        "tourism"
+      ],
+      "topIssues": [
+        "housing",
+        "healthcare costs",
+        "wages",
+        "coastal flooding"
+      ],
+      "notes": "Small, dense, hospital-heavy."
+    },
+    {
+      "name": "South Carolina",
+      "abbr": "SC",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "manufacturing",
+        "tourism",
+        "military",
+        "agriculture"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "hurricanes",
+        "rural hospitals",
+        "housing on the coast"
+      ],
+      "notes": "Foreign auto plants and the coast."
+    },
+    {
+      "name": "South Dakota",
+      "abbr": "SD",
+      "region": "Midwest",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "agriculture",
+        "finance",
+        "tourism",
+        "meatpacking"
+      ],
+      "topIssues": [
+        "farm prices",
+        "rural healthcare",
+        "taxes",
+        "tourism"
+      ],
+      "notes": "Cattle, credit-card HQs, Badlands."
+    },
+    {
+      "name": "Tennessee",
+      "abbr": "TN",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "auto",
+        "healthcare",
+        "logistics",
+        "music"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "Nashville housing",
+        "rural hospitals",
+        "trade"
+      ],
+      "notes": "Auto corridor plus a booming capital."
+    },
+    {
+      "name": "Texas",
+      "abbr": "TX",
+      "region": "South",
+      "partisanLean": 1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "energy",
+        "tech",
+        "trade",
+        "agriculture"
+      ],
+      "topIssues": [
+        "energy",
+        "border",
+        "housing in the metros",
+        "grid"
+      ],
+      "notes": "Oil, chips, ports and a long border."
+    },
+    {
+      "name": "Utah",
+      "abbr": "UT",
+      "region": "West",
+      "partisanLean": 2,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "tech",
+        "mining",
+        "defense",
+        "tourism"
+      ],
+      "topIssues": [
+        "housing along the Wasatch",
+        "water",
+        "public land",
+        "tech jobs"
+      ],
+      "notes": "Young, fast-growing, tech plus extraction."
+    },
+    {
+      "name": "Vermont",
+      "abbr": "VT",
+      "region": "Northeast",
+      "partisanLean": -2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "healthcare",
+        "education",
+        "agriculture",
+        "tourism"
+      ],
+      "topIssues": [
+        "rural healthcare",
+        "housing",
+        "dairy",
+        "energy costs"
+      ],
+      "notes": "Small, rural, high education."
+    },
+    {
+      "name": "Virginia",
+      "abbr": "VA",
+      "region": "South",
+      "partisanLean": -1,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "federal government",
+        "defense",
+        "tech",
+        "ports"
+      ],
+      "topIssues": [
+        "federal jobs",
+        "NOVA housing",
+        "military",
+        "rural southside"
+      ],
+      "notes": "Pentagon suburbs versus rural south."
+    },
+    {
+      "name": "Washington",
+      "abbr": "WA",
+      "region": "West",
+      "partisanLean": -2,
+      "urbanRural": "urban",
+      "topIndustries": [
+        "tech",
+        "aerospace",
+        "agriculture",
+        "ports"
+      ],
+      "topIssues": [
+        "housing in Seattle",
+        "AI and regulation",
+        "trade",
+        "wildfire"
+      ],
+      "notes": "Boeing, Amazon, ports and orchards."
+    },
+    {
+      "name": "West Virginia",
+      "abbr": "WV",
+      "region": "South",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "energy",
+        "healthcare",
+        "chemicals",
+        "timber"
+      ],
+      "topIssues": [
+        "coal and gas jobs",
+        "rural hospitals",
+        "opioids",
+        "aging"
+      ],
+      "notes": "Energy extraction and an older population."
+    },
+    {
+      "name": "Wisconsin",
+      "abbr": "WI",
+      "region": "Midwest",
+      "partisanLean": 0,
+      "urbanRural": "mixed",
+      "topIndustries": [
+        "manufacturing",
+        "agriculture",
+        "healthcare",
+        "dairy"
+      ],
+      "topIssues": [
+        "factory jobs",
+        "dairy prices",
+        "rural hospitals",
+        "trade"
+      ],
+      "notes": "Plants and dairy in a perennial toss-up."
+    },
+    {
+      "name": "Wyoming",
+      "abbr": "WY",
+      "region": "West",
+      "partisanLean": 2,
+      "urbanRural": "rural",
+      "topIndustries": [
+        "energy",
+        "agriculture",
+        "tourism",
+        "mining"
+      ],
+      "topIssues": [
+        "coal and gas",
+        "public land",
+        "rural healthcare",
+        "boom-bust"
+      ],
+      "notes": "The most extraction-heavy state."
+    }
+  ]
+}

@@ -193,7 +193,7 @@ export default function Controller() {
           onChange={(v) => void sendCommand('view', v)}
         />
         <div className="ctl-object-body">
-          {open === 'article' && <ArticleControls snap={snap} locked={!!busy} transmit={transmit} />}
+          {open === 'article' && <ArticleControls snap={snap} locked={!!busy} transmit={transmit} say={say} />}
           {open === 'website' && <WebsiteControls snap={snap} locked={!!busy} transmit={transmit} say={say} />}
           {busy && (
             <div className="lock-shade">

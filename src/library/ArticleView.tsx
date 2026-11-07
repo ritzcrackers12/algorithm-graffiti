@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { CONNOTATION_LABELS, EDUCATION_LABELS, LEAN_LABELS, SENSATION_LABELS } from '../shared/article.ts'
+import { CONNOTATION_LABELS, EDUCATION_LABELS, INCOME_LABELS, LEAN_LABELS, SENSATION_LABELS } from '../shared/article.ts'
+import { resolveLocation } from '../shared/locations.ts'
 import type { ArticleResult, View } from '../shared/types.ts'
 import { loadArticle, loadArticleIndex } from '../lib/content.ts'
 import ViewTabs from './ViewTabs.tsx'
@@ -7,7 +8,7 @@ import ViewTabs from './ViewTabs.tsx'
 const typedAlready = new Set<number>()
 
 const PHOTO_CAP: Record<string, string> = {
-  'maga-coalition': 'Election night. Replace this with a wide photo of a thinning outdoor rally after midnight: floodlights, sparse crowd, red signs unreadable, no faces.',
+  'maga-coalition': 'Election night. A MAGA hat rests on a suit jacket as supporters huddle after the returns.',
   'campus-cameras': 'Harbor Point High School entrance. Replace this with a daytime photo of a school facade with cameras over the doors.',
   'waterfront-readers': 'Harbor Point waterfront. Replace this with a photo of the promenade, water, and camera poles along the rail.',
 }
@@ -44,6 +45,8 @@ function renderBody(body: string, caret: ReactNode) {
     const last = i === paras.length - 1
     const t = p.trim()
     if (/^##\s+/.test(t)) return <h2 key={i}>{t.replace(/^##\s+/, '')}{last && caret}</h2>
+    if (/^KEY TAKEAWAYS/i.test(t)) return <p key={i} className="bsj-takeaways">{t}{last && caret}</p>
+    if (/^•/.test(t)) return <p key={i} className="bsj-bullet">{t}{last && caret}</p>
     if (/^\*[^*].*\*$/.test(t) || /^_.*_$/.test(t)) return <p key={i} className="bsj-byline">{t.slice(1, -1)}{last && caret}</p>
     return <p key={i}>{t.replace(/\*\*/g, '')}{last && caret}</p>
   })
@@ -123,6 +126,13 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
               <div className="doc-profile">
                 PROFILE: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
                 {CONNOTATION_LABELS[p.connotation + 1]} · SENSATIONALISM {SENSATION_LABELS[p.sensationalism]}
+                {p.income !== null && p.income !== undefined ? ` · INCOME ${INCOME_LABELS[p.income]}` : ''}
+                {(() => {
+                  const loc = resolveLocation(p.location)
+                  if (loc.kind === 'state') return ` · LOCATION ${loc.profile.name.toUpperCase()}`
+                  if (loc.kind === 'country') return ` · LOCATION ${loc.name.toUpperCase()}`
+                  return ''
+                })()}
               </div>
             )}
             <h1>{title}{nl === -1 && caret}</h1>
