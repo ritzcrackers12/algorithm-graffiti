@@ -13,6 +13,7 @@ export function unlockAudio() {
     src.connect(ctx.destination)
     src.start(0)
     unlocked = true
+    window.dispatchEvent(new Event('ag-media-unlock'))
   } catch {
     /* no Web Audio */
   }

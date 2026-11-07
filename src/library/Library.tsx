@@ -44,6 +44,7 @@ export default function Library() {
         <Desktop live={live} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
+      <div id="ag-reel-host" className="reel-host" />
     </div>
   )
 }
