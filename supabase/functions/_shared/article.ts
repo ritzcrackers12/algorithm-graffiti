@@ -67,7 +67,8 @@ const SENSATION_PROMPT = [
 export function articlePrompt(p: ArticleParams, original: { title: string; body: string }) {
   const system =
     'You rewrite news articles for an art installation about how algorithms reshape reality. ' +
-    'Keep the same events, people, places and numbers. Do not add violence, slurs or real-world brands. ' +
+    'Keep the same events, people, places, numbers and named public figures. Do not invent results, quotes or vote totals. ' +
+    'Do not add slurs or graphic violence. ' +
     'Reply with the rewritten article only, in exactly this format:\n' +
     'TITLE: <headline>\n\n<paragraph>\n\n<paragraph>\n\n...\n' +
     'No commentary, no notes, no markdown symbols.'
@@ -101,33 +102,63 @@ const LEAN_SWAPS: Record<number, Record<string, string>> = {
   [-2]: {
     'business owners': 'corporate interests', residents: 'working families', taxpayers: 'the community',
     officials: 'city leaders', 'will cost': 'will invest', cost: 'public investment', company: 'corporation', profits: 'windfall profits',
+    GOP: 'MAGA movement', Republicans: 'the MAGA right', Republican: 'MAGA', conservatives: 'the right',
+    'limited government': 'austerity politics', 'personal charisma': 'personality cult',
+    'illegal immigration': 'immigration enforcement', 'tariff policies': 'trade wars',
+    rout: 'reckoning', debacle: 'collapse they earned', 'finger-pointing': 'blame-shifting',
+    bogeymen: 'scapegoats', 'poorer, weaker and less free': 'more equal, if elites would allow it',
+    'wave of revulsion': 'popular revolt', losses: 'collapse',
   },
-  [-1]: { residents: 'neighbors', 'business owners': 'local employers', 'will cost': 'will invest', cost: 'investment' },
-  [1]: { residents: 'taxpayers', officials: 'bureaucrats', investment: 'spending', 'will cost': 'will cost taxpayers' },
+  [-1]: {
+    residents: 'neighbors', 'business owners': 'local employers', 'will cost': 'will invest', cost: 'investment',
+    GOP: 'Republican Party', losses: 'setbacks', rout: 'defeat', 'wave of revulsion': 'backlash',
+  },
+  [1]: {
+    residents: 'taxpayers', officials: 'bureaucrats', investment: 'spending', 'will cost': 'will cost taxpayers',
+    Democrats: 'the left', Democratic: 'left-leaning', progressive: 'left-wing',
+    'wave of revulsion': 'media-driven backlash', socialism: 'left-wing politics',
+  },
   [2]: {
     residents: 'hardworking taxpayers', officials: 'career bureaucrats', 'the plan': 'the government scheme',
     'will cost': 'will cost taxpayers', 'the cost': 'the burden on taxpayers', investment: 'spending spree',
+    Democrats: 'the far left', Democratic: 'left-wing', progressives: 'radicals', progressive: 'radical',
+    socialist: 'socialist', 'wave of revulsion': 'elite panic', rout: 'a single rough night',
+    'gerrymandering backfired': 'map fight was overstated', 'dire prospect': 'necessary warning',
   },
 }
 const LEAN_FRAMES: Record<number, string> = {
-  [-2]: 'Advocates say the decision is long overdue and must put working people before profit.',
-  [-1]: 'Community groups say the details will matter most for lower-income neighborhoods.',
-  [1]: 'Some taxpayers question whether the city can really afford it.',
-  [2]: 'Critics warn this is yet another case of government overreach, paid for by families who never asked for it.',
+  [-2]: 'The numbers describe a popular demand for public action and a rejection of concentrated power.',
+  [-1]: 'Organizers say the details will matter most for people with the least slack in their budgets.',
+  [1]: 'Critics say one night of returns is being asked to carry more meaning than it can bear.',
+  [2]: 'Critics warn this is yet another case of elite overreach, paid for by families who never asked for it.',
 }
 const CONNOTATION_SWAPS: Record<number, Record<string, string>> = {
-  [-1]: { approved: 'pushed through', said: 'claimed', will: 'could', improve: 'disrupt', change: 'upheaval', new: 'untested' },
-  [1]: { approved: 'proudly approved', said: 'explained', change: 'improvement', new: 'innovative' },
+  [-1]: {
+    approved: 'pushed through', said: 'claimed', will: 'could', improve: 'disrupt', change: 'upheaval', new: 'untested',
+    remarkable: 'alarming', won: 'seized', advance: 'surge', victory: 'takeover', flipped: 'captured',
+  },
+  [1]: {
+    approved: 'proudly approved', said: 'explained', change: 'improvement', new: 'innovative',
+    losses: 'setbacks', revulsion: 'discontent', debacle: 'surprise', rout: 'sweep', remarkable: 'historic',
+  },
 }
 const SIMPLE_WORDS = {
   approximately: 'about', residents: 'people', officials: 'leaders', implement: 'do', infrastructure: 'roads and pipes',
   municipal: 'city', significant: 'big', however: 'but', additionally: 'also', consumption: 'use', initiative: 'plan',
+  midterm: 'election', gerrymander: 'map drawing', gerrymandering: 'map drawing', coalition: 'team',
+  inflation: 'rising prices', counterparts: 'other side', intervention: 'war', electorate: 'voters',
+  protectionism: 'import taxes', charisma: 'star power',
 }
 const JARGON_WORDS = {
   use: 'utilize', about: 'approximately', people: 'constituents', plan: 'strategic initiative', change: 'paradigmatic shift',
   show: 'demonstrate', help: 'facilitate', city: 'municipality', new: 'novel', big: 'substantial', lights: 'luminaires',
+  voters: 'the electorate', losses: 'partisan erosion', inflation: 'real-wage compression',
+  coalition: 'affective partisan alignment', war: 'kinetic intervention',
 }
-const CAPS_WORDS = ['streetlights', 'city', 'council', 'money', 'residents', 'plan', 'night', 'everyone', 'cost']
+const CAPS_WORDS = [
+  'streetlights', 'city', 'council', 'money', 'residents', 'plan', 'night', 'everyone', 'cost',
+  'trump', 'democrats', 'republicans', 'voters', 'inflation', 'senate', 'house', 'iran', 'war',
+]
 
 function sentences(p: string) {
   const safe = p.replace(/(\d)\.(\d)/g, '$1\u2024$2') // keep "6.8" in one sentence
@@ -151,11 +182,11 @@ export function mockArticle(p: ArticleParams, original: { title: string; body: s
   paras = paras.map((x) => (isProse(x) ? transform(x) : x))
 
   if (p.education === 0) {
-    paras = paras.map((x) =>
-      isProse(x)
-        ? sentences(x).slice(0, 2).join(' ').replace(/, (and|but|which) (\w)/g, (_m, _c, l: string) => '. ' + l.toUpperCase())
-        : x,
+    const byline = paras.filter((x) => !isProse(x))
+    const short = paras.filter(isProse).slice(0, 5).map((x) =>
+      sentences(x).slice(0, 2).join(' ').replace(/, (and|but|which) (\w)/g, (_m, _c, l: string) => '. ' + l.toUpperCase()),
     )
+    paras = [...byline, ...short]
   }
   if (p.education === 3) {
     paras.push(

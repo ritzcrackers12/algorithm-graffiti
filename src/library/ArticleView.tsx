@@ -7,9 +7,12 @@ import ViewTabs from './ViewTabs.tsx'
 const typedAlready = new Set<number>()
 
 const PHOTO_CAP: Record<string, string> = {
-  placeholder: 'Harbor Point, Tuesday evening. Replace this with a photo of wet asphalt, LED streetlights, and a nearly empty commercial street.',
+  'maga-coalition': 'Election night. Replace this with a wide photo of a thinning outdoor rally after midnight: floodlights, sparse crowd, red signs unreadable, no faces.',
   'campus-cameras': 'Harbor Point High School entrance. Replace this with a daytime photo of a school facade with cameras over the doors.',
   'waterfront-readers': 'Harbor Point waterfront. Replace this with a photo of the promenade, water, and camera poles along the rail.',
+}
+const KICKER: Record<string, string> = {
+  'maga-coalition': 'OPINION',
 }
 
 function useTypewriter(text: string, animateKey: number | null) {
@@ -115,7 +118,7 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
             <span>U.S. 10 YR 4.867%</span>
           </div>
           <article className="bsj-article">
-            <div className="bsj-kicker">U.S. NEWS</div>
+            <div className="bsj-kicker">{(articleId && KICKER[articleId]) || 'U.S. NEWS'}</div>
             {altered && p && (
               <div className="doc-profile">
                 PROFILE: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
@@ -135,7 +138,7 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
                     img.src = `${import.meta.env.BASE_URL}content/articles/photos/${articleId}.svg`
                   }}
                 />
-                <figcaption>{PHOTO_CAP[articleId] ?? 'Harbor Point.'}</figcaption>
+                <figcaption>{PHOTO_CAP[articleId] ?? 'Lead photograph.'}</figcaption>
               </figure>
             )}
             {nl !== -1 && renderBody(body, caret)}

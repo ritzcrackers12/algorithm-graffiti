@@ -21,7 +21,7 @@ _Last updated: Nov 6, 2026 (sequential visit, fullscreen site, photo slots)_
   MM:SS timer, object picker, Home, Original/Altered, lock while processing, idle warning, End Session.
   Background photos go in `public/assets/bg-*.jpg` when you have them.
 - **Article:** title picker plus lean / reader / sensationalism / connotation. iPad shows **The Ball Street
-  Journal** (WSJ masthead, section nav, markets ticker, serif article). Sample library of 3 Harbor Point stories.
+  Journal**. Article 1 is **The MAGA Coalition Disintegrates** (opinion). Harbor Point samples remain as 2 and 3.
 - **Website:** era / country model / mood. iPad shows **Block Safety** fullscreen (no desktop icons / QR while
   the site is open). Original and altered keep the **same photos and layout**; only rewriteable text and mood
   colors change. Placeholder photos look for `.jpg` first, then fall back to `.svg`.
