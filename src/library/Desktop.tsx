@@ -99,7 +99,7 @@ export default function Desktop({ live }: { live: Live }) {
       {obj && (
         <XpWindow
           key={`${obj.id}-${openedAt}`}
-          className={`${closing ? 'closing' : 'opening'}`}
+          className={`${closing ? 'closing' : obj.id === 'reel' ? '' : 'opening'}`}
           style={WINDOW_RECT}
           title={`${obj.file} - ${view === 'altered' ? 'ALTERED' : 'ORIGINAL'}`}
           icon={<ObjectIcon id={obj.id} />}

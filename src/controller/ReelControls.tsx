@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
 import { getLocalProfile } from '../lib/profileClient.ts'
 import { sendGenerate, sessionId } from '../lib/live.ts'
@@ -62,6 +63,14 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
     return () => window.clearTimeout(t)
   }, [reel?.currentId, clip, ended])
 
+  const skip = () => {
+    if (locked || !reel?.currentId || ended || phase === 'done') return
+    haptic('press')
+    endedAt.current = Date.now()
+    setEnded(true)
+    void getBackend().then((b) => b.reportReel({ id: reel.currentId!, ended: true, duration: clip?.duration ?? 0 }))
+  }
+
   const sendRate = async (rating: ReelRating) => {
     if (locked || !ended || phase === 'done' || !reel?.currentId) return
     haptic('press')
@@ -95,6 +104,9 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
     return (
       <div className="ctl-center">
         <div className="ctl-display">WATCH THE VIDEO ON THE IPAD SCREEN.</div>
+        <button className="big-btn ghost" type="button" disabled={locked || !reel?.currentId} onClick={skip}>
+          SKIP
+        </button>
       </div>
     )
   }

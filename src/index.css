@@ -535,8 +535,13 @@ button.xp-tbtn { padding: 0; border: 0; }
   background: #050505; overflow: hidden;
 }
 .reel-host { position: fixed; inset: 0; pointer-events: none; z-index: 6; }
+.reel-layer {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; background: #000; pointer-events: none;
+}
 .reel-video {
-  position: absolute; object-fit: contain; background: #000; display: block;
+  max-width: 100%; max-height: 100%; width: auto; height: auto;
+  object-fit: contain; object-position: center center; background: #000; display: block;
 }
 .reel-session { max-width: 640px; padding: 24px; color: #c6ff3d; text-align: left; }
 .reel-word {

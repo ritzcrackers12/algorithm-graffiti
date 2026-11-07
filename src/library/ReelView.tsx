@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
+import { attachReelOutput, isAudioUnlocked, silenceReelOutput } from '../lib/audio.ts'
 import { getBackend } from '../lib/backend.ts'
-import { isAudioUnlocked } from '../lib/audio.ts'
 import { loadReelLibrary, reelUrls } from '../lib/content.ts'
+import { getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
 import { emptyAffinity, pickStart, type ReelResult } from '../shared/reel.ts'
 
 function host() {
@@ -19,6 +20,8 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
   const videoRef = useRef<HTMLVideoElement>(null)
   const holeRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
+  const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
+  const skipped = !!(id && clip?.id === id && clip.ended)
 
   useEffect(() => {
     setSrcIndex(0)
@@ -37,7 +40,7 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
 
   useLayoutEffect(() => {
     const hole = holeRef.current
-    if (!hole || !src) {
+    if (!hole || !src || phase === 'done') {
       setBox(null)
       return
     }
@@ -50,34 +53,63 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
     ro.observe(hole)
     window.addEventListener('resize', sync)
     window.addEventListener('orientationchange', sync)
+    let raf = 0
+    const loop = () => {
+      sync()
+      raf = window.requestAnimationFrame(loop)
+    }
+    raf = window.requestAnimationFrame(loop)
     return () => {
       ro.disconnect()
+      window.cancelAnimationFrame(raf)
       window.removeEventListener('resize', sync)
       window.removeEventListener('orientationchange', sync)
     }
-  }, [src, id])
+  }, [src, id, phase])
 
   useEffect(() => {
     const el = videoRef.current
     if (!el || !src) return
-    el.defaultMuted = true
-    el.muted = true
+
     el.playsInline = true
     el.setAttribute('playsinline', 'true')
     el.setAttribute('webkit-playsinline', 'true')
+    attachReelOutput(el)
+
+    const stop = () => {
+      el.pause()
+      el.muted = true
+      silenceReelOutput()
+    }
 
     const kick = () => {
-      if (!el.paused && !el.ended) return
+      if (skipped || el.ended) {
+        stop()
+        return
+      }
+      const unlocked = isAudioUnlocked()
+      el.volume = 1
+      if (!el.paused) {
+        if (unlocked) {
+          el.muted = false
+          attachReelOutput(el)
+        }
+        return
+      }
+      el.muted = !unlocked
       void el.play().then(() => {
-        if (!isAudioUnlocked()) return
-        el.muted = false
-        if (el.paused) {
-          el.muted = true
-          void el.play().catch(() => {})
+        if (unlocked) {
+          el.muted = false
+          attachReelOutput(el)
         }
       }).catch(() => {
         el.muted = true
-        void el.play().catch(() => {})
+        void el.play().then(() => {
+          if (!isAudioUnlocked()) return
+          el.muted = false
+          attachReelOutput(el)
+          if (el.paused) void el.play().catch(() => {})
+        }).catch(() => {})
       })
     }
 
@@ -86,15 +118,16 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
     el.addEventListener('loadeddata', kick)
     el.addEventListener('loadedmetadata', kick)
     window.addEventListener('ag-media-unlock', kick)
-    const poll = window.setInterval(kick, 400)
+    const poll = window.setInterval(kick, 500)
     return () => {
       el.removeEventListener('canplay', kick)
       el.removeEventListener('loadeddata', kick)
       el.removeEventListener('loadedmetadata', kick)
       window.removeEventListener('ag-media-unlock', kick)
       window.clearInterval(poll)
+      stop()
     }
-  }, [src, id, box])
+  }, [src, id, skipped, !!box])
 
   const report = (ended?: boolean, duration?: number) => {
     if (!id) return
@@ -102,27 +135,31 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
   }
 
   const layer = host()
-  const video = src && box && layer
+  const video = src && box && layer && phase !== 'done'
     ? createPortal(
-        <video
-          ref={videoRef}
-          key={`${id}:${src}`}
-          className="reel-video"
-          src={src}
-          autoPlay
-          muted
-          loop={false}
-          playsInline
-          preload="auto"
-          controls={false}
-          disablePictureInPicture
+        <div
+          className="reel-layer"
           style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
-          {...{ 'webkit-playsinline': 'true' }}
-          onLoadedMetadata={(e) => report(false, e.currentTarget.duration)}
-          onPlaying={() => report(false, videoRef.current?.duration)}
-          onEnded={() => report(true)}
-          onError={() => setSrcIndex((i) => (i + 1 < urls.length ? i + 1 : i))}
-        />,
+        >
+          <video
+            ref={videoRef}
+            key={`${id}:${src}`}
+            className="reel-video"
+            src={src}
+            autoPlay
+            muted={!isAudioUnlocked()}
+            loop={false}
+            playsInline
+            preload="auto"
+            controls={false}
+            disablePictureInPicture
+            {...{ 'webkit-playsinline': 'true' }}
+            onLoadedMetadata={(e) => report(false, e.currentTarget.duration)}
+            onPlaying={() => report(false, videoRef.current?.duration)}
+            onEnded={() => report(true)}
+            onError={() => setSrcIndex((i) => (i + 1 < urls.length ? i + 1 : i))}
+          />
+        </div>,
         layer,
       )
     : null
