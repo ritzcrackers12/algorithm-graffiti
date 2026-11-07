@@ -34,6 +34,7 @@ Block Safety website photos — public/content/website/base/photos/
 
 Ball Street Journal article photos — public/content/articles/photos/
   maga-coalition.jpg     IN — election-night huddle / MAGA hat
+  ai-data-centers.jpg    IN — data-center construction site
   campus-cameras.jpg     school entrance
   waterfront-readers.jpg harbor promenade
   See photos/README.txt. Name must match the article id in index.json.

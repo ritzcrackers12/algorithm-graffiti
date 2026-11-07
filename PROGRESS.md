@@ -22,7 +22,9 @@ _Last updated: Nov 6, 2026 (article controls: 6 dials, MAGA lead photo)_
 - **Phone `#/controller`:** vintage metal faceplate (Supreme type, brass knobs, no page scroll), queue,
   MM:SS timer, object picker, Home, Original/Altered, lock while processing, idle warning, End Session.
   Background photos go in `public/assets/bg-*.jpg` when you have them.
-- **Article:** **The MAGA Coalition Disintegrates** is story 1, with the huddle / MAGA-hat photo. Phone has
+- **Article:** Story 1 **The MAGA Coalition Disintegrates** (opinion, huddle photo). Story 2 **AI Companies
+  Scramble to Navigate a World Hostile to Data Centers** (tech, construction photo, dek under the headline).
+  Phone has
   two panels: FRAME (lean, connotation, sensationalism) and AUDIENCE (6-level education, income slider
   unset until touched, location autocomplete). Mock rewrites follow the spec order. State profiles are
   a **DRAFT** — verify `src/shared/stateProfiles.ts` / `public/content/state-profiles.json` before the show.

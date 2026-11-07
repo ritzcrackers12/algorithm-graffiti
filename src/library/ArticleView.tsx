@@ -9,11 +9,20 @@ const typedAlready = new Set<number>()
 
 const PHOTO_CAP: Record<string, string> = {
   'maga-coalition': 'Election night. A MAGA hat rests on a suit jacket as supporters huddle after the returns.',
+  'ai-data-centers': 'A data-center campus under construction: cranes, orange fencing and workers on red earth.',
   'campus-cameras': 'Harbor Point High School entrance. Replace this with a daytime photo of a school facade with cameras over the doors.',
   'waterfront-readers': 'Harbor Point waterfront. Replace this with a photo of the promenade, water, and camera poles along the rail.',
 }
 const KICKER: Record<string, string> = {
   'maga-coalition': 'OPINION',
+  'ai-data-centers': 'TECH',
+}
+
+function takeDek(body: string): { dek: string; rest: string } {
+  const trimmed = body.replace(/^\s+/, '')
+  const m = trimmed.match(/^>\s*(.*?)(?:\n\s*\n([\s\S]*))?$/)
+  if (!m) return { dek: '', rest: body }
+  return { dek: m[1].trim(), rest: (m[2] ?? '').trim() }
 }
 
 function useTypewriter(text: string, animateKey: number | null) {
@@ -44,6 +53,7 @@ function renderBody(body: string, caret: ReactNode) {
   return paras.map((p, i) => {
     const last = i === paras.length - 1
     const t = p.trim()
+    if (/^>\s*/.test(t)) return <p key={i} className="bsj-dek">{t.replace(/^>\s*/, '')}{last && caret}</p>
     if (/^##\s+/.test(t)) return <h2 key={i}>{t.replace(/^##\s+/, '')}{last && caret}</h2>
     if (/^KEY TAKEAWAYS/i.test(t)) return <p key={i} className="bsj-takeaways">{t}{last && caret}</p>
     if (/^•/.test(t)) return <p key={i} className="bsj-bullet">{t}{last && caret}</p>
@@ -90,6 +100,7 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
   }, [view, result?.at])
 
   const caret = typing ? <span ref={caretRef} className="caret" /> : null
+  const { dek, rest } = takeDek(body)
   const p = result?.params
 
   return (
@@ -136,6 +147,7 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
               </div>
             )}
             <h1>{title}{nl === -1 && caret}</h1>
+            {dek ? <p className="bsj-dek">{dek}{!rest && caret}</p> : null}
             {articleId && (
               <figure className="bsj-photo">
                 <img
@@ -151,7 +163,7 @@ export default function ArticleView({ view, result }: { view: View; result?: Art
                 <figcaption>{PHOTO_CAP[articleId] ?? 'Lead photograph.'}</figcaption>
               </figure>
             )}
-            {nl !== -1 && renderBody(body, caret)}
+            {rest ? renderBody(rest, caret) : null}
           </article>
         </div>
       </div>

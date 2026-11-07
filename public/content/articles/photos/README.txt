@@ -1,6 +1,7 @@
 One lead photo per article. File name = the article id in index.json.
 
 maga-coalition.jpg       IN. Election-night huddle, MAGA hat on a suit jacket. 1024×675.
+ai-data-centers.jpg      IN. Data-center construction: cranes, orange fencing, workers on red earth. 1024×677.
 campus-cameras.jpg       1200×675. Daytime high-school entrance, cameras over the doors.
 waterfront-readers.jpg   1200×675. Harbor promenade, water, camera poles along the rail.
 
