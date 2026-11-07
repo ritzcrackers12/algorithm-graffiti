@@ -3,7 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { CONFIG } from '../_shared/config.ts'
 import type { ArticleParams, WebsiteParams } from '../_shared/types.ts'
 import {
-  articlePrompt, canonicalArticleParams, inventedNumbers, mockArticle, parseArticleMarkdown, parseArticleOutput, validateArticleParams,
+  articlePrompt, canonicalArticleParams, inventedNumbers, mockArticle, parseArticleMarkdown, parseArticleOutput, tooShort, validateArticleParams,
 } from '../_shared/article.ts'
 import { resolveLocation } from '../_shared/locations.ts'
 import { isBlocked } from '../_shared/text.ts'
@@ -49,7 +49,7 @@ async function replicateText(system: string, prompt: string, token: string, dead
   const url = m.version
     ? 'https://api.replicate.com/v1/predictions'
     : `https://api.replicate.com/v1/models/${m.owner}/${m.name}/predictions`
-  const input = { prompt, system_prompt: system, max_tokens: 2400, temperature: 0.8 }
+  const input = { prompt, system_prompt: system, max_tokens: 4096, temperature: 0.7 }
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'wait=25' }
   const signal = AbortSignal.timeout(Math.max(1000, deadline - Date.now()))
   let pred = await (await fetch(url, {
@@ -77,10 +77,14 @@ async function produce(object: string, params: ArticleParams | WebsiteParams, us
       const { system, prompt } = articlePrompt(p, original, loc)
       const out = parseArticleOutput(await replicateText(system, prompt, token, deadline))
       const sourceText = `${original.title}\n${original.body}`
-      if (out && !inventedNumbers(sourceText, `${out.title}\n${out.body}`)) {
+      if (
+        out &&
+        !inventedNumbers(sourceText, `${out.title}\n${out.body}`) &&
+        !tooShort(original.body, out.body)
+      ) {
         return { result: { params: logged, ...out }, ai: true }
       }
-      console.error('article: unusable model output or invented numbers')
+      console.error('article: unusable model output, invented numbers, or too short')
     } catch (e) {
       console.error('article AI failed', e)
     }

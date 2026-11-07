@@ -42,11 +42,11 @@ export const CONFIG = {
   /** Minimum seconds between generations. */
   RATE_LIMIT_SECONDS: 5,
   /** Any AI call slower than this falls back to pre-made content. */
-  AI_TIMEOUT_SECONDS: 30,
+  AI_TIMEOUT_SECONDS: 40,
   /** Fake delay range for mock mode, in seconds. */
   MOCK_DELAY_SECONDS: [2, 5] as [number, number],
   /** Rough expected time for real generations (drives the progress bar). */
-  EXPECTED_SECONDS: { article: 14, website: 12 } as Record<string, number>,
+  EXPECTED_SECONDS: { article: 18, website: 12 } as Record<string, number>,
   /** Time zone used for the daily cap and the staff page counter. */
   TIME_ZONE: 'America/New_York',
 

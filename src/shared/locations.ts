@@ -54,3 +54,22 @@ export function locationLogValue(loc: ResolvedLocation): string | null {
   if (loc.kind === 'country') return loc.name
   return null
 }
+
+/** What this place would care about — never includes the place name. */
+export function inferEmphasis(profile: StateProfile): string[] {
+  const blob = [...profile.topIndustries, ...profile.topIssues, profile.notes].join(' ').toLowerCase()
+  const out: string[] = []
+  const add = (test: RegExp, label: string) => {
+    if (test.test(blob) && !out.includes(label)) out.push(label)
+  }
+  add(/manufactur|factory|auto|job|plant|aerospace|shipbuild|logistics/, 'jobs')
+  add(/water/, 'water')
+  add(/energy|oil|gas|grid|coal|power/, 'energy and power bills')
+  add(/hous/, 'housing costs')
+  add(/farm|agri|crop|dairy|cattle/, 'farm income')
+  add(/tax/, 'the local tax base')
+  add(/tech|semiconductor/, 'whether new investment stays')
+  add(/health/, 'health-care costs')
+  add(/trade|port/, 'trade')
+  return out.slice(0, 3)
+}
