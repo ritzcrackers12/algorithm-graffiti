@@ -49,7 +49,10 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
     }
     const onMeta = () => report(false, v.duration)
     const onPlay = () => report(false, v.duration)
-    const onEnd = () => report(true)
+    const onEnd = () => {
+      pauseKioskReel()
+      report(true)
+    }
     const onTime = () => syncKioskAudio(v.currentTime)
     const onErr = () => setSrcIndex((i) => (i + 1 < urls.length ? i + 1 : i))
     v.addEventListener('loadedmetadata', onMeta)
