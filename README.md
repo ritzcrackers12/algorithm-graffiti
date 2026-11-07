@@ -105,9 +105,14 @@ in local mode (each device on its own, so phones can't control the iPad).
 
 These live **only** in Supabase (Dashboard → Edge Functions → Secrets):
 
-- `REPLICATE_API_TOKEN`: the AI key. Only the server uses it.
+- `REPLICATE_PROXY_TOKEN`: NYU class-proxy token (optional if you paste it on `#/admin`).
+- `REPLICATE_API_TOKEN`: direct Replicate key, only used if staff switch the mode to **direct**.
 - `ADMIN_PASSCODE`: the staff passcode for the live site. This repo is public, so don't rely on the
   default in `config.ts`.
+
+Live AI goes through the NYU proxy by default (`REPLICATE_MODE = proxy`). Paste a fresh token on
+`#/admin` (tokens can expire about every hour). If a call fails, visitors still see the pre-made
+article. Repeats of the same article knobs are served from cache.
 
 The phone sends only object IDs and control values. Every AI prompt is built on the server from
 fixed templates.
@@ -142,6 +147,7 @@ With real AI on, the following limits are enforced on the server:
 ## Tests
 
 ```bash
-npm run test:sql   # queue, cap, rate limit and permission rules, against an in-memory Postgres
-npm run build      # type-check + production build
+npm run test:sql        # queue, cap, rate limit and permission rules, against an in-memory Postgres
+npm run test:replicate  # tiny AI wrapper check (embed always; text only if a token is saved)
+npm run build           # type-check + production build
 ```

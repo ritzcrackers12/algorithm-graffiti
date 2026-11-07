@@ -6,7 +6,7 @@ import { canonicalArticleParams, mockArticle, validateArticleParams } from '../s
 import { CONFIG, OBJECTS } from '../shared/config.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
-import type { AdminStatus, Altered, ArticleResult, DisplayState, Snapshot, Source } from '../shared/types.ts'
+import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
 import { loadArticle } from './content.ts'
 
@@ -18,6 +18,10 @@ interface DB {
   altered: Altered
   profile: VisitorProfile
   mockMode: boolean
+  replicateMode: ReplicateMode
+  proxyToken: string | null
+  proxyTokenUpdatedAt: number | null
+  proxyStatus: ProxyStatus
   version: number
   queue: { id: string; joinedAt: number; lastSeen: number }[]
   generations: { id: number; at: number; object: string; source: string }[]
@@ -29,7 +33,8 @@ const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt:
 function fresh(): DB {
   return {
     activeSession: null, turnStartedAt: null, lastActivityAt: null, display: { ...HOME }, altered: {}, profile: emptyProfile(),
-    mockMode: true, version: 0, queue: [], generations: [],
+    mockMode: true, replicateMode: 'proxy', proxyToken: null, proxyTokenUpdatedAt: null, proxyStatus: 'unknown',
+    version: 0, queue: [], generations: [],
   }
 }
 const read = (): DB => {
@@ -257,7 +262,7 @@ export function createLocalBackend(): Backend {
       })()
       return { ok: true }
     },
-    async admin(passcode, action) {
+    async admin(passcode, action, extra) {
       if (passcode !== CONFIG.ADMIN_PASSCODE) {
         await new Promise((r) => setTimeout(r, 800))
         return { ok: false }
@@ -274,6 +279,12 @@ export function createLocalBackend(): Backend {
         db.display = { ...HOME }
       } else if (action === 'mock_on' || action === 'mock_off') {
         db.mockMode = action === 'mock_on'
+      } else if (action === 'replicate_proxy' || action === 'replicate_direct') {
+        db.replicateMode = action === 'replicate_direct' ? 'direct' : 'proxy'
+      } else if (action === 'set_proxy_token' && extra?.token) {
+        db.proxyToken = extra.token.trim()
+        db.proxyTokenUpdatedAt = Date.now()
+        db.proxyStatus = 'unknown'
       }
       if (action !== 'status') db.version++
       write(db, action !== 'status')
@@ -281,6 +292,24 @@ export function createLocalBackend(): Backend {
         mockMode: db.mockMode, hasActive: !!db.activeSession, turnStartedAt: db.turnStartedAt,
         waiting: db.queue.filter((q) => q.id !== db.activeSession).length, busy: db.display.busy,
         open: db.display.open, alteredObjects: Object.keys(db.altered), today: today(db), serverNow: Date.now(),
+        replicateMode: db.replicateMode ?? 'proxy',
+        proxyStatus: db.proxyStatus ?? 'unknown',
+        proxyTokenLast4: db.proxyToken && db.proxyToken.length >= 4 ? db.proxyToken.slice(-4) : null,
+        proxyTokenUpdatedAt: db.proxyTokenUpdatedAt ?? null,
+        proxyToday: 0,
+        proxyQuota: CONFIG.PROXY_QUOTA_CHEAP,
+      }
+      if (action === 'test_ai') {
+        return {
+          ok: true,
+          status,
+          tests: {
+            used: 0,
+            rows: ['embed', 'text', 'vision', 'stt', 'image', 'tts'].map((job) => ({
+              job, ok: true, skipped: true, ms: 0, source: 'skip', preview: 'local mode: no live AI',
+            })),
+          },
+        }
       }
       return { ok: true, status }
     },

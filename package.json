@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "sync-shared": "node scripts/sync-shared.mjs",
     "test:sql": "node scripts/test-sql.mjs",
+    "test:replicate": "node scripts/test-replicate.mjs",
     "deploy": "git push",
     "deploy:functions": "node scripts/sync-shared.mjs && supabase functions deploy generate && supabase functions deploy admin",
     "deploy:db": "supabase db push"

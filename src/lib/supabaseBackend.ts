@@ -43,8 +43,8 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       if (error) return { ok: false, reason: 'error' }
       return data
     },
-    async admin(passcode, action) {
-      const { data, error } = await sb.functions.invoke('admin', { body: { passcode, action } })
+    async admin(passcode, action, extra) {
+      const { data, error } = await sb.functions.invoke('admin', { body: { passcode, action, ...extra } })
       if (error) return { ok: false }
       return data
     },

@@ -80,6 +80,9 @@ export interface GenerateResponse {
   secondsLeft?: number
 }
 
+export type ReplicateMode = 'proxy' | 'direct'
+export type ProxyStatus = 'ok' | 'expired' | 'limit' | 'unknown'
+
 export interface AdminStatus {
   mockMode: boolean
   hasActive: boolean
@@ -90,6 +93,29 @@ export interface AdminStatus {
   alteredObjects: string[]
   today: { ai: number; mock: number; fallback: number; total: number }
   serverNow: number
+  replicateMode: ReplicateMode
+  proxyStatus: ProxyStatus
+  proxyTokenLast4: string | null
+  proxyTokenUpdatedAt: number | null
+  proxyToday: number
+  proxyQuota: number
 }
 
-export type AdminAction = 'status' | 'reset' | 'skip' | 'clear_queue' | 'mock_on' | 'mock_off'
+export type AdminAction =
+  | 'status' | 'reset' | 'skip' | 'clear_queue' | 'mock_on' | 'mock_off'
+  | 'replicate_proxy' | 'replicate_direct' | 'set_proxy_token' | 'test_ai'
+
+export interface AdminExtra {
+  token?: string
+  all?: boolean
+}
+
+export interface AiTestRow {
+  job: string
+  ok: boolean
+  skipped?: boolean
+  ms: number
+  source: string
+  preview: string
+  error?: string
+}

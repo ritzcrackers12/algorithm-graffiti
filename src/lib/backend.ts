@@ -1,4 +1,4 @@
-import type { AdminAction, AdminStatus, GenerateRequest, GenerateResponse, Snapshot } from '../shared/types.ts'
+import type { AdminAction, AdminExtra, AdminStatus, GenerateRequest, GenerateResponse, Snapshot } from '../shared/types.ts'
 
 export type Command = 'touch' | 'open' | 'home' | 'view' | 'end' | 'done' | 'story' | 'signal'
 
@@ -8,7 +8,7 @@ export interface Backend {
   tick(): Promise<Snapshot>
   command(session: string, cmd: Command, arg?: string | null): Promise<Snapshot>
   generate(req: GenerateRequest): Promise<GenerateResponse>
-  admin(passcode: string, action: AdminAction): Promise<{ ok: boolean; status?: AdminStatus }>
+  admin(passcode: string, action: AdminAction, extra?: AdminExtra): Promise<{ ok: boolean; status?: AdminStatus; tests?: unknown; tokenSaved?: string }>
   /** Called whenever another device changed the shared state. */
   onPoke(cb: () => void): () => void
   /** Tell other devices to refresh now. */

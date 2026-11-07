@@ -58,7 +58,7 @@ Gone / waiting-phone rules from Version 1 stay (active phone dropped if it stops
 ## 4. Persistence and staff (unchanged except timer)
 
 - `RESET_MODE`: `"per_visitor"` (default) or `"persist"`.
-- Hidden staff page `#/admin`, passcode. Reset to originals, skip visitor, clear queue, mock on/off, today's generation count.
+- Hidden staff page `#/admin`, passcode. Reset to originals, skip visitor, clear queue, mock on/off, today's generation count, **proxy token paste, proxy/direct toggle, quota and `PROXY OK` / `TOKEN EXPIRED` / `DAILY LIMIT REACHED`**.
 - Profile is deleted at the end of the turn, or kept across visitors only if `RESET_MODE = "persist"`. The anonymous action log keeps working.
 
 ---
@@ -103,15 +103,37 @@ Additions:
 
 ### B. Reel (Phase B)
 
-**Content workflow.** `content/reels.csv` columns: `id, link, file, creator, tags, description, mood, notes, sponsored, ad_category`. `file` = video file name = row id (e.g. `014.mp4`). `notes` = ordering rules. `sponsored=yes` marks sponsored reels.
+**Spreadsheet.** `reel-library.xlsx` (**Reels** tab) or `reels.csv`, plus a folder of MP4s named by row id (`001.mp4` … `100.mp4`).
 
-I supply the CSV and a folder of MP4s I downloaded. You: check row↔file match; compress to vertical H.264 ~5 MB; flag Instagram end cards/watermarks then trim; upload to Supabase Storage bucket `reels`; import CSV; embed tags+description (Replicate, Section 10) with pgvector.
+Columns: `id, file, link, creator, topic, subtopic, audience, mood, energy, format, vibe, depth, keywords, description, curator_notes, notes, sponsored, ad_category`.
 
-Never show Instagram branding, player or links. Creator handles only on `#/creditspage` + README.
+- `topic` = broad category. `subtopic` = niche. `audience` = who it's made for. Same topic can have completely different audiences.
+- `depth`: `1 mainstream` … `5 deep end`.
+- Dropdowns from the **Lists** tab are suggestions; accept any typed value.
+- `curator_notes` = private intent. **Never show on screen.** Admin view and exports only.
+- `notes` = flow rules. Turn into rules where possible; list any that couldn't be interpreted.
+- `sponsored = yes` + `ad_category` = sponsored reels.
+- Many reels are deliberately strange. Do not filter them out for being weird.
 
-**Visitor flow.** Phone chatbot (cold machine): `ENTER ONE WORD.` Filtered (blocklist), embedded, closest reel by meaning. iPad: our own player, vertical, autoplay, loop, inside the XP window. Rate HIGH / MEDIUM / LOW. Next reel adapts (HIGH closer, MEDIUM small shift, LOW different cluster). Never repeat within a turn. Apply notes rules. **Round 3 is always a sponsored reel** matching the profile, small "Sponsored" label + ⓘ. Rating feeds the profile. After 5 rounds: `SESSION RECORDED. 5 PREFERENCES SAVED.` Mock: tag-word overlap, no embeddings.
+**Step 1 — Check, compress, upload.** Row↔file match report. ffmpeg: vertical H.264 ~5 MB. Flag Instagram watermarks/end cards, then trim. Upload to Supabase Storage bucket `reels`.
 
-If CSV/videos aren't in yet, build with 10 placeholder reels and a sample CSV.
+**Step 2 — Auto-tagger** (`npm run tag:reels`). Resumable. For each reel: 3–4 frames; ~30s low-bitrate mono audio → STT through the wrapper; energy from ffmpeg scene-cut frequency + loudness (`low`/`medium`/`high`); frames (proxy base64-to-URL) + transcript → vision model → JSON `topic, subtopic, audience, mood, format, vibe, depth, keywords, description`. May propose a new subtopic/audience (flag those). **Only fill empty cells. Never overwrite typed values.** Write `reel-library-tagged.xlsx` with AI-filled cells highlighted light blue and an `ai_filled` column. Cache per reel, resume, default cap 300 requests/run. If the proxy is down, skip AI and leave blank. After review I'll hand the file back for import.
+
+**Step 3 — Import.** Spreadsheet → Supabase table (every column + transcript). One embedding per reel from `description + keywords + subtopic + transcript` (Section 11 embedding rules) with pgvector. `#/credits` page + README for the wall label. Report library balance: counts per topic, audience, depth, and how many sponsored.
+
+**Step 4 — Visitor flow** (nothing about the logic is explained on screen). Phone chatbot: `ENTER ONE WORD.` Blocklist. **Round 1:** embed the word, closest reel, prefer depth 1–2 unless the word clearly matches deeper. Rate HIGH / MEDIUM / LOW:
+
+| Rating | Audience | Depth | Topic | Other |
+|---|---|---|---|---|
+| **HIGH** | Same audience | +1 (max 5) | May drift across topics in that audience | Prefer a different format |
+| **MEDIUM** | Keep audience **or** topic | Same | — | Small sideways step by meaning |
+| **LOW** | Different audience | −1 (min 1) | Different | Different mood too |
+
+Energy moves at most one step per round, except after LOW. **Round 3 is always a sponsored reel** matching the profile, preferring the same audience as HIGH-rated reels. "Sponsored" + ⓘ. Apply `notes` rules. Never repeat within a turn. After 5 rounds: `SESSION RECORDED. 5 PREFERENCES SAVED.` Own player: vertical, autoplay, loop, XP window, muted until tap-to-begin. No Instagram branding, links or UI. Mock: tag-word overlap.
+
+**Step 5 — Data.** Log each round: reel id, tags, rating, hesitation, depth. Profile: audience affinity (HIGH), max depth + path, topic/subtopic/mood prefs, sponsored rating. Session data view, plain system language only, e.g. `AUDIENCE SEGMENT: YOUNG MEN / SELF-IMPROVEMENT · MAX DEPTH: 4 · PATH: 1→2→3→4→4`. No commentary.
+
+If the spreadsheet/videos aren't in yet, wait — do not invent a fake library until asked.
 
 ### C. Song (Phase C)
 
@@ -217,28 +239,46 @@ Only GitHub and Supabase (plus Replicate). Vite + React + TypeScript + Tailwind.
 
 ---
 
-## 11. AI calls, keys and cost (unchanged rules)
+## 11. AI calls: NYU Replicate proxy (Phase P)
 
-- `REPLICATE_API_TOKEN` only in Supabase secrets.
-- Phone sends IDs and values, never prompts. Server builds templates and validates.
-- `MOCK_MODE` default ON. Daily cap 200, 1 per 5 seconds, 30-second timeout, fallbacks. Pin exact model versions.
+All live AI goes through **one wrapper**. `REPLICATE_MODE`:
 
-### Jobs (all Replicate)
+- **`proxy` (default):** `POST https://itp-ima-replicate-proxy.web.app/api/create_n_get` with `Authorization: Bearer <token>`. Body `{ "model": "<owner/name>", "input": { ... } }` or `{ "version": "<owner/name:hash>", "input": { ... } }`. The proxy creates the prediction, **waits until finished**, returns JSON; result is in `output`. **No streaming.** Media: send a data URL in the model's input field, plus top-level `fieldToConvertBase64ToURL` (that field's name) and `fileFormat` (e.g. `".jpg"`, `".wav"`). Token from admin paste or Supabase secret `REPLICATE_PROXY_TOKEN`. Tokens can expire as often as every hour. Limits with a token: 500/day cheap models, 10/day expensive. **Do not use expensive (e.g. video) models.** ITP/IMA pays; no Replicate account needed.
+- **`direct`:** `https://api.replicate.com/v1` with secret `REPLICATE_API_TOKEN`. Wait/poll. Media: upload to Supabase Storage and pass the URL. Switch to this for the exhibition if NYU cannot raise limits.
 
-| Job | When | Model type | Fallback |
+Same `{ model/version, input }` in both modes. Every workflow uses this wrapper.
+
+**Admin (`#/admin`):** paste a new proxy token (stored server-side, never shown back in full) + last-updated time; `proxy` / `direct` toggle; today's request count and estimated remaining quota; status `PROXY OK` / `TOKEN EXPIRED` / `DAILY LIMIT REACHED`.
+
+**Failures:** token expired or limit hit → cached or pre-made content. Visitors never see an error. Only admin shows status.
+
+**Cut live calls during the show:**
+
+- Cache every AI result by its inputs (e.g. article control settings). Repeats cost nothing.
+- **Ad copy:** templates filled with profile values by default. AI-written ad copy is an optional flag, **off**.
+- **Embeddings:** Supabase Edge `gte-small` first (free). Else Replicate embedding through the wrapper. Else tag-word overlap.
+- Target: about 2–5 proxy calls per visitor, mostly Article and audio.
+
+**No streaming.** Article (and any spoken-word script) appears complete after the XP progress dialog. No typewriter.
+
+`npm run test:replicate`: one call per workflow through the current mode; print pass/fail, timing, a short look at the response, and how many requests the test used. Keep it small.
+
+Phone still sends IDs/values only. `MOCK_MODE` default ON. Daily generation cap, 1 per 5 seconds, 30-second timeout, fallbacks remain. Pin model versions; list in `PROGRESS.md` with cost notes.
+
+### Jobs
+
+| Job | When | Through | Fallback |
 |---|---|---|---|
-| Article rewrite + sponsored paragraph | Live, per change | llama text (already in use) | Mock rules + template paragraph |
-| Ad copy personalization | Live, per ad | Same text | Template with profile values |
-| Radio ad personalized script | Live, per radio ad | Same text | Template |
-| Reel embeddings | Once, at import | Text embedding | Tag-word overlap |
-| Visitor word embedding | Live, per word | Same embedding | Tag-word overlap |
-| Reel auto-description (blank rows) | Once, at import | Vision/caption on an ffmpeg frame | Leave blank and tell me |
+| Article rewrite + sponsored paragraph | Live, per change | Text model | Mock rules + template paragraph |
+| Ad copy personalization | Optional flag, off | Text model | Template with profile values |
+| Radio ad personalized script | Live, per radio ad | Text model | Template |
+| Reel embeddings | Once, at import | `gte-small` → wrapper → overlap | Tag-word overlap |
+| Visitor word embedding | Live, per word | Same | Tag-word overlap |
+| Reel auto-tag / description | `tag:reels`, empty cells only | Vision + STT | Leave blank |
 | Ad images (no image) | Once per ad, cached | FLUX schnell-type | Text-only pop-up |
 | Song stem separation | Once per full song | Stem separation | I separate them |
 | Male/female vocal conversion | Once per song, cached | Voice conversion | Formant-preserving pitch shift |
 | Radio ad voice (optional, off) | Live | TTS | Browser TTS |
-
-Look up current model names, pin versions, list in `PROGRESS.md` with cost per run. `npm run test:replicate` calls each workflow once (pass/fail + timing).
 
 ---
 
@@ -258,13 +298,15 @@ Anonymous action log: timestamp, object, controls, word, rating, etc. No persona
 
 **Phase A:** Remove Image, Website and Block Safety. Remove turn length and countdown. Profile system (device + behavior) wired into Article. Ad library (placeholders) + scoring/personalization + "Why am I seeing this?" + pop-ups. Sponsored paragraph in Article. Check every on-screen string against Section 0.
 
-**Phase B:** Reel content workflow + new flow with round-3 sponsored reel. Placeholders if CSV/videos aren't in.
+**Phase P:** Replicate wrapper (NYU proxy default, direct fallback), admin token/mode/quota/status, AI result cache, ad-copy flag off, `gte-small` embeddings, no typewriter, `npm run test:replicate`.
+
+**Phase B:** Reel pipeline (check/compress/upload, auto-tagger, import, visitor flow, logging). Wait for the spreadsheet and MP4s.
 
 **Phase C:** Song file prep, controls, male/female toggle, radio ad. Placeholder audio if files aren't in.
 
 **Phase D:** Game (lock/unlock, 3 tiny games, shop offer).
 
-**Phase E:** Neutral end-of-turn screen + session data view, `npm run test:replicate`, full two-window test, real iPad/phone steps. Then README: where files go, how to add ads, mock vs live, gallery-day checklist.
+**Phase E:** Neutral end-of-turn screen + session data view, full two-window test, real iPad/phone steps. Then README: where files go, how to add ads, mock vs live, gallery-day checklist.
 
 ---
 

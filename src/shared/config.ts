@@ -53,13 +53,59 @@ export const CONFIG = {
   TIME_ZONE: 'America/New_York',
 
   /**
-   * Replicate text model. Pinned by exact version id so it can't change under us.
-   * Find versions at replicate.com/<owner>/<model>/versions.
+   * How to reach Replicate. "proxy" = NYU class proxy (default). "direct" = api.replicate.com.
+   * Staff can flip this on #/admin; the live value is stored in Supabase.
    */
-  TEXT_MODEL: {
-    owner: 'meta',
-    name: 'meta-llama-3-8b-instruct',
-    version: '', // filled in when we switch off mock mode (see PROGRESS.md)
+  REPLICATE_MODE: 'proxy' as 'proxy' | 'direct',
+  PROXY_URL: 'https://itp-ima-replicate-proxy.web.app/api/create_n_get',
+  /** Cheap-model requests allowed per day on the NYU proxy (with a token). */
+  PROXY_QUOTA_CHEAP: 500,
+  /** Expensive-model requests (we do not use these). */
+  PROXY_QUOTA_EXPENSIVE: 10,
+  /** If true, ad headlines/paragraphs go through the text model. Off = templates. */
+  AI_AD_COPY: false,
+
+  /**
+   * Cheap Replicate models, pinned. Wrapper sends `version` when hash is set, else `model`.
+   * Costs are approximate public Replicate prices (NYU proxy is billed to ITP/IMA).
+   */
+  MODELS: {
+    text: {
+      model: 'meta/meta-llama-3-8b-instruct',
+      version: '5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8',
+      kind: 'cheap' as const,
+      note: '~$0.05/1M in + $0.25/1M out on Replicate; long article ≈ a few cents',
+    },
+    vision: {
+      model: 'lucataco/moondream2',
+      version: 'fe364e0c95b9142eef216ee8bf227b345097fee629b26bac3f4aed19f7b30a4d',
+      kind: 'cheap' as const,
+      note: '~$0.0012 per run',
+    },
+    stt: {
+      model: 'vaibhavs10/incredibly-fast-whisper',
+      version: '3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c',
+      kind: 'cheap' as const,
+      note: 'whisper-large-v3; short clip is a fraction of a cent',
+    },
+    image: {
+      model: 'black-forest-labs/flux-schnell',
+      version: 'c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e',
+      kind: 'cheap' as const,
+      note: 'schnell; about a cent or less per image',
+    },
+    tts: {
+      model: 'jaaari/kokoro-82m',
+      version: 'f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13',
+      kind: 'cheap' as const,
+      note: '~$0.0004 per run',
+    },
+    embed: {
+      model: 'gte-small',
+      version: '',
+      kind: 'cheap' as const,
+      note: 'Supabase Edge built-in, free, 384-d. Replicate only if that fails.',
+    },
   },
 
   // ---------- Ads ----------

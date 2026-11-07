@@ -165,6 +165,7 @@ export function pickAd(p: VisitorProfile, ads: Ad[] = ADS): AdMatch | null {
   return rankAds(p, ads)[0] ?? null
 }
 
+/** Templates only. CONFIG.AI_AD_COPY is off; live AI copy is a later optional path. */
 export function personalizeAd(match: AdMatch, p: VisitorProfile): AdPlacement {
   const inf = p.inferred
   const region = inf.region ? inf.region.toUpperCase() : 'YOUR AREA'

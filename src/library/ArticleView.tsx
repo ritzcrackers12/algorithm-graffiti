@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SPONSORED_MARK } from '../shared/ads.ts'
 import { CONNOTATION_LABELS, EDUCATION_LABELS, INCOME_LABELS, LEAN_LABELS, SENSATION_LABELS } from '../shared/article.ts'
 import { resolveLocation } from '../shared/locations.ts'
@@ -7,8 +7,6 @@ import type { ArticleResult, View } from '../shared/types.ts'
 import { loadArticle, loadArticleIndex } from '../lib/content.ts'
 import ViewTabs from './ViewTabs.tsx'
 import { WhyButton } from './WhyAd.tsx'
-
-const typedAlready = new Set<number>()
 
 const PHOTO_CAP: Record<string, string> = {
   'maga-coalition': 'Election night. A MAGA hat rests on a suit jacket as supporters huddle after the returns.',
@@ -28,33 +26,9 @@ function takeDek(body: string): { dek: string; rest: string } {
   return { dek: m[1].trim(), rest: (m[2] ?? '').trim() }
 }
 
-function useTypewriter(text: string, animateKey: number | null) {
-  const [count, setCount] = useState(text.length)
-  useEffect(() => {
-    if (animateKey === null || typedAlready.has(animateKey)) {
-      setCount(text.length)
-      return
-    }
-    typedAlready.add(animateKey)
-    const total = Math.min(11_000, Math.max(3_000, text.length * 9))
-    const start = performance.now()
-    let raf = 0
-    const step = (t: number) => {
-      const n = Math.floor(((t - start) / total) * text.length)
-      setCount(Math.min(text.length, n))
-      if (n < text.length) raf = requestAnimationFrame(step)
-    }
-    setCount(0)
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [text, animateKey])
-  return count
-}
-
-function renderBody(body: string, caret: ReactNode, result?: ArticleResult, profile?: VisitorProfile | null) {
+function renderBody(body: string, result?: ArticleResult, profile?: VisitorProfile | null) {
   const paras = body.split(/\n\s*\n/)
   return paras.map((p, i) => {
-    const last = i === paras.length - 1
     const t = p.trim()
     if (t.startsWith('%%')) {
       if (!t.startsWith(SPONSORED_MARK) || t.length <= SPONSORED_MARK.length) return null
@@ -66,16 +40,16 @@ function renderBody(body: string, caret: ReactNode, result?: ArticleResult, prof
             Sponsored content
             {result?.sponsored && <WhyButton place={result.sponsored} profile={profile} />}
           </div>
-          <p>{t.slice(SPONSORED_MARK.length).replace(/\*\*/g, '')}{last && caret}</p>
+          <p>{t.slice(SPONSORED_MARK.length).replace(/\*\*/g, '')}</p>
         </div>
       )
     }
-    if (/^>\s*/.test(t)) return <p key={i} className="bsj-dek">{t.replace(/^>\s*/, '')}{last && caret}</p>
-    if (/^##\s+/.test(t)) return <h2 key={i}>{t.replace(/^##\s+/, '')}{last && caret}</h2>
-    if (/^KEY TAKEAWAYS/i.test(t)) return <p key={i} className="bsj-takeaways">{t}{last && caret}</p>
-    if (/^•/.test(t)) return <p key={i} className="bsj-bullet">{t}{last && caret}</p>
-    if (/^\*[^*].*\*$/.test(t) || /^_.*_$/.test(t)) return <p key={i} className="bsj-byline">{t.slice(1, -1)}{last && caret}</p>
-    return <p key={i}>{t.replace(/\*\*/g, '')}{last && caret}</p>
+    if (/^>\s*/.test(t)) return <p key={i} className="bsj-dek">{t.replace(/^>\s*/, '')}</p>
+    if (/^##\s+/.test(t)) return <h2 key={i}>{t.replace(/^##\s+/, '')}</h2>
+    if (/^KEY TAKEAWAYS/i.test(t)) return <p key={i} className="bsj-takeaways">{t}</p>
+    if (/^•/.test(t)) return <p key={i} className="bsj-bullet">{t}</p>
+    if (/^\*[^*].*\*$/.test(t) || /^_.*_$/.test(t)) return <p key={i} className="bsj-byline">{t.slice(1, -1)}</p>
+    return <p key={i}>{t.replace(/\*\*/g, '')}</p>
   })
 }
 
@@ -94,7 +68,6 @@ export default function ArticleView({
     ? result.params.articleId
     : (selectedId || result?.params.articleId || firstId)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const caretRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     loadArticleIndex().then((idx) => setFirstId(idx[0]?.id ?? null)).catch(console.error)
@@ -105,22 +78,13 @@ export default function ArticleView({
 
   const altered = view === 'altered' && result
   const doc = altered ? result : original
-  const full = doc ? `${doc.title}\n${doc.body}` : ''
-  const count = useTypewriter(full, altered ? result.at : null)
-  const typing = count < full.length
-  const shown = full.slice(0, count)
-  const nl = shown.indexOf('\n')
-  const title = nl === -1 ? shown : shown.slice(0, nl)
-  const body = nl === -1 ? '' : shown.slice(nl + 1)
+  const title = doc?.title ?? ''
+  const body = doc?.body ?? ''
 
-  useEffect(() => {
-    if (typing) caretRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [typing, count])
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
   }, [view, result?.at])
 
-  const caret = typing ? <span ref={caretRef} className="caret" /> : null
   const { dek, rest } = takeDek(body)
   const p = result?.params
 
@@ -167,8 +131,8 @@ export default function ArticleView({
                 })()}
               </div>
             )}
-            <h1>{title}{nl === -1 && caret}</h1>
-            {dek ? <p className="bsj-dek">{dek}{!rest && caret}</p> : null}
+            <h1>{title}</h1>
+            {dek ? <p className="bsj-dek">{dek}</p> : null}
             {articleId && (
               <figure className="bsj-photo">
                 <img
@@ -184,12 +148,12 @@ export default function ArticleView({
                 <figcaption>{PHOTO_CAP[articleId] ?? 'Lead photograph.'}</figcaption>
               </figure>
             )}
-            {rest ? renderBody(rest, caret, altered ? result : undefined, profile) : null}
+            {rest ? renderBody(rest, altered ? result : undefined, profile) : null}
           </article>
         </div>
       </div>
       <div className="xp-statusbar">
-        <span style={{ flex: 1 }}>{typing ? 'RECEIVING OUTPUT...' : altered ? 'OUTPUT GENERATED.' : 'SOURCE DOCUMENT.'}</span>
+        <span style={{ flex: 1 }}>{altered ? 'OUTPUT GENERATED.' : 'SOURCE DOCUMENT.'}</span>
         <span style={{ width: 200 }}>{altered ? `SOURCE: ${result.source.toUpperCase()}` : 'UNMODIFIED'}</span>
         <span style={{ width: 120 }}>{doc ? `${doc.body.split(/\s+/).length} WORDS` : ''}</span>
       </div>

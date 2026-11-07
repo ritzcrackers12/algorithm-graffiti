@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { getBackend } from '../lib/backend.ts'
 import { CONFIG } from '../shared/config.ts'
-import type { AdminAction, AdminStatus } from '../shared/types.ts'
+import type { AdminAction, AdminStatus, AiTestRow } from '../shared/types.ts'
 
 const KEY = 'ag-admin-pass'
 
@@ -21,12 +21,14 @@ export default function Admin() {
   const [kind, setKind] = useState<string>('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [tokenDraft, setTokenDraft] = useState('')
+  const [tests, setTests] = useState<{ rows: AiTestRow[]; used: number } | null>(null)
 
   const run = useCallback(
     async (action: AdminAction, code = pass) => {
       const b = await getBackend()
       setKind(b.kind)
-      const res = await b.admin(code, action)
+      const res = await b.admin(code, action) as { ok: boolean; status?: AdminStatus; tests?: { rows: AiTestRow[]; used: number } }
       if (!res.ok || !res.status) {
         if (action === 'status' && code) {
           sessionStorage.removeItem(KEY)
@@ -52,10 +54,17 @@ export default function Admin() {
     return () => clearInterval(t)
   }, [pass, run])
 
-  const act = async (action: AdminAction, confirmText?: string) => {
+  const act = async (action: AdminAction, confirmText?: string, extra?: { token?: string; all?: boolean }) => {
     if (confirmText && !confirm(confirmText)) return
     setBusy(true)
-    await run(action)
+    const b = await getBackend()
+    setKind(b.kind)
+    const res = await b.admin(pass, action, extra)
+    if (res.ok && res.status) {
+      setStatus(res.status)
+      if (action !== 'status') setMsg(`EXECUTED: ${action.toUpperCase().replace('_', ' ')}.`)
+      if (res.tests) setTests(res.tests as { rows: AiTestRow[]; used: number })
+    } else setMsg('COMMAND FAILED.')
     setBusy(false)
   }
 
@@ -115,6 +124,54 @@ export default function Admin() {
           <Row k="TURN / IDLE" v={`NONE / ${CONFIG.IDLE_SECONDS}s (hidden)`} />
         </div>
 
+        <div className="mb-5 rounded-2xl border border-white/15 bg-white/5 px-4 py-2">
+          <Row
+            k="AI LINK"
+            v={
+              !s ? '…'
+                : (s.replicateMode === 'proxy' && (s.proxyToday ?? 0) >= (s.proxyQuota ?? 500)) || s.proxyStatus === 'limit' ? 'DAILY LIMIT REACHED'
+                  : s.proxyStatus === 'expired' ? 'TOKEN EXPIRED'
+                    : s.proxyStatus === 'ok' ? 'PROXY OK'
+                      : s.replicateMode === 'direct' ? 'DIRECT (no proxy status yet)'
+                        : 'UNKNOWN'
+            }
+          />
+          <Row k="REPLICATE MODE" v={s ? (s.replicateMode ?? 'proxy').toUpperCase() : '…'} />
+          <Row
+            k="PROXY TOKEN"
+            v={s?.proxyTokenLast4
+              ? `••••${s.proxyTokenLast4}${s.proxyTokenUpdatedAt ? ` · ${new Date(s.proxyTokenUpdatedAt).toLocaleString()}` : ''}`
+              : 'NOT SET'}
+          />
+          <Row
+            k="PROXY TODAY"
+            v={s
+              ? `${s.proxyToday ?? 0} used · ${Math.max(0, (s.proxyQuota ?? CONFIG.PROXY_QUOTA_CHEAP) - (s.proxyToday ?? 0))} of ${s.proxyQuota ?? CONFIG.PROXY_QUOTA_CHEAP} cheap left`
+              : '…'}
+          />
+          <form
+            className="flex flex-col gap-2 py-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const t = tokenDraft.trim()
+              if (t.length < 8) { setMsg('TOKEN TOO SHORT.'); return }
+              void act('set_proxy_token', undefined, { token: t }).then(() => setTokenDraft(''))
+            }}
+          >
+            <input
+              type="password"
+              value={tokenDraft}
+              onChange={(e) => setTokenDraft(e.target.value)}
+              placeholder="PASTE PROXY TOKEN"
+              className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm outline-none"
+              autoComplete="off"
+            />
+            <button type="submit" disabled={busy} className="rounded-lg bg-white/10 py-2 text-xs font-bold tracking-[0.15em]">
+              SAVE PROXY TOKEN
+            </button>
+          </form>
+        </div>
+
         <div className="grid grid-cols-1 gap-3">
           <button disabled={busy} className={`${btn} bg-[#ff2ea0]`} onClick={() => act('reset', 'Reset every object to its original?')}>
             RESET EVERYTHING TO ORIGINALS
@@ -132,9 +189,31 @@ export default function Admin() {
           >
             {s?.mockMode ? 'TURN MOCK MODE OFF (USE REAL AI)' : 'TURN MOCK MODE ON'}
           </button>
+          <button
+            disabled={busy || !s}
+            className={`${btn} ${s?.replicateMode === 'proxy' ? 'bg-[#c6ff3d] text-black' : 'bg-white/10'}`}
+            onClick={() => act(s?.replicateMode === 'proxy' ? 'replicate_direct' : 'replicate_proxy')}
+          >
+            {s?.replicateMode === 'proxy' ? 'SWITCH TO DIRECT REPLICATE' : 'SWITCH TO NYU PROXY'}
+          </button>
+          <button disabled={busy} className={`${btn} bg-white/10`} onClick={() => act('test_ai')}>
+            RUN AI TEST (1 TEXT CALL IF TOKEN SAVED)
+          </button>
         </div>
 
         {msg && <div className="mt-4 text-sm text-[#c6ff3d]">{msg}</div>}
+        {tests && (
+          <div className="mt-4 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-xs">
+            <div className="mb-2 tracking-[0.2em] text-white/50">AI TEST · {tests.used} PROXY CALLS</div>
+            {tests.rows.map((r) => (
+              <div key={r.job} className="border-b border-white/10 py-2 font-mono">
+                {r.skipped ? 'SKIP' : r.ok ? 'PASS' : 'FAIL'} · {r.job} · {r.ms}ms · {r.source}
+                {r.preview ? ` · ${r.preview}` : ''}
+                {r.error ? ` · ${r.error}` : ''}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-8 flex gap-4 text-xs text-white/50">
           <a href="#/library" className="underline">LIBRARY</a>
           <a href="#/controller" className="underline">CONTROLLER</a>

@@ -1,44 +1,50 @@
 # PROGRESS: Algorithm Graffiti
 
-_Last updated: Nov 7, 2026 (Version 2, Phase A)_
+_Last updated: Nov 7, 2026 (Version 2, Phase P)_
+
+## Phase P (done)
+
+- **Spec:** Section 11 is the NYU proxy. Section 4 / Reel is the new spreadsheet pipeline (Phase B, not built yet).
+- **Wrapper:** `supabase/functions/_shared/replicateClient.ts`. `REPLICATE_MODE` default `proxy` → `https://itp-ima-replicate-proxy.web.app/api/create_n_get`. `direct` → `api.replicate.com`. Same `{ model | version, input }` plus optional `fieldToConvertBase64ToURL` / `fileFormat`.
+- **Admin:** paste proxy token (stored on `ag_state`, only last 4 shown), last-updated time, proxy/direct toggle, today's proxy count vs 500 cheap quota, status `PROXY OK` / `TOKEN EXPIRED` / `DAILY LIMIT REACHED`.
+- **Failures:** expired token or limit → cached or mock article. Visitors never see an error.
+- **Cache:** `ag_ai_cache` keyed by SHA-256 of job + inputs. Same article knobs reuse the rewrite.
+- **Ad copy:** still templates (`AI_AD_COPY` is off).
+- **Embeddings:** `gte-small` on the Edge Function first (free, 384-d). Replicate only if that fails.
+- **No typewriter:** the altered article appears whole when the progress dialog closes.
+- **`npm run test:replicate`:** embed + (if a token is saved) one tiny text call. `--all` adds vision/image/tts. STT waits for Phase B audio.
+
+### Pinned models (cheap only)
+
+| Job | Model | Version pin | Cost note |
+|---|---|---|---|
+| Text | `meta/meta-llama-3-8b-instruct` | `5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8` | ~$0.05/1M in + $0.25/1M out; a long article is a few cents |
+| Vision | `lucataco/moondream2` | `fe364e0c95b9142eef216ee8bf227b345097fee629b26bac3f4aed19f7b30a4d` | ~$0.0012 / run |
+| STT | `vaibhavs10/incredibly-fast-whisper` | `3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c` | short clip ≪ $0.01 |
+| Image | `black-forest-labs/flux-schnell` | `c846a69991daf4c0e5d016514849d14ee5b2e6846ce6b9d6f21369e564cfe51e` | schnell; about a cent or less |
+| TTS | `jaaari/kokoro-82m` | `f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13` | ~$0.0004 / run |
+| Embed | Supabase `gte-small` | built-in | free |
+
+No video models.
 
 ## Phase A (done)
 
-- **Spec:** `PROJECT_SPEC.md` is Version 2.
-- **Removed:** Image, Website, and Block Safety (files, icons, routes, Edge Function paths, config slots). Desktop is four icons: Article, Reel, Song, Game.
-- **Timer gone:** `TURN_SECONDS` is 0. No countdown on the phone or iPad. Idle handoff is 60s and invisible. Queue, admin skip, and `RESET_MODE` are unchanged.
-- **Visitor profile:** anonymous, per turn, no IP lookup. Device + behavior + Article knobs. Rule-based inferred traits in `src/shared/profile.ts`. Deleted at end of turn unless `RESET_MODE = persist`. Wired into Article generate.
-- **Ads:** 6 placeholder rows in `public/content/ads.csv` + `public/assets/ads/`. Scoring, mock personalization, XP pop-ups (max 3, first after leaving the first object, 45s gap, only at home or while loading), ⓘ “Why am I seeing this?” with official line + FULL REPORT from real scores.
-- **Article:** controls unchanged. Every rewrite weaves a sponsored paragraph (`%%SPONSORED%%`) marked “Sponsored content” with ⓘ. Live mode still uses the Llama rewrite, then inserts the paragraph so source facts are not edited.
-- **Game icon:** locked (`ACCESS RESTRICTED. INSUFFICIENT DATA.`) with ⓘ. Unlock logic is Phase D.
-- **Reel / Song:** open to a stub window (`NO SIGNAL.`). Real flows are Phases B and C.
-- **On-screen copy:** visitor-facing strings checked against Section 0 (no show title, no commentary). Internal name is `MEDIA STATION`.
-- **SQL:** `supabase/migrations/20261107180000_v2_phase_a.sql` (profile column, `signal` command, turn=0, used[], objects article|reel|song|game).
-- **Tests:** `npm run test:sql`, `npm run build`.
+Four icons, no turn timer, visitor profile, placeholder ads, sponsored paragraph, Game locked. See git history.
 
 ## Next (wait for “continue”)
 
-1. **Phase B:** Reel CSV + videos (or 10 placeholders), embeddings, new chatbot/rating flow, round-3 sponsored reel.
-2. Phase C Song, Phase D Game, Phase E end screen + `npm run test:replicate`.
+**Phase B: Reel** — needs your spreadsheet + MP4 folder.
 
 ## Needed from the user
 
-- Nothing required to test Phase A in two browser tabs (local or live mock).
-- For **Phase B:** `content/reels.csv` and the MP4 folder, or say to use placeholders.
-- For **Phase C:** song files + metadata, or say to use placeholders.
-- Before the show: `ADMIN_PASSCODE` and `REPLICATE_API_TOKEN` as Supabase secrets; pin `CONFIG.TEXT_MODEL.version`; confirm state profiles.
+1. **Now, for a live proxy test:** log in at https://itp-ima-replicate-proxy.web.app/ with your **nyu.edu** account, copy a fresh token, paste it on `#/admin` (SAVE PROXY TOKEN). Tokens can expire about every hour.
+2. For **Phase B:** `reel-library.xlsx` (or `reels.csv`) and the MP4 folder, or say to wait.
+3. Optional later: `REPLICATE_API_TOKEN` in Supabase secrets if we switch to **direct** for the show.
+4. `ADMIN_PASSCODE` secret before the gallery.
 
-## Decisions / notes (Version 2)
+## Decisions / notes
 
-- Sponsored paragraph is inserted after the rewrite (mock templates now; live uses the same post-insert so facts never change). Same-call weaving can wait until a later pass.
-- Pop-up scheduling lives on the phone (active session) and the iPad only displays `profile.lastAd`.
-- Game stays locked until Phase D even if two objects are used.
-- Finance category scoring currently boosts higher income; `income<=60k` rules still add a match bonus for placeholder 2.
-
-## Earlier (Session 1, still true)
-
-- Public repo https://github.com/ritzcrackers12/algorithm-graffiti → GitHub Pages. Supabase `nkmeiqwhwuuysdahyzju` us-west-2.
-- Article stories: MAGA coalition, data centers, military AI. Phone chooser before dials. Mock-first. Daily cap 200, 5s rate limit, 30s timeout.
-- State profiles are a **DRAFT** — verify before the show.
-- Waiting phones kept 3 minutes; skipped if gone 12s when their turn comes.
-- Typewriter on the iPad, not true streaming.
+- Default `test:replicate` does **not** spend quota when no token is saved (embed only). With a token it makes **one** tiny text call unless you pass `--all`.
+- Article rewrite is cached by canonical control values so repeats are free.
+- Sponsored paragraph is still inserted after the rewrite so source facts stay put.
+- `fieldToConvertBase64ToURL` is sent at the top level of the proxy body, matching the class p5 examples.

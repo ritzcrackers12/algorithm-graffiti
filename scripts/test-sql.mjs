@@ -124,5 +124,10 @@ await db.exec(`set role anon`)
 await assert.rejects(db.query(`select ag_admin('reset','UTC')`), /permission denied/)
 await assert.rejects(db.query(`select * from ag_queue`), /permission denied|row-level/)
 r = await hb(B); assert.ok(r.position >= 0, 'anon can heartbeat')
+await assert.rejects(db.query(`select ag_proxy_today('America/New_York')`), /permission denied/)
+await db.exec(`reset role`)
+
+assert.equal(await one(`select ag_proxy_today('America/New_York')`), 0)
+assert.equal(await one(`select to_regclass('public.ag_ai_cache') is not null`), true)
 
 console.log('SQL queue tests passed.')

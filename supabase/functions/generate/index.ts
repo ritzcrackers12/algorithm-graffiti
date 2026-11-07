@@ -8,6 +8,8 @@ import {
 } from '../_shared/article.ts'
 import { resolveLocation } from '../_shared/locations.ts'
 import { emptyProfile, inferProfile, type VisitorProfile } from '../_shared/profile.ts'
+import { cacheKey } from '../_shared/ai.ts'
+import { predict } from '../_shared/replicateClient.ts'
 import { isBlocked } from '../_shared/text.ts'
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
@@ -43,26 +45,6 @@ async function fetchSite(path: string): Promise<string> {
   throw new Error(`could not load ${path}`)
 }
 
-async function replicateText(system: string, prompt: string, token: string, deadline: number): Promise<string> {
-  const m = CONFIG.TEXT_MODEL
-  const url = m.version
-    ? 'https://api.replicate.com/v1/predictions'
-    : `https://api.replicate.com/v1/models/${m.owner}/${m.name}/predictions`
-  const input = { prompt, system_prompt: system, max_tokens: 4096, temperature: 0.7 }
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'wait=25' }
-  const signal = AbortSignal.timeout(Math.max(1000, deadline - Date.now()))
-  let pred = await (await fetch(url, {
-    method: 'POST', headers, signal, body: JSON.stringify(m.version ? { version: m.version, input } : { input }),
-  })).json()
-  while (pred?.status === 'starting' || pred?.status === 'processing') {
-    if (Date.now() > deadline) throw new Error('timeout')
-    await sleep(1000)
-    pred = await (await fetch(pred.urls.get, { headers, signal })).json()
-  }
-  if (pred?.status !== 'succeeded') throw new Error(`replicate: ${pred?.status} ${pred?.error ?? pred?.detail ?? ''}`)
-  return Array.isArray(pred.output) ? pred.output.join('') : String(pred.output)
-}
-
 function attachSponsored(body: string, profile: VisitorProfile) {
   const match = pickAd(profile)
   if (!match) return { body, sponsored: undefined }
@@ -87,8 +69,7 @@ function asProfile(raw: unknown, params: ArticleParams): VisitorProfile {
   })
 }
 
-async function produce(params: ArticleParams, profile: VisitorProfile, useAi: boolean, token: string) {
-  const deadline = Date.now() + CONFIG.AI_TIMEOUT_SECONDS * 1000
+async function produce(params: ArticleParams, profile: VisitorProfile, useAi: boolean) {
   const original = parseArticleMarkdown(await fetchSite(`content/articles/${params.articleId}.md`))
   const loc = resolveLocation(params.location)
   const logged = canonicalArticleParams(params)
@@ -98,15 +79,35 @@ async function produce(params: ArticleParams, profile: VisitorProfile, useAi: bo
     return { params: logged, title: mock.title, body: extra.body, sponsored: extra.sponsored }
   }
   if (!useAi) return { result: fallback(), ai: false }
+
+  const { system, prompt } = articlePrompt(params, original, loc)
+  const rewriteKey = await cacheKey('article', logged)
+  const { data: cached } = await db.from('ag_ai_cache').select('output').eq('key', rewriteKey).maybeSingle()
+  if (cached?.output && typeof cached.output === 'object') {
+    const hit = cached.output as { title?: string; body?: string }
+    if (hit.title && hit.body) {
+      const extra = attachSponsored(hit.body, profile)
+      return { result: { params: logged, title: hit.title, body: extra.body, sponsored: extra.sponsored }, ai: true, cached: true }
+    }
+  }
+
   try {
-    const { system, prompt } = articlePrompt(params, original, loc)
-    const out = parseArticleOutput(await replicateText(system, prompt, token, deadline))
+    const pred = await predict({
+      job: 'text',
+      input: { prompt, system_prompt: system, max_tokens: 4096, temperature: 0.7 },
+    })
+    if (!pred.ok) {
+      console.error('article AI failed', pred.error, pred.status)
+      return { result: fallback(), ai: false, failed: true }
+    }
+    const out = parseArticleOutput(String(pred.output ?? ''))
     const sourceText = `${original.title}\n${original.body}`
     if (
       out &&
       !inventedNumbers(sourceText, `${out.title}\n${out.body}`) &&
       !tooShort(original.body, out.body)
     ) {
+      await db.from('ag_ai_cache').upsert({ key: rewriteKey, job: 'article', input: logged, output: { title: out.title, body: out.body } })
       const extra = attachSponsored(out.body, profile)
       return { result: { params: logged, title: out.title, body: extra.body, sponsored: extra.sponsored }, ai: true }
     }
@@ -151,15 +152,14 @@ Deno.serve(async (req) => {
   }
   if (!begin.ok) return json(begin)
 
-  const token = Deno.env.get('REPLICATE_API_TOKEN') ?? ''
-  const useAi = !begin.mockMode && !begin.capReached && !!token
+  const useAi = !begin.mockMode && !begin.capReached
 
   const task = (async () => {
     const started = Date.now()
     let result: unknown = null
     let source = 'mock'
     try {
-      const out = await produce(params, profile, useAi, token)
+      const out = await produce(params, profile, useAi)
       result = { ...out.result, at: Date.now() }
       source = out.ai ? 'ai' : out.failed ? 'fallback' : begin.capReached && !begin.mockMode ? 'cap' : 'mock'
       ;(result as { source: string }).source = source
