@@ -110,7 +110,9 @@ Deno.serve(async (req) => {
   const action = typeof body.action === 'string' ? body.action : 'status'
 
   if (action === 'set_proxy_token') {
-    const token = typeof body.token === 'string' ? body.token.trim() : ''
+    // Strip anything that isn't visible ASCII (stray newline/space/smart-quote/
+    // zero-width char from a copy-paste) so the Bearer header stays valid.
+    const token = typeof body.token === 'string' ? body.token.replace(/[^\x21-\x7E]/g, '') : ''
     if (token.length < 8) return json({ ok: false, reason: 'invalid' })
     const { error } = await db.from('ag_state').update({
       proxy_token: token,
