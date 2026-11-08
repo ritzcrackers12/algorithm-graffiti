@@ -124,7 +124,7 @@ export const CONFIG = {
    * Phone controller only. Live green telemetry behind the controls.
    * Off = the old per-object metal backgrounds.
    */
-  CODE_BG_ENABLED: true,
+  CODE_BG_ENABLED: false,
   CODE_BG: {
     /** Terminal green. */
     color: '#33FF66',

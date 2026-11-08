@@ -24,6 +24,8 @@ export interface GameWire {
   adPlace: AdPlacement | null
   ended: boolean
   summary: Record<string, unknown> | null
+  /** Monotonic. Older snapshots must not wipe newer START/controls. */
+  rev: number
 }
 
 const EMPTY: GameWire = {
@@ -42,11 +44,23 @@ const EMPTY: GameWire = {
   adPlace: null,
   ended: false,
   summary: null,
+  rev: 0,
 }
 
-let wire: GameWire = EMPTY
-const subs = new Set<() => void>()
 const KEY = 'ag-game-wire'
+const subs = new Set<() => void>()
+
+function readStored(): GameWire {
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (!raw) return EMPTY
+    return { ...EMPTY, ...JSON.parse(raw) as GameWire }
+  } catch {
+    return EMPTY
+  }
+}
+
+let wire: GameWire = typeof window !== 'undefined' ? readStored() : EMPTY
 
 export function getGameWire() {
   return wire
@@ -57,10 +71,25 @@ export function subscribeGameWire(cb: () => void) {
   return () => subs.delete(cb)
 }
 
-function note(patch: Partial<GameWire>) {
-  wire = { ...wire, ...patch }
+function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(wire)) } catch { /* ignore */ }
   subs.forEach((cb) => cb())
+}
+
+function note(patch: Partial<GameWire>) {
+  const incomingRev = patch.rev
+  if (incomingRev != null && incomingRev < (wire.rev ?? 0)) return
+  const rev = incomingRev != null ? incomingRev : (wire.rev ?? 0) + 1
+  wire = { ...wire, ...patch, rev }
+  persist()
+}
+
+function applyRemote(incoming: GameWire) {
+  const hasRev = incoming.rev != null
+  const incomingRev = incoming.rev ?? 0
+  if (hasRev && incomingRev < (wire.rev ?? 0)) return
+  wire = { ...EMPTY, ...incoming, rev: hasRev ? incomingRev : (wire.rev ?? 0) + 1 }
+  persist()
 }
 
 let bc: BroadcastChannel | null = null
@@ -69,10 +98,7 @@ function bus() {
   if (!bc) {
     bc = new BroadcastChannel('ag-game')
     bc.onmessage = (e) => {
-      if (e.data && typeof e.data === 'object') {
-        wire = { ...EMPTY, ...e.data as GameWire }
-        subs.forEach((cb) => cb())
-      }
+      if (e.data && typeof e.data === 'object') applyRemote(e.data as GameWire)
     }
   }
   return bc
@@ -83,8 +109,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY || !e.newValue) return
     try {
-      wire = { ...EMPTY, ...JSON.parse(e.newValue) as GameWire }
-      subs.forEach((cb) => cb())
+      applyRemote({ ...EMPTY, ...JSON.parse(e.newValue) as GameWire })
     } catch { /* ignore */ }
   })
 }
@@ -95,5 +120,5 @@ export function emitGameWire(patch: Partial<GameWire>) {
 }
 
 export function resetGameWire(keep?: Partial<GameWire>) {
-  emitGameWire({ ...EMPTY, ...keep })
+  emitGameWire({ ...EMPTY, ...keep, rev: (wire.rev ?? 0) + 1 })
 }

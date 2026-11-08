@@ -72,7 +72,8 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       void channel.send({ type: 'broadcast', event: 'reel', payload: clip })
     },
     reportGame(state) {
-      emitGameWire(state)
+      // Local apply already happened in pushGame. Sending again would let a
+      // delayed empty-controls snapshot wipe START on the other device.
       void channel.send({ type: 'broadcast', event: 'game', payload: state })
     },
   }

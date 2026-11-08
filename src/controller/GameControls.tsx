@@ -150,21 +150,32 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
     )
   }
 
+  const lastTap = useRef(0)
+  const press = (id: string, disabled?: boolean) => {
+    if (disabled || locked || wire.locked) return
+    const now = Date.now()
+    if (now - lastTap.current < 250) return
+    lastTap.current = now
+    haptic('press')
+    pushGame({ inputSeq: getGameWire().inputSeq + 1, actionId: id })
+  }
+
   const many = wire.controls.length > 4
   return (
     <div className="ctl-center">
-      <div className={`game-pad ${many ? 'wide ctl-allow-scroll' : ''}`}>
+      <div className={`game-pad ctl-allow-scroll ${many ? 'wide' : ''}`}>
         {wire.controls.map((b) => (
           <PixelButton
             key={b.id}
             type="button"
             block
             disabled={locked || wire.locked || !!b.disabled}
-            onClick={() => {
-              if (b.disabled) return
-              haptic('press')
-              pushGame({ inputSeq: wire.inputSeq + 1, actionId: b.id })
+            onPointerDown={(e) => {
+              if (e.button !== 0) return
+              e.preventDefault()
+              press(b.id, b.disabled)
             }}
+            onClick={() => press(b.id, b.disabled)}
           >
             {b.label}
           </PixelButton>

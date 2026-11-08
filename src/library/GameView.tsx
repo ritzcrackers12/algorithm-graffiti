@@ -30,6 +30,7 @@ export default function GameView({ live }: { live: Live }) {
   const handleRef = useRef<GameHandle | null>(null)
   const inputSeq = useRef(0)
   const inputFn = useRef<((actionId: string) => void) | null>(null)
+  const pendingInput = useRef<{ seq: number; id: string } | null>(null)
   const adWait = useRef<{ seq: number; resolve: (v: { watched: boolean }) => void } | null>(null)
   const wire = useSyncExternalStore(subscribeGameWire, getGameWire)
   const [ad, setAd] = useState<AdPlacement | null>(null)
@@ -41,6 +42,7 @@ export default function GameView({ live }: { live: Live }) {
   const gameId = wire.gameId
   const row = GAMES.find((g) => g.id === gameId)
   const playing = !!gameId && !!row?.ready && !wire.ended && !fail
+  const readyBox = !!box && box.width > 40 && box.height > 40
 
   useLayoutEffect(() => {
     setLayer(document.getElementById('ag-game-layer'))
@@ -94,28 +96,43 @@ export default function GameView({ live }: { live: Live }) {
       handleRef.current?.destroy()
       handleRef.current = null
       inputFn.current = null
+      pendingInput.current = null
       return
     }
+    if (!readyBox || !layer) return
     let gone = false
     inputSeq.current = 0
     inputFn.current = null
     setFail('')
     setLine('')
     setAd(null)
-    const flush = (actionId: string) => {
-      inputFn.current?.(actionId)
+    const take = (seq: number, actionId: string) => {
+      if (seq <= inputSeq.current || !actionId) return
+      if (!inputFn.current) {
+        pendingInput.current = { seq, id: actionId }
+        return
+      }
+      inputSeq.current = seq
+      inputFn.current(actionId)
     }
     void (async () => {
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 180; i++) {
         if (gone) return
         const hole = holeRef.current
         if (hole && hole.clientWidth > 40 && hole.clientHeight > 40) break
         await new Promise<void>((r) => window.requestAnimationFrame(() => r()))
       }
       const hole = holeRef.current
-      if (gone || !hole) return
+      if (gone || !hole) {
+        if (!gone) setFail('GAME SURFACE FAILED.')
+        return
+      }
       await waitSize(hole)
       if (gone || !holeRef.current) return
+      if (holeRef.current.clientWidth <= 40 || holeRef.current.clientHeight <= 40) {
+        setFail('GAME SURFACE FAILED.')
+        return
+      }
       try {
         const mod = await loadGameModule(gameId)
         if (gone || !holeRef.current) return
@@ -124,10 +141,12 @@ export default function GameView({ live }: { live: Live }) {
         const handle = mod.create(holeRef.current, cfg, {
           onInput(fn) {
             inputFn.current = fn
-            const w = getGameWire()
-            if (w.actionId && w.inputSeq > inputSeq.current) {
-              inputSeq.current = w.inputSeq
-              fn(w.actionId)
+            const pending = pendingInput.current
+            pendingInput.current = null
+            if (pending) take(pending.seq, pending.id)
+            else {
+              const w = getGameWire()
+              if (w.actionId) take(w.inputSeq, w.actionId)
             }
           },
           setControls(list, opts) {
@@ -179,10 +198,8 @@ export default function GameView({ live }: { live: Live }) {
     })()
     const unsub = subscribeGameWire(() => {
       const w = getGameWire()
-      if (w.inputSeq <= inputSeq.current || !w.actionId) return
-      if (!inputFn.current) return
-      inputSeq.current = w.inputSeq
-      flush(w.actionId)
+      if (!w.actionId) return
+      take(w.inputSeq, w.actionId)
     })
     return () => {
       gone = true
@@ -191,7 +208,7 @@ export default function GameView({ live }: { live: Live }) {
       handleRef.current?.destroy()
       handleRef.current = null
     }
-  }, [gameId, playing])
+  }, [gameId, playing, readyBox, layer])
 
   useEffect(() => {
     if (wire.adStatus !== 'done' || !adWait.current) return
@@ -207,7 +224,7 @@ export default function GameView({ live }: { live: Live }) {
     handleRef.current = null
   }, [])
 
-  const surface = playing && layer && box
+  const surface = playing && layer && readyBox && box
     ? createPortal(
       <div
         className="game-float"

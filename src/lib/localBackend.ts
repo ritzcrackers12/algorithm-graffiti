@@ -15,7 +15,7 @@ import {
 import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
 import { loadArticle } from './content.ts'
-import { emitGameWire, type GameWire } from './gameSync.ts'
+import type { GameWire } from './gameSync.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 
 const REEL_KEY = 'ag-reel-ended'
@@ -459,8 +459,9 @@ export function createLocalBackend(): Backend {
       localStorage.setItem(REEL_KEY, JSON.stringify(clip))
       fire()
     },
-    reportGame(state: GameWire) {
-      emitGameWire(state)
+    reportGame(_state: GameWire) {
+      // Local tabs already received the wire via BroadcastChannel in pushGame.
+      // Re-applying a delayed snapshot here wiped START off the phone.
       fire()
     },
   }
