@@ -715,3 +715,153 @@ span.xp-tbtn {
     inset 2px 2px 0 0 var(--hl-inner, #dfdfdf),
     inset -2px -2px 0 0 var(--sh-inner, #808080);
 }
+
+/* ========================================================================
+   RETRO / MINT CONTROLLER THEME  (old-computer look, grey Windows + mint)
+   Scoped to .theme-retro so the surveillance theme is left untouched.
+   ===================================================================== */
+.theme-retro {
+  --mint: #36d79b; --mint-deep: #0f7a56; --mint-dim: #1d9e75;
+  --cryptic: 'VT323', 'Share Tech Mono', ui-monospace, monospace;
+  --r-face: #c3c3c3; --r-face2: #d9d9d9; --r-hl: #ffffff; --r-sh1: #878787; --r-sh2: #3a3a3a;
+}
+@keyframes ctl-blink { 50% { opacity: 0; } }
+@keyframes ctl-bob {
+  0%   { transform: translate(-2px,-2px); }
+  17%  { transform: translate(2px,0); }
+  31%  { transform: translate(-1px,2px); }
+  46%  { transform: translate(2px,-1px); }
+  58%  { transform: translate(-2px,1px); }
+  73%  { transform: translate(1px,2px); }
+  88%  { transform: translate(0,-2px); }
+  100% { transform: translate(-2px,-2px); }
+}
+
+/* --- surfaces --- */
+.theme-retro .ctl-main {
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 8px),
+    #0a8f88;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+}
+.theme-retro .ctl-clock { color: #f1f7f3; }
+.theme-retro .ctl-meter > div { background: var(--mint); }
+.theme-retro .ctl-display em { color: var(--mint-deep); }
+
+/* --- panels become Win95 group boxes --- */
+.theme-retro .panel {
+  background: var(--r-face);
+  border: 0; border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh2),
+    inset 2px 2px 0 var(--r-face2), inset -2px -2px 0 var(--r-sh1);
+  padding: 11px 12px 10px;
+}
+.theme-retro .ctl-label { color: #2a2a2a; }
+.theme-retro .ctl-value { color: var(--mint-deep); }
+.theme-retro .story-locked { color: #1c1c1c; }
+
+/* --- faders: grey well + mint fill --- */
+.theme-retro .fader-groove {
+  background: var(--r-face2);
+  box-shadow: inset 1px 1px 0 var(--r-sh2), inset -1px -1px 0 var(--r-hl);
+}
+.theme-retro .fader.unset .fader-groove { background: var(--r-face2); }
+.theme-retro .fader-fill {
+  position: absolute; left: 0; top: 14px; height: 8px; border-radius: 2px;
+  background: var(--mint); opacity: 0.38; pointer-events: none;
+}
+.theme-retro .fader-notch { background: rgba(0,0,0,0.3); }
+.theme-retro .fader-thumb {
+  background: var(--r-face); border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh2),
+    inset 2px 2px 0 var(--r-face2), inset -2px -2px 0 var(--r-sh1);
+}
+.theme-retro .fader-ends { color: #333; }
+.theme-retro .fader-ends.three {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-top: 4px;
+}
+.theme-retro .fe.l { text-align: left; }
+.theme-retro .fe.m { text-align: center; }
+.theme-retro .fe.r { text-align: right; }
+
+/* --- knobs: grey dial + mint mark --- */
+.theme-retro .knob-face {
+  background: radial-gradient(circle at 50% 38%, #e6e6e6 0%, #c3c3c3 58%, #9c9c9c 100%);
+  box-shadow:
+    inset 1px 1px 0 var(--r-hl), inset -2px -2px 0 var(--r-sh1),
+    0 2px 4px rgba(0,0,0,0.35), 0 0 0 2px var(--r-sh2);
+}
+.theme-retro .knob-cap {
+  background: radial-gradient(circle at 42% 35%, #dcdcdc, #b0b0b0);
+  box-shadow: inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh1);
+}
+.theme-retro .knob-tick { background: rgba(0,0,0,0.32); }
+
+/* --- cryptic prompt header (bobbing text, static box) --- */
+.theme-retro .prompt {
+  font-family: var(--cryptic); font-size: 20px; line-height: 1.05; color: #eafff6;
+  background: #063a2a; border: 1px solid #0b5a40; text-align: center; padding: 7px 8px;
+  letter-spacing: 0.07em; text-shadow: 0 0 6px rgba(70,255,190,0.45); overflow: hidden; flex: none;
+}
+.theme-retro .bobtext { display: inline-block; animation: ctl-bob 8s ease-in-out infinite; will-change: transform; }
+.theme-retro .blink {
+  font-family: var(--cryptic); font-size: 13px; line-height: 1; white-space: nowrap;
+  color: var(--mint-deep); letter-spacing: 0.03em; animation: ctl-blink 1.15s step-end infinite;
+}
+.theme-retro .explain {
+  background: #063a2a; border: 1px solid #0b5a40; color: #9effd6; font: 15px/1.1 var(--cryptic);
+  text-align: center; padding: 3px 4px; letter-spacing: 0.04em;
+}
+.theme-retro .fm {
+  background: #04120d; border: 2px solid #0b5a40; color: #6effc0; font: 26px/1 var(--cryptic);
+  text-align: center; padding: 5px; letter-spacing: 0.14em;
+  text-shadow: 0 0 8px rgba(80,255,190,0.6); flex: none;
+}
+.theme-retro .ctitle {
+  font-family: var(--cryptic); font-size: 17px; color: #063a2a; text-align: center;
+  letter-spacing: 0.1em; padding-top: 6px; margin: 0 6px 5px; border-top: 2px dashed #2f2f2f;
+}
+
+/* --- reel: buckets spread full screen with subtitles --- */
+.theme-retro .reel-pick { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.theme-retro .reel-pick .bucket-grid {
+  flex: 1; width: 100%; grid-template-rows: repeat(3, 1fr); gap: 10px; align-content: stretch;
+}
+.theme-retro .reel-pick .bucket-grid .px-btn { height: 100%; }
+.theme-retro .reel-pick .bucket-grid .px-btn > span { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.theme-retro .bucket-sub {
+  display: block; font: 12px/1.1 var(--cryptic); color: var(--mint-deep);
+  letter-spacing: 0.04em; margin-top: 3px; text-transform: none;
+}
+
+/* --- reel: dial units with explain bars + dashed dividers --- */
+.theme-retro .reel-tune { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.theme-retro .reel-units { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.theme-retro .reel-unit {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px; padding: 4px 0;
+}
+.theme-retro .reel-unit + .reel-unit { border-top: 2px dashed #2f2f2f; }
+.theme-retro .unit-poles {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  gap: 10px; width: 100%;
+}
+.theme-retro .unit-poles .pole {
+  font: 700 10px/1.1 var(--font-supreme); letter-spacing: 0.1em; color: #2a2a2a;
+}
+.theme-retro .unit-poles .pole.l { text-align: right; }
+.theme-retro .unit-poles .pole.r { text-align: left; }
+.theme-retro .reel-unit .explain { width: 100%; }
+
+/* station window: fill height, button pinned at base */
+.theme-retro .station-ctl { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.theme-retro .station-ctl .px-btn--block { margin-top: auto; }
+
+/* --- station: big dials row evenly distributed --- */
+.theme-retro .station-dials {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-evenly;
+}
+.theme-retro .station-dial { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.theme-retro .station-dial .explain { width: min(300px, 90%); }

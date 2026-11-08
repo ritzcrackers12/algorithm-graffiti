@@ -5,16 +5,17 @@ export type ReelBucket = 'comedy' | 'lifestyle' | 'body' | 'mind' | 'money' | 'c
 export interface ReelBucketMeta {
   id: ReelBucket
   label: string
+  subtitle: string
   poles: [[string, string], [string, string], [string, string]]
 }
 
 export const REEL_BUCKETS: ReelBucketMeta[] = [
-  { id: 'comedy', label: 'COMEDY', poles: [['SAFE', 'EDGY'], ['MAINSTREAM', 'OBSCURE'], ['SINCERE', 'IRONIC']] },
-  { id: 'lifestyle', label: 'LIFESTYLE', poles: [['FREE', 'PRICEY'], ['RAW', 'POLISHED'], ['BROAD', 'NICHE']] },
-  { id: 'body', label: 'BODY', poles: [['AESTHETIC', 'PERFORMANCE'], ['GENTLE', 'INTENSE'], ['BROAD', 'NICHE']] },
-  { id: 'mind', label: 'MIND', poles: [['SOOTHING', 'ACTIVATING'], ['EVIDENCE', 'BELIEF'], ['SINCERE', 'PERFORMATIVE']] },
-  { id: 'money', label: 'MONEY', poles: [['SAFE', 'RISKY'], ['SLOW', 'FAST'], ['NEED', 'STATUS']] },
-  { id: 'culture', label: 'CULTURE', poles: [['TECH', 'HUMANITIES'], ['CALM', 'HEATED'], ['CONSENSUS', 'HETERODOX']] },
+  { id: 'comedy', label: 'COMEDY', subtitle: 'jokes, bits, chaos', poles: [['SAFE', 'EDGY'], ['MAINSTREAM', 'OBSCURE'], ['SINCERE', 'IRONIC']] },
+  { id: 'lifestyle', label: 'LIFESTYLE', subtitle: 'taste, things, scenes', poles: [['FREE', 'PRICEY'], ['RAW', 'POLISHED'], ['BROAD', 'NICHE']] },
+  { id: 'body', label: 'BODY', subtitle: 'looks, moves, health', poles: [['AESTHETIC', 'PERFORMANCE'], ['GENTLE', 'INTENSE'], ['BROAD', 'NICHE']] },
+  { id: 'mind', label: 'MIND', subtitle: 'calm, beliefs, selfhood', poles: [['SOOTHING', 'ACTIVATING'], ['EVIDENCE', 'BELIEF'], ['SINCERE', 'PERFORMATIVE']] },
+  { id: 'money', label: 'MONEY', subtitle: 'hustle, risk, status', poles: [['SAFE', 'RISKY'], ['SLOW', 'FAST'], ['NEED', 'STATUS']] },
+  { id: 'culture', label: 'CULTURE', subtitle: 'takes, tech, debate', poles: [['TECH', 'HUMANITIES'], ['CALM', 'HEATED'], ['CONSENSUS', 'HETERODOX']] },
 ]
 
 export interface ReelSlot {

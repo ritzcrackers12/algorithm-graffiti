@@ -275,7 +275,7 @@ export default function Controller() {
 
   return (
     <div
-      className="ctl theme-surveillance"
+      className="ctl theme-retro"
       onPointerDownCapture={markActivity}
       onKeyDownCapture={markActivity}
     >

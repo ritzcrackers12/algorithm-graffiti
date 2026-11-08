@@ -10,7 +10,7 @@ import { loadArticleIndex, type ArticleInfo } from '../lib/content.ts'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 import { recordControl } from '../lib/profileClient.ts'
-import { DetentSlider, Knob, Section, Segmented } from './controls.tsx'
+import { DetentSlider, Knob, Section } from './controls.tsx'
 import type { Transmit } from './Controller.tsx'
 import { useControls } from './useControls.ts'
 
@@ -18,7 +18,6 @@ export default function ArticleControls({
   snap, articleId, locked, transmit, say,
 }: { snap: Snapshot; articleId: string; locked: boolean; transmit: Transmit; say: (t: string) => void }) {
   const [articles, setArticles] = useState<ArticleInfo[]>([])
-  const [panel, setPanel] = useState<'frame' | 'audience'>('frame')
   const [p, setRaw] = useControls<ArticleParams>('article', snap.turnStartedAt, () => ({
     articleId,
     ...DEFAULT_ARTICLE_PARAMS,
@@ -72,82 +71,69 @@ export default function ArticleControls({
   const send = () => transmit({ object: 'article', params: { ...p, articleId } })
 
   return (
-    <div className="ctl-board">
-      <Segmented
-        options={[
-          { value: 'frame', label: 'FRAME' },
-          { value: 'audience', label: 'AUDIENCE' },
-        ]}
-        value={panel}
-        disabled={locked}
-        onChange={setPanel}
-      />
+    <div className="ctl-board ctl-allow-scroll">
+      <div className="prompt"><span className="bobtext">WHAT SHOULD THE STORY BECOME?</span></div>
 
-      {panel === 'frame' ? (
-        <>
-          <Section label="STORY" value="LOCKED">
-            <div className="story-locked">{selected?.title ?? articleId}</div>
-          </Section>
-          <Section label="POLITICAL LEAN" value={LEAN_LABELS[p.lean + 2]}>
-            <DetentSlider
-              steps={5}
-              value={p.lean + 2}
-              onChange={(v) => set({ lean: v - 2 })}
-              disabled={locked}
-              track="linear-gradient(90deg, #3a5a9a, #8a8680 50%, #8a3030)"
-              left="LEFT"
-              right="RIGHT"
-            />
-          </Section>
-          <Section label="CONNOTATION" value={CONNOTATION_LABELS[p.connotation + 1]}>
-            <Segmented
-              options={[
-                { value: -1, label: 'NEG' },
-                { value: 0, label: 'NEUTRAL' },
-                { value: 1, label: 'POS' },
-              ]}
-              value={p.connotation}
-              disabled={locked}
-              onChange={(v) => set({ connotation: v })}
-            />
-          </Section>
-          <Section label="SENSATIONALISM" value={SENSATION_LABELS[p.sensationalism]}>
-            <DetentSlider
-              steps={5}
-              value={p.sensationalism}
-              onChange={(v) => set({ sensationalism: v })}
-              disabled={locked}
-              track="linear-gradient(90deg, #3a3a36, #c45c2a)"
-              left="NONE"
-              right="MAX"
-            />
-          </Section>
-        </>
-      ) : (
-        <>
-          <Section stack label="READER PROFILE" value={EDUCATION_LABELS[p.education]}>
-            <Knob
-              steps={EDUCATION_KNOB}
-              value={p.education}
-              onChange={(v) => set({ education: v })}
-              size={72}
-              disabled={locked}
-            />
-          </Section>
-          <Section label="INCOME BRACKET" value={p.income === null ? 'UNSET' : INCOME_LABELS[p.income]}>
-            <DetentSlider
-              steps={6}
-              value={p.income ?? 0}
-              unset={p.income === null}
-              onChange={(v) => set({ income: v })}
-              disabled={locked}
-              track="linear-gradient(90deg, #4a5a3a, #c9a227)"
-              left="UNDER $30K"
-              right="$500K+"
-            />
-          </Section>
-          <Section label="WHERE ARE YOU READING FROM?" value={locStatus}>
-            <div className="loc-field">
+      <Section stack label="STORY">
+        <div className="story-locked">{selected?.title ?? articleId}</div>
+      </Section>
+      <Section stack label="POLITICAL LEAN">
+        <DetentSlider
+          steps={5}
+          value={p.lean + 2}
+          onChange={(v) => set({ lean: v - 2 })}
+          disabled={locked}
+          left="LEFT"
+          right="RIGHT"
+          readout={LEAN_LABELS[p.lean + 2]}
+        />
+      </Section>
+      <Section stack label="CONNOTATION">
+        <DetentSlider
+          steps={3}
+          value={p.connotation + 1}
+          onChange={(v) => set({ connotation: v - 1 })}
+          disabled={locked}
+          left="NEG"
+          right="POS"
+          readout={CONNOTATION_LABELS[p.connotation + 1]}
+        />
+      </Section>
+      <Section stack label="DRAMATIC">
+        <DetentSlider
+          steps={5}
+          value={p.sensationalism}
+          onChange={(v) => set({ sensationalism: v })}
+          disabled={locked}
+          left="MILD"
+          right="INTENSE"
+          readout={SENSATION_LABELS[p.sensationalism]}
+        />
+      </Section>
+      <Section stack label="READER PROFILE">
+        <Knob
+          steps={EDUCATION_KNOB}
+          value={p.education}
+          onChange={(v) => set({ education: v })}
+          size={84}
+          disabled={locked}
+        />
+        <div className="explain">{EDUCATION_LABELS[p.education]}</div>
+      </Section>
+      <Section stack label="INCOME BRACKET">
+        <DetentSlider
+          steps={6}
+          value={p.income ?? 0}
+          unset={p.income === null}
+          onChange={(v) => set({ income: v })}
+          disabled={locked}
+          left="UNDER $30K"
+          right="$500K+"
+          readout={p.income === null ? 'UNSET' : INCOME_LABELS[p.income]}
+        />
+      </Section>
+      <Section stack label="WHERE ARE YOU READING FROM?" value={locStatus}>
+        <div className="loc-field">
               <span className="loc-icon" aria-hidden>{loc.kind === 'country' ? '🌐' : '📍'}</span>
               <input
                 className="metal-input"
@@ -188,8 +174,6 @@ export default function ArticleControls({
               </div>
             )}
           </Section>
-        </>
-      )}
 
       <PixelButton className="rewrite-btn" block disabled={locked || !articleId} onClick={send}>
         REWRITE ARTICLE

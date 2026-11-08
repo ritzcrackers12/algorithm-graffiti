@@ -3,9 +3,20 @@ import { PixelButton } from '../components/PixelButton.tsx'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { sendCommand, sendGenerate, sessionId } from '../lib/live.ts'
 import { deriveGenre, genreMeta, STATION_POLES, stationCacheKey, stationLegitimacy } from '../shared/station.ts'
+import { poleWord } from '../shared/poles.ts'
 import type { AdSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
-import { PercentDial } from './controls.tsx'
+import { Knob } from './controls.tsx'
+
+const DIAL_STEPS = ['', '', '', '', '', '', '', '', '', '', '']
+const DIAL_TITLES = ['ENERGY', 'MOOD', 'TEXTURE']
+
+/** Cosmetic FM readout: dials nudge a fake frequency so the band feels live. */
+function fmFreq(dials: [number, number, number]): string {
+  const blend = dials[0] * 0.5 + dials[1] * 0.2 + dials[2] * 0.3
+  const f = 88.1 + (blend / 100) * 19.8
+  return `FM ${f.toFixed(1)}`
+}
 
 function persistAd(patch: Partial<AdSession>) {
   const p = getLocalProfile()
@@ -66,20 +77,31 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
   }
 
   return (
-    <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 8 }}>
-      <div className="ctl-display">{locked ? 'TUNING IN.' : 'SET THE DIALS'}</div>
-      {STATION_POLES.map((pole, i) => (
-        <PercentDial
-          key={pole[0]}
-          left={pole[0]}
-          right={pole[1]}
-          value={dials[i]}
-          disabled={locked}
-          onChange={(v) => twist(i, v)}
-        />
-      ))}
-      <PixelButton type="button" disabled={locked} onClick={tuneIn}>
-        TUNE IN
+    <div className="ctl-center station-ctl" style={{ gap: 8, paddingTop: 8 }}>
+      <div className="prompt"><span className="bobtext">FIND YOUR SOUND</span></div>
+      <div className="fm">{fmFreq(dials)}</div>
+      <div className="station-dials">
+        {STATION_POLES.map((pole, i) => (
+          <div key={pole[0]} className="station-dial">
+            <div className="ctitle">{DIAL_TITLES[i]}</div>
+            <div className="unit-poles">
+              <span className="pole l">{pole[0]}</span>
+              <Knob
+                steps={DIAL_STEPS}
+                value={Math.round(dials[i] / 10)}
+                onChange={(step) => twist(i, step * 10)}
+                disabled={locked}
+                size={96}
+                label={`${pole[0]} TO ${pole[1]}`}
+              />
+              <span className="pole r">{pole[1]}</span>
+            </div>
+            <div className="explain">{poleWord(pole[0], pole[1], dials[i])}</div>
+          </div>
+        ))}
+      </div>
+      <PixelButton type="button" block disabled={locked} onClick={tuneIn}>
+        {locked ? 'TUNING IN…' : 'TUNE IN'}
       </PixelButton>
     </div>
   )
