@@ -20,7 +20,7 @@ export interface DisplayState {
   openedAt: number
   /** Objects this visitor has already finished. */
   completed: ObjectId[]
-  /** Objects opened this turn (unlocks Game after 2). */
+  /** Objects opened this turn (unlocks Advertisement/Chatbot after 2 inputs). */
   used: ObjectId[]
   /** Which original story is open. Set before article controls appear. */
   articleId: string | null
@@ -51,21 +51,37 @@ export interface ArticleResult {
   sponsored?: AdPlacement
 }
 
-export interface GameResult {
-  gameId: string
-  endReason: string
-  traits: Record<string, string>
-  line: string
-  settings?: unknown
-  appliedProfile?: unknown
-  lots?: unknown
+export interface AdOverlay {
+  wordmark: string
+  headline: string
+  cta: string
+}
+
+export interface AdResult {
+  brandId: string
+  brandName: string
+  dials: [number, number, number]
+  imageUrl: string | null
+  overlay: AdOverlay
+  legitimacy: number
+  matchedProfile: boolean
+  source: Source
+  at: number
+}
+
+export interface ChatResult {
+  turns: import('./chatScript.ts').ChatTurn[]
+  topic: string
+  n: number
+  source: Source
   at: number
 }
 
 export interface Altered {
   article?: ArticleResult
   reel?: ReelResult
-  game?: GameResult
+  ad?: AdResult
+  chat?: ChatResult
 }
 
 export interface Snapshot {
@@ -91,9 +107,21 @@ export interface ReelParams {
   hesitationMs?: number
 }
 
+export interface AdParams {
+  brandId: string
+  dials: [number, number, number]
+  cacheKey?: string
+}
+
+export interface ChatParams {
+  history: import('./chatScript.ts').ChatTurn[]
+}
+
 export type GenerateRequest =
   | { session: string; object: 'article'; params: ArticleParams; profile?: VisitorProfile }
   | { session: string; object: 'reel'; params: ReelParams; profile?: VisitorProfile }
+  | { session: string; object: 'ad'; params: AdParams; profile?: VisitorProfile }
+  | { session: string; object: 'chat'; params: ChatParams; profile?: VisitorProfile }
 
 export interface GenerateResponse {
   ok: boolean

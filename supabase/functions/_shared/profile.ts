@@ -14,11 +14,64 @@ export interface DeviceSignals {
 }
 
 export interface ProfileEvent {
-  source: 'device' | 'behavior' | 'article' | 'reel' | 'song' | 'game' | 'ad'
+  source: 'device' | 'behavior' | 'article' | 'reel' | 'ad' | 'chat' | 'song' | 'game'
   key: string
   value: string
   at: number
 }
+
+export interface ReelSession {
+  tried: string[]
+  skipped: string[]
+  bucket: string | null
+  dials: [number, number, number]
+  currentId: string | null
+  currentSlot: string | null
+  legitimacy: number | null
+  react: boolean
+  send: boolean
+  dwellMs: number
+  twist: number
+  phase: 'pick' | 'tune' | 'done'
+}
+
+export interface AdSession {
+  dials: [number, number, number]
+  brandId: string | null
+  brandName: string | null
+  legitimacy: number | null
+  lingered: boolean
+  matchedProfile: boolean | null
+  imageUrl: string | null
+  overlay: { wordmark: string; headline: string; cta: string } | null
+  source: string | null
+}
+
+export interface ChatSession {
+  turns: import('./chatScript.ts').ChatTurn[]
+  topic: string
+  n: number
+  source: string
+}
+
+export interface SessionLog {
+  reel: ReelSession
+  ad: AdSession
+  chat: ChatSession
+}
+
+export const emptySession = (): SessionLog => ({
+  reel: {
+    tried: [], skipped: [], bucket: null, dials: [50, 50, 50],
+    currentId: null, currentSlot: null, legitimacy: null,
+    react: false, send: false, dwellMs: 0, twist: 0, phase: 'pick',
+  },
+  ad: {
+    dials: [50, 50, 50], brandId: null, brandName: null, legitimacy: null,
+    lingered: false, matchedProfile: null, imageUrl: null, overlay: null, source: null,
+  },
+  chat: { turns: [], topic: '', n: 0, source: '' },
+})
 
 export interface InferredProfile {
   incomeBracket: string | null
@@ -78,6 +131,7 @@ export interface VisitorProfile {
   /** Built off-screen so the next popup/shop ad can paint without waiting. */
   pendingAd: ProfileAd | null
   adClosedAt: number
+  session: SessionLog
   game: {
     urgencyGroup: 'urgent' | 'control' | null
     recommended: 'slots' | 'auction' | 'higherLower' | 'pet' | null
@@ -106,6 +160,7 @@ export const emptyProfile = (): VisitorProfile => ({
   lastAd: null,
   pendingAd: null,
   adClosedAt: 0,
+  session: emptySession(),
   game: {
     urgencyGroup: null,
     recommended: null,
@@ -141,6 +196,15 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
     pendingAd: r.pendingAd ?? null,
     adClosedAt: r.adClosedAt ?? 0,
     device: r.device ?? null,
+    session: {
+      reel: { ...e.session.reel, ...(r.session?.reel ?? {}) },
+      ad: { ...e.session.ad, ...(r.session?.ad ?? {}) },
+      chat: {
+        ...e.session.chat,
+        ...(r.session?.chat ?? {}),
+        turns: Array.isArray(r.session?.chat?.turns) ? r.session.chat.turns : e.session.chat.turns,
+      },
+    },
     game: {
       ...e.game,
       ...(r.game ?? {}),

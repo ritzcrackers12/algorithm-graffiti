@@ -48,13 +48,14 @@ export const CONFIG = {
   /** Fake delay range for mock mode, in seconds. */
   MOCK_DELAY_SECONDS: [2, 5] as [number, number],
   /** Rough expected time for real generations (drives the progress bar). */
-  EXPECTED_SECONDS: { article: 18, reel: 8, song: 6, game: 4 } as Record<string, number>,
+  EXPECTED_SECONDS: { article: 18, reel: 2, ad: 12, chat: 8 } as Record<string, number>,
   /** Time zone used for the daily cap and the staff page counter. */
   TIME_ZONE: 'America/New_York',
 
   /**
    * How to reach Replicate. "proxy" = NYU class proxy (default). "direct" = api.replicate.com.
-   * Staff can flip this on #/admin; the live value is stored in Supabase.
+   * TODO before exhibit Nov 16: switch to REPLICATE_MODE=direct and set REPLICATE_API_KEY
+   * as a Supabase secret. The NYU proxy token expires about hourly.
    */
   REPLICATE_MODE: 'proxy' as 'proxy' | 'direct',
   PROXY_URL: 'https://itp-ima-replicate-proxy.web.app/api/create_n_get',
@@ -109,9 +110,10 @@ export const CONFIG = {
   },
 
   // ---------- Ads ----------
-  /** Maximum XP pop-up ads per turn. */
-  AD_POPUP_MAX: 3,
-  /** Minimum seconds between pop-ups. */
+  /** Debounce before a settled ad dial set requests FLUX. */
+  AD_GENERATE_DEBOUNCE_MS: 400,
+  /** Legacy popup caps (popups removed in v3; kept so old profiles hydrate). */
+  AD_POPUP_MAX: 0,
   AD_POPUP_GAP_SECONDS: 45,
   /** Optional Replicate TTS for radio ads. Off = browser speechSynthesis. */
   RADIO_AD_TTS: false,
@@ -142,7 +144,7 @@ export const CONFIG = {
     lingerMs: 260,
     maxLines: 96,
     /** Per-object off switch. Missing keys stay on. */
-    objects: { article: true, reel: true, song: true, game: true },
+    objects: { article: true, reel: true, ad: true, chat: true },
   },
 
   /** Words that are rejected anywhere a visitor can type. Lowercase. Add more as needed. */
@@ -153,13 +155,13 @@ export const CONFIG = {
   ],
 } as const
 
-export type ObjectId = 'article' | 'reel' | 'song' | 'game'
+export type ObjectId = 'article' | 'reel' | 'ad' | 'chat'
 
 export const OBJECTS: { id: ObjectId; label: string; file: string; ready: boolean }[] = [
   { id: 'article', label: 'ARTICLE', file: 'article.txt', ready: true },
   { id: 'reel', label: 'REEL', file: 'reel.mp4', ready: true },
-  { id: 'song', label: 'SONG', file: 'station.wav', ready: true },
-  { id: 'game', label: 'GAME', file: 'game.exe', ready: true },
+  { id: 'ad', label: 'ADVERTISEMENT', file: 'promo.bmp', ready: true },
+  { id: 'chat', label: 'CHATBOT', file: 'agent.exe', ready: true },
 ]
 
 /** Ready objects, in the order a visitor must finish them. */

@@ -3,35 +3,21 @@
 // same browser can act as iPad + phones. Generation is always mock here.
 import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../shared/ads.ts'
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
-import { CONFIG, OBJECTS } from '../shared/config.ts'
-import { gameIconLocked, objectsTouched } from '../shared/games.ts'
+import { adOverlay, nearestBrand } from '../shared/adTuner.ts'
+import { scriptedNext } from '../shared/chatScript.ts'
+import { CONFIG, OBJECTS, type ObjectId } from '../shared/config.ts'
+import { objectLocked } from '../shared/gating.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
-import {
-  AFFINITY_KEY, addRating, emptyAffinity, emptyReelResult, logRound,
-  parseAffinity, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
-  attachPrefetch, type ReelResult, type ReelRow,
-} from '../shared/reel.ts'
-import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
+import { PARODY_BRANDS } from '../shared/parodyBrands.ts'
+import type { AdminStatus, AdResult, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
 import { loadArticle } from './content.ts'
-import type { GameWire } from './gameSync.ts'
+import { applyRemoteChat, type ChatWire } from './chatSync.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 
 const REEL_KEY = 'ag-reel-ended'
-const AFFINITY_LS = `ag-${AFFINITY_KEY}`
-
-function loadAffinity() {
-  try {
-    return parseAffinity(JSON.parse(localStorage.getItem(AFFINITY_LS) || 'null'))
-  } catch {
-    return emptyAffinity()
-  }
-}
-
-function saveAffinity(a: ReturnType<typeof emptyAffinity>) {
-  localStorage.setItem(AFFINITY_LS, JSON.stringify(a))
-}
+const CHAT_KEY = 'ag-chat-wire'
 
 interface DB {
   activeSession: string | null
@@ -50,7 +36,7 @@ interface DB {
   generations: { id: number; at: number; object: string; source: string }[]
 }
 
-const KEY = 'ag-local-db-v2'
+const KEY = 'ag-local-db-v3'
 const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [], used: [], articleId: null }
 
 function fresh(): DB {
@@ -76,6 +62,12 @@ export function createLocalBackend(): Backend {
     if (e.key === REEL_KEY && e.newValue) {
       try {
         noteReelClip(JSON.parse(e.newValue))
+        fire()
+      } catch { /* ignore */ }
+    }
+    if (e.key === CHAT_KEY && e.newValue) {
+      try {
+        applyRemoteChat(JSON.parse(e.newValue) as ChatWire)
         fire()
       } catch { /* ignore */ }
     }
@@ -157,66 +149,14 @@ export function createLocalBackend(): Backend {
     }
   }
 
-  let reelLibrary: ReelRow[] | null = null
-  async function loadReels(): Promise<ReelRow[]> {
-    if (reelLibrary) return reelLibrary
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}content/reels.json`)
-      if (res.ok) {
-        const rows = await res.json() as Record<string, unknown>[]
-        reelLibrary = rows.map((r) => rowFromRecord(r)).filter((r) => r.id)
-        return reelLibrary
-      }
-    } catch { /* empty library */ }
-    reelLibrary = []
-    return reelLibrary
-  }
-
-  function produceReel(params: { action: string; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined, profile?: VisitorProfile): ReelResult {
-    const current = prev ?? emptyReelResult()
-    if (params.action === 'start' || params.action === 'word') {
-      if (current.phase === 'done') return current
-      if (current.currentId && (current.phase === 'playing' || current.phase === 'rate')) return current
-      const pick = pickStart(library, loadAffinity(), params.seed || Date.now())
-      if (!pick) {
-        return { ...emptyReelResult(), phase: 'done', sessionLine: 'NO LIBRARY.', at: Date.now(), source: 'fallback' }
-      }
-      return attachPrefetch({
-        word: '',
-        phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
-        rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
-        source: 'mock', at: Date.now(), prefetchId: null,
-      }, library, loadAffinity(), profile)
-    }
-    const rating = params.rating
-    if (!rating || !current.currentId) return { ...current, at: Date.now() }
-    const cur = library.find((r) => r.id === current.currentId)
-    const rounds = current.rounds.map((r, i) =>
-      i === current.rounds.length - 1 ? { ...r, rating, hesitationMs: params.hesitationMs ?? 0 } : r,
-    )
-    if (!cur) return { ...current, rounds, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now() }
-    const last = rounds[rounds.length - 1]
-    if (last) saveAffinity(addRating(loadAffinity(), last, rating))
-    const next = pickNext(library, current.usedIds, cur, rating, rounds, loadAffinity(), null, true, profile)
-    if (!next) {
-      return { ...current, rounds, currentId: null, videoUrl: null, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now(), source: 'mock', prefetchId: null }
-    }
-    const nextRounds = [...rounds, logRound(next, null, 0)]
-    return attachPrefetch({
-      ...current, rounds: nextRounds, usedIds: [...current.usedIds, next.id],
-      currentId: next.id, videoUrl: playableUrl(next.id), phase: 'playing',
-      sessionLine: sessionLine(nextRounds), at: Date.now(), source: 'mock', prefetchId: null,
-    }, library, loadAffinity(), profile)
-  }
-
-  function finish(id: number, session: string, object: 'article' | 'reel', result: unknown, source: Source) {
+  function finish(id: number, session: string, object: ObjectId, result: unknown, source: Source) {
     const db = read()
     const g = db.generations.find((x) => x.id === id)
     if (g) g.source = source
     const keep = db.activeSession === session || CONFIG.RESET_MODE === 'persist'
     if (db.display.busy?.id === id) db.display = { ...db.display, busy: null }
     if (keep && result) {
-      db.altered = { ...db.altered, [object]: result as ArticleResult | ReelResult }
+      db.altered = { ...db.altered, [object]: result as ArticleResult | AdResult }
       if (db.display.open === object) db.display = { ...db.display, view: 'altered' }
     }
     if (db.activeSession === session) db.lastActivityAt = Date.now()
@@ -271,42 +211,13 @@ export function createLocalBackend(): Backend {
           used: used.includes('article') ? used : [...used, 'article'],
         }
       } else if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
-        const obj = arg as 'article' | 'reel' | 'song' | 'game'
-        if (obj === 'game' && gameIconLocked(objectsTouched(db), db.profile.game?.seen ?? [])) {
+        const obj = arg as ObjectId
+        const usedNow = db.display.used ?? []
+        if (objectLocked(obj, usedNow)) {
           write(db, changed)
           return { ...snapshot(db, session), ok: false }
         }
-        if (obj === 'reel') {
-          const library = await loadReels()
-          const latest = read()
-          Object.assign(db, latest)
-          if (db.activeSession !== session) {
-            write(db, changed)
-            return { ...snapshot(db, session), ok: false }
-          }
-          const prevReel = db.altered.reel
-          if (!prevReel?.currentId || prevReel.phase === 'word' || prevReel.phase === 'idle') {
-            const pick = pickStart(library, loadAffinity(), Date.now())
-            if (pick) {
-              db.altered = {
-                ...db.altered,
-                reel: attachPrefetch({
-                  word: '',
-                  phase: 'playing',
-                  currentId: pick.id,
-                  videoUrl: playableUrl(pick.id),
-                  rounds: [logRound(pick, null, 0)],
-                  usedIds: [pick.id],
-                  sessionLine: '',
-                  source: 'mock',
-                  at: Date.now(),
-                  prefetchId: null,
-                }, library, loadAffinity(), db.profile),
-              }
-            }
-          }
-        }
-        const used = db.display.used ?? []
+        const used = usedNow
         db.display = {
           ...db.display,
           open: obj,
@@ -334,31 +245,21 @@ export function createLocalBackend(): Backend {
     },
     async generate(req) {
       const articleParams = req.object === 'article' ? validateArticleParams(req.params) : null
-      let reelParams: { action: 'start' | 'rate'; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number } | null = null
-      if (req.object === 'article') {
-        if (!articleParams) return { ok: false, reason: 'invalid' }
-      } else if (req.object === 'reel') {
-        const p = req.params as { action?: string; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }
-        if (p.action !== 'start' && p.action !== 'word' && p.action !== 'rate') return { ok: false, reason: 'invalid' }
-        reelParams = {
-          action: p.action === 'rate' ? 'rate' : 'start',
-          seed: typeof p.seed === 'number' ? p.seed : Date.now(),
-          rating: p.rating,
-          hesitationMs: p.hesitationMs,
-        }
-      } else {
-        return { ok: false, reason: 'invalid' }
-      }
+      if (req.object === 'article' && !articleParams) return { ok: false, reason: 'invalid' }
+      if (req.object === 'reel') return { ok: true }
+      if (req.object !== 'article' && req.object !== 'ad') return { ok: false, reason: 'invalid' }
       const db = read()
       if (db.activeSession !== req.session) return { ok: false, reason: 'not_active' }
-      if (db.display.busy && db.display.busy.startedAt > Date.now() - 90_000) return { ok: false, reason: 'busy' }
+      if (req.object === 'article' && db.display.busy && db.display.busy.startedAt > Date.now() - 90_000) {
+        return { ok: false, reason: 'busy' }
+      }
       const last = db.generations.at(-1)
-      const rate = req.object === 'reel' ? 0 : CONFIG.RATE_LIMIT_SECONDS
+      const rate = req.object === 'ad' ? 0 : CONFIG.RATE_LIMIT_SECONDS
       if (rate && last && last.at > Date.now() - rate * 1000) {
         return { ok: false, reason: 'cooldown', secondsLeft: Math.ceil((last.at + rate * 1000 - Date.now()) / 1000) }
       }
       const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
-      const delay = req.object === 'reel' ? 0 : Math.round(lo + Math.random() * (hi - lo))
+      const delay = req.object === 'ad' ? 0 : Math.round(lo + Math.random() * (hi - lo))
       const id = (last?.id ?? 0) + 1
       db.generations.push({ id, at: Date.now(), object: req.object, source: 'pending' })
       db.generations = db.generations.slice(-500)
@@ -385,10 +286,23 @@ export function createLocalBackend(): Backend {
               source: 'mock',
               at: Date.now(),
             }
-          } else if (req.object === 'reel' && reelParams) {
-            const library = await loadReels()
-            const reelProfile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
-            result = produceReel(reelParams, library, db.altered.reel, reelProfile)
+          } else if (req.object === 'ad') {
+            const p = req.params as { brandId?: string; dials?: [number, number, number] }
+            const dials = p.dials ?? [50, 50, 50]
+            const profile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
+            const brand = PARODY_BRANDS.find((b) => b.id === p.brandId) ?? nearestBrand(dials, profile).brand
+            const hit = nearestBrand(dials, profile)
+            result = {
+              brandId: brand.id,
+              brandName: brand.name,
+              dials,
+              imageUrl: null,
+              overlay: adOverlay(brand, dials),
+              legitimacy: hit.legitimacy,
+              matchedProfile: hit.matchedProfile,
+              source: 'mock',
+              at: Date.now(),
+            } satisfies AdResult
           }
         } catch (e) {
           console.error(e)
@@ -459,10 +373,13 @@ export function createLocalBackend(): Backend {
       localStorage.setItem(REEL_KEY, JSON.stringify(clip))
       fire()
     },
-    reportGame(_state: GameWire) {
-      // Local tabs already received the wire via BroadcastChannel in pushGame.
-      // Re-applying a delayed snapshot here wiped START off the phone.
+    reportChat(state) {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(state))
       fire()
+    },
+    async chat(req) {
+      const next = scriptedNext(req.history ?? [], req.profile)
+      return { ok: true, bot: next.bot, chips: next.chips, topic: next.topic, source: 'scripted' }
     },
   }
 }

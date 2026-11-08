@@ -28,19 +28,18 @@ function Reel() {
   )
 }
 
-function Game() {
+function Ad() {
   return (
     <svg viewBox="0 0 128 128">
       <defs>
-        <linearGradient id="game-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6ad08a" /><stop offset="1" stopColor="#1a6a38" /></linearGradient>
-        <Gloss id="game-g" />
+        <linearGradient id="ad-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f2c14e" /><stop offset="1" stopColor="#b36b12" /></linearGradient>
+        <Gloss id="ad-g" />
       </defs>
-      <rect x="14" y="40" width="100" height="56" rx="18" fill="url(#game-b)" stroke="#0d3d1e" strokeWidth="3" />
-      <rect x="28" y="54" width="28" height="28" rx="4" fill="#0d3d1e" />
-      <rect x="36" y="46" width="12" height="44" rx="3" fill="#0d3d1e" />
-      <circle cx="86" cy="62" r="8" fill="#d24a3a" />
-      <circle cx="100" cy="74" r="8" fill="#3a6ad2" />
-      <rect x="14" y="40" width="100" height="24" rx="18" fill="url(#game-g)" />
+      <rect x="18" y="22" width="92" height="84" rx="8" fill="url(#ad-b)" stroke="#6a3a08" strokeWidth="3" />
+      <rect x="28" y="34" width="72" height="40" rx="4" fill="#1b1408" />
+      <rect x="34" y="82" width="44" height="8" rx="2" fill="#1b1408" />
+      <rect x="34" y="94" width="28" height="6" rx="2" fill="#6a3a08" />
+      <rect x="18" y="22" width="92" height="28" rx="8" fill="url(#ad-g)" />
     </svg>
   )
 }
@@ -64,24 +63,19 @@ function Article() {
 }
 
 
-function Song() {
+function Chat() {
   return (
     <svg viewBox="0 0 128 128">
       <defs>
-        <linearGradient id="song-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#b06ae8" /><stop offset="1" stopColor="#5a1a9a" /></linearGradient>
-        <Gloss id="song-g" />
+        <linearGradient id="chat-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6ad0e8" /><stop offset="1" stopColor="#1a4a9a" /></linearGradient>
+        <Gloss id="chat-g" />
       </defs>
-      <path d="M86 40 L108 8" stroke="#555" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="108" cy="8" r="4" fill="#ff2ea0" />
-      <rect x="10" y="38" width="108" height="76" rx="14" fill="url(#song-b)" stroke="#3a0f66" strokeWidth="3" />
-      <circle cx="44" cy="76" r="24" fill="#2a0b4a" />
-      {Array.from({ length: 25 }, (_, i) => (
-        <circle key={i} cx={30 + (i % 5) * 7} cy={62 + Math.floor(i / 5) * 7} r="2.2" fill="#c9a6ff" opacity="0.8" />
-      ))}
-      <rect x="76" y="52" width="32" height="14" rx="3" fill="#0d0d0d" />
-      <rect x="90" y="54" width="2" height="10" fill="#ff5a5a" />
-      <circle cx="84" cy="90" r="9" fill="#ddd" stroke="#333" strokeWidth="2" /><circle cx="104" cy="90" r="9" fill="#ddd" stroke="#333" strokeWidth="2" />
-      <rect x="10" y="38" width="108" height="34" rx="14" fill="url(#song-g)" />
+      <rect x="16" y="22" width="96" height="70" rx="16" fill="url(#chat-b)" stroke="#0d2a66" strokeWidth="3" />
+      <rect x="28" y="38" width="52" height="8" rx="2" fill="#d7f4ff" />
+      <rect x="28" y="52" width="72" height="8" rx="2" fill="#d7f4ff" opacity="0.75" />
+      <rect x="28" y="66" width="40" height="8" rx="2" fill="#d7f4ff" opacity="0.5" />
+      <path d="M40 92 L28 114 L58 92 Z" fill="#1a4a9a" />
+      <rect x="16" y="22" width="96" height="28" rx="16" fill="url(#chat-g)" />
     </svg>
   )
 }
@@ -90,7 +84,7 @@ export function ObjectIcon({ id }: { id: ObjectId }) {
   switch (id) {
     case 'reel': return <Reel />
     case 'article': return <Article />
-    case 'song': return <Song />
-    case 'game': return <Game />
+    case 'ad': return <Ad />
+    case 'chat': return <Chat />
   }
 }

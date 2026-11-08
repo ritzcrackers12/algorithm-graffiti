@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { CONFIG } from '../shared/config.ts'
 import type { Backend } from './backend.ts'
-import { emitGameWire, type GameWire } from './gameSync.ts'
+import { applyRemoteChat, type ChatWire } from './chatSync.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 import type { Snapshot } from '../shared/types.ts'
 
@@ -12,7 +12,6 @@ export function createSupabaseBackend(url: string, key: string): Backend {
   const listeners = new Set<() => void>()
   const fire = () => listeners.forEach((cb) => cb())
 
-  // One channel for the whole app (never created inside React effects, so StrictMode can't double it).
   const channel = sb.channel(TOPIC, { config: { broadcast: { self: false } } })
   channel.on('broadcast', { event: 'state' }, fire)
   channel.on('broadcast', { event: 'reel' }, ({ payload }) => {
@@ -21,8 +20,8 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     }
     fire()
   })
-  channel.on('broadcast', { event: 'game' }, ({ payload }) => {
-    if (payload && typeof payload === 'object') emitGameWire(payload as GameWire)
+  channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
+    if (payload && typeof payload === 'object') applyRemoteChat(payload as ChatWire)
     fire()
   })
   channel.subscribe((status) => {
@@ -71,10 +70,13 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       emitReelClip(clip)
       void channel.send({ type: 'broadcast', event: 'reel', payload: clip })
     },
-    reportGame(state) {
-      // Local apply already happened in pushGame. Sending again would let a
-      // delayed empty-controls snapshot wipe START on the other device.
-      void channel.send({ type: 'broadcast', event: 'game', payload: state })
+    reportChat(state) {
+      void channel.send({ type: 'broadcast', event: 'chat', payload: state })
+    },
+    async chat(req) {
+      const { data, error } = await sb.functions.invoke('chat', { body: req })
+      if (error) return { ok: false }
+      return data
     },
   }
 }

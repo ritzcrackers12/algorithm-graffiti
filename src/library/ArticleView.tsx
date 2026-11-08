@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { SPONSORED_MARK } from '../shared/ads.ts'
-import { CONNOTATION_LABELS, EDUCATION_LABELS, INCOME_LABELS, LEAN_LABELS, SENSATION_LABELS } from '../shared/article.ts'
-import { resolveLocation } from '../shared/locations.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult, View } from '../shared/types.ts'
 import { loadArticle, loadArticleIndex } from '../lib/content.ts'
 import ViewTabs from './ViewTabs.tsx'
-import { WhyButton } from './WhyAd.tsx'
 
 const PHOTO_CAP: Record<string, string> = {
   'maga-coalition': 'Election night. A MAGA hat rests on a suit jacket as supporters huddle after the returns.',
@@ -26,7 +23,7 @@ function takeDek(body: string): { dek: string; rest: string } {
   return { dek: m[1].trim(), rest: (m[2] ?? '').trim() }
 }
 
-function renderBody(body: string, result?: ArticleResult, profile?: VisitorProfile | null) {
+function renderBody(body: string) {
   const paras = body.split(/\n\s*\n/)
   return paras.map((p, i) => {
     const t = p.trim()
@@ -38,7 +35,6 @@ function renderBody(body: string, result?: ArticleResult, profile?: VisitorProfi
         <div key={i} className="sponsored-block">
           <div className="sponsored-kicker">
             Sponsored content
-            {result?.sponsored && <WhyButton place={result.sponsored} profile={profile} />}
           </div>
           <p>{t.slice(SPONSORED_MARK.length).replace(/\*\*/g, '')}</p>
         </div>
@@ -60,7 +56,7 @@ function todayLine() {
 }
 
 export default function ArticleView({
-  view, result, selectedId, profile,
+  view, result, selectedId,
 }: { view: View; result?: ArticleResult; selectedId?: string | null; profile?: VisitorProfile | null }) {
   const [firstId, setFirstId] = useState<string | null>(null)
   const [original, setOriginal] = useState<{ title: string; body: string } | null>(null)
@@ -86,8 +82,6 @@ export default function ArticleView({
   }, [view, result?.at])
 
   const { dek, rest } = takeDek(body)
-  const p = result?.params
-
   return (
     <>
       <div className="xp-toolbar">
@@ -118,19 +112,6 @@ export default function ArticleView({
           </div>
           <article className="bsj-article">
             <div className="bsj-kicker">{(articleId && KICKER[articleId]) || 'U.S. NEWS'}</div>
-            {altered && p && (
-              <div className="doc-profile">
-                APPLY: LEAN {LEAN_LABELS[p.lean + 2]} · READER {EDUCATION_LABELS[p.education]} · CONNOTATION{' '}
-                {CONNOTATION_LABELS[p.connotation + 1]} · SENSATIONALISM {SENSATION_LABELS[p.sensationalism]}
-                {p.income !== null && p.income !== undefined ? ` · INCOME ${INCOME_LABELS[p.income]}` : ''}
-                {(() => {
-                  const loc = resolveLocation(p.location)
-                  if (loc.kind === 'state') return ` · LOCATION ${loc.profile.name.toUpperCase()}`
-                  if (loc.kind === 'country') return ` · LOCATION ${loc.name.toUpperCase()}`
-                  return ''
-                })()}
-              </div>
-            )}
             <h1>{title}</h1>
             {dek ? <p className="bsj-dek">{dek}</p> : null}
             {articleId && (
@@ -148,7 +129,7 @@ export default function ArticleView({
                 <figcaption>{PHOTO_CAP[articleId] ?? 'Lead photograph.'}</figcaption>
               </figure>
             )}
-            {rest ? renderBody(rest, altered ? result : undefined, profile) : null}
+            {rest ? renderBody(rest) : null}
           </article>
         </div>
       </div>

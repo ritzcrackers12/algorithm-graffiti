@@ -1,7 +1,9 @@
 // Builds every AI prompt from fixed templates. The phone only sends an object id and control values.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../_shared/ads.ts'
+import { adOverlay, fluxPrompt, nearestBrand } from '../_shared/adTuner.ts'
 import { CONFIG } from '../_shared/config.ts'
+import { PARODY_BRANDS } from '../_shared/parodyBrands.ts'
 import type { ArticleParams, ReelParams } from '../_shared/types.ts'
 import {
   AFFINITY_KEY, addRating, attachPrefetch, emptyReelResult, logRound, parseAffinity,
@@ -217,6 +219,61 @@ async function produceReel(params: ReelParams, useAi: boolean, profile?: Visitor
   }
 }
 
+function asImageUrl(output: unknown): string | null {
+  if (typeof output === 'string' && /^https?:\/\//.test(output)) return output
+  if (Array.isArray(output)) {
+    for (const x of output) {
+      const u = asImageUrl(x)
+      if (u) return u
+    }
+  }
+  if (output && typeof output === 'object') {
+    const o = output as Record<string, unknown>
+    if (typeof o.url === 'string') return o.url
+    if (typeof o.image === 'string') return o.image
+  }
+  return null
+}
+
+async function produceAd(
+  brandId: string,
+  dials: [number, number, number],
+  profile: VisitorProfile,
+  useAi: boolean,
+) {
+  const hit = nearestBrand(dials, profile)
+  const brand = PARODY_BRANDS.find((b) => b.id === brandId) ?? hit.brand
+  const overlay = adOverlay(brand, dials)
+  const base = {
+    brandId: brand.id,
+    brandName: brand.name,
+    dials,
+    overlay,
+    legitimacy: hit.legitimacy,
+    matchedProfile: hit.matchedProfile,
+    at: Date.now(),
+  }
+  if (!useAi) return { ...base, imageUrl: null as string | null, source: 'mock' as const }
+  const pred = await predict({
+    job: 'image',
+    input: {
+      prompt: fluxPrompt(brand, dials),
+      go_fast: true,
+      megapixels: '1',
+      num_outputs: 1,
+      aspect_ratio: '1:1',
+      output_format: 'webp',
+      num_inference_steps: 4,
+    },
+  })
+  const imageUrl = pred.ok ? asImageUrl(pred.output) : null
+  return {
+    ...base,
+    imageUrl,
+    source: imageUrl ? (pred.source === 'cache' ? 'ai' : 'ai') : 'fallback' as const,
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ ok: false, reason: 'invalid' }, 405)
@@ -228,11 +285,11 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: 'invalid' })
   }
   const session = typeof body.session === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(body.session) ? body.session : null
-  const object = body.object === 'article' || body.object === 'reel' ? body.object : null
+  const object = body.object === 'article' || body.object === 'ad' ? body.object : null
   if (!session || !object) return json({ ok: false, reason: 'invalid' })
 
   let articleParams = null as ReturnType<typeof validateArticleParams>
-  let reelParams = null as ReelParams | null
+  let adParams = null as { brandId: string; dials: [number, number, number] } | null
   if (object === 'article') {
     articleParams = validateArticleParams(body.params)
     if (!articleParams) {
@@ -243,12 +300,10 @@ Deno.serve(async (req) => {
     }
   } else {
     const p = body.params && typeof body.params === 'object' ? body.params as Record<string, unknown> : {}
-    if (p.action !== 'start' && p.action !== 'word' && p.action !== 'rate') return json({ ok: false, reason: 'invalid' })
-    reelParams = {
-      action: p.action === 'rate' ? 'rate' : 'start',
-      seed: typeof p.seed === 'number' ? p.seed : Date.now(),
-      rating: p.rating === 'HIGH' || p.rating === 'MEDIUM' || p.rating === 'LOW' ? p.rating : undefined,
-      hesitationMs: typeof p.hesitationMs === 'number' ? p.hesitationMs : 0,
+    const dials = Array.isArray(p.dials) ? p.dials.map((n) => Number(n)) : [50, 50, 50]
+    adParams = {
+      brandId: typeof p.brandId === 'string' ? p.brandId : '',
+      dials: [dials[0] ?? 50, dials[1] ?? 50, dials[2] ?? 50],
     }
   }
   const profile = articleParams
@@ -256,11 +311,11 @@ Deno.serve(async (req) => {
     : inferProfile({ ...emptyProfile(), ...(body.profile && typeof body.profile === 'object' ? body.profile as VisitorProfile : {}) })
 
   const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
-  const mockDelay = object === 'reel' ? 0 : Math.round(lo + Math.random() * (hi - lo))
-  const etaAi = object === 'reel' ? 3 : (CONFIG.EXPECTED_SECONDS[object] ?? 12)
+  const mockDelay = object === 'ad' ? 0 : Math.round(lo + Math.random() * (hi - lo))
+  const etaAi = object === 'ad' ? 8 : (CONFIG.EXPECTED_SECONDS[object] ?? 12)
   const { data: begin, error } = await db.rpc('ag_begin_generation', {
     p_session: session, p_object: object, p_eta_ai: etaAi, p_eta_mock: mockDelay,
-    p_rate: object === 'reel' ? 0 : CONFIG.RATE_LIMIT_SECONDS, p_cap: CONFIG.DAILY_GENERATION_CAP, p_tz: CONFIG.TIME_ZONE,
+    p_rate: object === 'ad' ? 0 : CONFIG.RATE_LIMIT_SECONDS, p_cap: CONFIG.DAILY_GENERATION_CAP, p_tz: CONFIG.TIME_ZONE,
   })
   if (error) {
     console.error(error)
@@ -281,10 +336,10 @@ Deno.serve(async (req) => {
         source = out.ai ? 'ai' : out.failed ? 'fallback' : begin.capReached && !begin.mockMode ? 'cap' : 'mock'
         ;(result as { source: string }).source = source
         if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
-      } else if (object === 'reel' && reelParams) {
-        const out = await produceReel(reelParams, useAi, profile)
-        result = out.result
-        source = out.result.source
+      } else if (object === 'ad' && adParams) {
+        const out = await produceAd(adParams.brandId, adParams.dials, profile, useAi)
+        result = out
+        source = out.source
         if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
       }
     } catch (e) {

@@ -1,139 +1,153 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
-import { sendCommand, sendGenerate, sessionId } from '../lib/live.ts'
-import { addEvent } from '../shared/profile.ts'
-import { getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
-import type { ReelRating } from '../shared/reel.ts'
+import { sendCommand } from '../lib/live.ts'
+import {
+  REEL_BUCKETS, bucketMeta, nearestSlot, twistDistance, type ReelBucket,
+} from '../shared/reelLibrary.ts'
+import type { ReelSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
+import { PercentDial } from './controls.tsx'
 
-const CHOICES: { rating: ReelRating; label: string }[] = [
-  { rating: 'HIGH', label: 'LIKE' },
-  { rating: 'MEDIUM', label: 'NEUTRAL' },
-  { rating: 'LOW', label: 'DISLIKE' },
-]
+function persistReel(next: ReelSession) {
+  const p = getLocalProfile()
+  const session = { ...p.session, reel: next }
+  setLocalProfile({ ...p, session })
+  void sendCommand('signal', JSON.stringify({ session }))
+}
 
-export default function ReelControls({ snap, locked, say }: { snap: Snapshot; locked: boolean; say: (t: string) => void }) {
-  const reel = snap.altered.reel
-  const phase = reel?.phase ?? 'idle'
-  const busy = !!snap.display.busy
-  const [ended, setEnded] = useState(false)
-  const endedAt = useRef(0)
-  const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
+function playSlot(id: string) {
+  void getBackend().then((b) => b.reportReel({ id, ended: false, duration: 0 }))
+}
+
+export default function ReelControls({ snap, locked }: { snap: Snapshot; locked: boolean; say?: (t: string) => void }) {
+  const started = useRef(Date.now())
+  const lastDials = useRef<[number, number, number]>([50, 50, 50])
+  const reel = getLocalProfile().session.reel
+  const [bucket, setBucket] = useState<ReelBucket | null>((reel.bucket as ReelBucket | null) ?? null)
+  const [dials, setDials] = useState<[number, number, number]>(reel.dials ?? [50, 50, 50])
+  const [reacted, setReacted] = useState(reel.react)
+  const openedAt = snap.display.openedAt
 
   useEffect(() => {
-    if (locked || phase === 'done' || reel?.currentId || busy) return
-    let cancelled = false
-    const kick = () => {
-      if (cancelled) return
-      void sendGenerate({
-        session: sessionId(),
-        object: 'reel',
-        params: { action: 'start', seed: snap.display.openedAt || Date.now() },
-        profile: getLocalProfile(),
-      }).then((res) => {
-        if (cancelled || res.ok || res.reason === 'busy') return
-        window.setTimeout(kick, 900)
-      })
+    started.current = Date.now()
+    const p = getLocalProfile().session.reel
+    setBucket((p.bucket as ReelBucket | null) ?? null)
+    setDials(p.dials ?? [50, 50, 50])
+    setReacted(p.react)
+    lastDials.current = p.dials ?? [50, 50, 50]
+  }, [openedAt])
+
+  const serve = (nextBucket: ReelBucket, nextDials: [number, number, number], extra: Partial<ReelSession> = {}) => {
+    const { slot, distance } = nearestSlot(nextBucket, nextDials)
+    const prev = getLocalProfile().session.reel
+    const twist = prev.currentId ? prev.twist + twistDistance(lastDials.current, nextDials) : Math.round(distance)
+    lastDials.current = nextDials
+    const tried = prev.tried.includes(nextBucket) ? prev.tried : [...prev.tried, nextBucket]
+    const skipped = REEL_BUCKETS.map((b) => b.id).filter((id) => !tried.includes(id))
+    const next: ReelSession = {
+      ...prev,
+      ...extra,
+      tried,
+      skipped,
+      bucket: nextBucket,
+      dials: nextDials,
+      currentId: slot.clipId,
+      currentSlot: slot.slotId,
+      legitimacy: slot.legitimacy,
+      twist,
+      dwellMs: Date.now() - started.current,
+      phase: 'tune',
     }
-    kick()
-    return () => { cancelled = true }
-  }, [locked, phase, reel?.currentId, busy, snap.display.openedAt])
-
-  useEffect(() => {
-    setEnded(false)
-    endedAt.current = 0
-  }, [reel?.currentId])
-
-  useEffect(() => {
-    if (!reel?.currentId) return
-    if (clip?.id === reel.currentId && clip.ended) {
-      if (!ended) {
-        endedAt.current = Date.now()
-        setEnded(true)
-      }
-      return
-    }
-    const ms = clip?.id === reel.currentId && clip.duration > 0 ? (clip.duration + 0.8) * 1000 : 0
-    if (!ms) return
-    const t = window.setTimeout(() => {
-      endedAt.current = Date.now()
-      setEnded(true)
-    }, ms)
-    return () => window.clearTimeout(t)
-  }, [reel?.currentId, clip, ended])
-
-  const skip = () => {
-    if (locked || !reel?.currentId || ended || phase === 'done') return
-    haptic('press')
-    endedAt.current = Date.now()
-    setEnded(true)
-    void getBackend().then((b) => b.reportReel({ id: reel.currentId!, ended: true, duration: clip?.duration ?? 0 }))
+    persistReel(next)
+    playSlot(slot.clipId)
   }
 
-  const sendRate = async (rating: ReelRating) => {
-    if (locked || !ended || phase === 'done' || !reel?.currentId) return
+  const pickBucket = (id: ReelBucket) => {
+    if (locked) return
     haptic('press')
-    const hesitationMs = endedAt.current ? Date.now() - endedAt.current : 0
-    const cur = reel.rounds.find((r) => r.reelId === reel.currentId)
-    let profile = getLocalProfile()
-    if (cur) {
-      profile = addEvent(profile, {
-        source: 'reel',
-        key: 'tags',
-        value: [rating, cur.audience, cur.topic, cur.subtopic, cur.keywords].filter(Boolean).join(' '),
-        at: Date.now(),
-      })
-      setLocalProfile(profile)
-      void sendCommand('signal', JSON.stringify({ events: profile.events.slice(-16) }))
-    }
-    const res = await sendGenerate({
-      session: sessionId(), object: 'reel',
-      params: { action: 'rate', rating, hesitationMs },
-      profile,
+    setBucket(id)
+    setReacted(false)
+    serve(id, dials, { react: false, send: false })
+  }
+
+  const twist = (i: number, v: number) => {
+    if (locked || !bucket) return
+    const next: [number, number, number] = [...dials]
+    next[i] = v
+    setDials(next)
+    serve(bucket, next)
+  }
+
+  const react = () => {
+    if (locked || !bucket) return
+    haptic('press')
+    setReacted(true)
+    persistReel({ ...getLocalProfile().session.reel, react: true, dwellMs: Date.now() - started.current })
+  }
+
+  const send = () => {
+    if (locked || !bucket) return
+    haptic('success')
+    persistReel({
+      ...getLocalProfile().session.reel,
+      send: true,
+      dwellMs: Date.now() - started.current,
+      phase: 'done',
     })
-    if (res.ok) say('PREFERENCE SAVED.')
-    else {
-      haptic('error')
-      say('TRANSMISSION FAILED. RETRY.')
-    }
   }
 
-  if (phase === 'done') {
-    const n = reel?.rounds.filter((r) => r.rating).length ?? 0
+  if (!bucket) {
     return (
-      <div className="ctl-center">
-        <div className="ctl-display">
-          SESSION RECORDED.
-          <br />
-          <em>{n} PREFERENCES SAVED.</em>
+      <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', paddingTop: 8 }}>
+        <div className="ctl-label">PICK A BUCKET.</div>
+        <div className="bucket-grid">
+          {REEL_BUCKETS.map((b) => (
+            <PixelButton key={b.id} type="button" disabled={locked} onClick={() => pickBucket(b.id)}>
+              {b.label}
+            </PixelButton>
+          ))}
         </div>
       </div>
     )
   }
 
-  if (!ended || !reel?.currentId) {
-    return (
-      <div className="ctl-center">
-        <div className="ctl-display">WATCH THE VIDEO ON THE IPAD SCREEN.</div>
-        <PixelButton type="button" block disabled={locked || !reel?.currentId} onClick={skip}>
-          SKIP
-        </PixelButton>
-      </div>
-    )
-  }
+  const poles = bucketMeta(bucket).poles
+  const sent = getLocalProfile().session.reel.send
 
   return (
-    <div className="ctl-center">
-      <div className="ctl-label">RATE THIS ITEM.</div>
+    <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 4 }}>
+      <div className="ctl-label">{bucket.toUpperCase()}</div>
+      {poles.map((pole, i) => (
+        <PercentDial
+          key={pole[0]}
+          left={pole[0]}
+          right={pole[1]}
+          value={dials[i]}
+          disabled={locked || sent}
+          onChange={(v) => twist(i, v)}
+        />
+      ))}
       <div className="reel-rates">
-        {CHOICES.map((c) => (
-          <PixelButton key={c.rating} block disabled={locked} onClick={() => void sendRate(c.rating)}>
-            {c.label}
-          </PixelButton>
-        ))}
+        <PixelButton type="button" disabled={locked || sent} selected={reacted} onClick={react}>
+          {reacted ? 'REACTED 😂' : 'REACT 😂'}
+        </PixelButton>
+        <PixelButton type="button" disabled={locked || sent} onClick={send}>
+          {sent ? 'SENT' : 'SEND'}
+        </PixelButton>
+        <PixelButton
+          type="button"
+          disabled={locked || sent}
+          onClick={() => {
+            haptic('press')
+            setBucket(null)
+            persistReel({ ...getLocalProfile().session.reel, bucket: null, phase: 'pick' })
+          }}
+        >
+          OTHER BUCKET
+        </PixelButton>
       </div>
     </div>
   )

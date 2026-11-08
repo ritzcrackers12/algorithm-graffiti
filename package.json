@@ -16,7 +16,7 @@
     "upload:reels": "python3 scripts/upload-reels.py",
     "import:reels": "python3 scripts/import-reels.py",
     "deploy": "git push",
-    "deploy:functions": "node scripts/sync-shared.mjs && supabase functions deploy generate && supabase functions deploy admin && supabase functions deploy reels",
+    "deploy:functions": "node scripts/sync-shared.mjs && supabase functions deploy generate && supabase functions deploy admin && supabase functions deploy reels && supabase functions deploy chat",
     "deploy:db": "supabase db push"
   },
   "dependencies": {

@@ -136,7 +136,14 @@ export default function Admin() {
                         : 'UNKNOWN'
             }
           />
-          <Row k="REPLICATE MODE" v={s ? (s.replicateMode ?? 'proxy').toUpperCase() : '…'} />
+          <Row k="REPLICATE MODE" v={s ? (s.replicateMode ?? CONFIG.REPLICATE_MODE).toUpperCase() : '…'} />
+          <Row
+            k="EXHIBIT TODO"
+            v={s?.replicateMode === 'direct'
+              ? 'DIRECT. KEEP REPLICATE_API_KEY AS A SUPABASE SECRET.'
+              : 'BEFORE NOV 16: SWITCH TO DIRECT + SET REPLICATE_API_KEY. PROXY TOKEN EXPIRES ~HOURLY.'}
+          />
+          <Row k="CHAT LLM" v="CHAT_PROVIDER / CHAT_API_KEY / CHAT_MODEL SECRETS ON THE CHAT FUNCTION." />
           <Row
             k="PROXY TOKEN"
             v={s?.proxyTokenLast4

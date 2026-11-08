@@ -5,18 +5,24 @@ import {
 import { getBackend } from '../lib/backend.ts'
 import { loadReelLibrary, reelUrls } from '../lib/content.ts'
 import { getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
-import { emptyAffinity, pickStart, type ReelResult } from '../shared/reel.ts'
+import type { VisitorProfile } from '../shared/profile.ts'
+import type { ReelResult } from '../shared/reel.ts'
 
-export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult; openedAt?: number }) {
-  const phase = result?.phase ?? 'idle'
-  const [bootId, setBootId] = useState<string | null>(null)
-  const id = phase === 'done' ? null : (result?.currentId || bootId)
+export default function ReelView({
+  result, profile,
+}: {
+  result?: ReelResult
+  openedAt?: number
+  profile?: VisitorProfile | null
+}) {
+  const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
+  const id = clip?.id || profile?.session.reel.currentId || result?.currentId || null
   const urls = id ? reelUrls(id) : []
   const [srcIndex, setSrcIndex] = useState(0)
   const src = urls[srcIndex] ?? ''
   const holeRef = useRef<HTMLDivElement>(null)
-  const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
   const skipped = !!(id && clip?.id === id && clip.ended)
+  const waiting = !id
 
   useEffect(() => {
     setSrcIndex(0)
@@ -40,11 +46,8 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
     }
     void loadReelLibrary().then((rows) => {
       if (gone) return
-      for (const row of rows) {
-        if (row.sponsored) buffer(row.id)
-      }
+      for (const row of rows) buffer(row.id)
     })
-    if (result?.prefetchId && result.prefetchId !== id) buffer(result.prefetchId)
     return () => {
       gone = true
       for (const v of nodes) {
@@ -52,22 +55,11 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
         v.load()
       }
     }
-  }, [result?.prefetchId, id])
-
-  useEffect(() => {
-    if (result?.currentId || phase === 'done') return
-    let go = true
-    void loadReelLibrary().then((rows) => {
-      if (!go || !rows.length) return
-      const pick = pickStart(rows, emptyAffinity(), openedAt || 1)
-      if (pick) setBootId(pick.id)
-    })
-    return () => { go = false }
-  }, [result?.currentId, phase, openedAt])
+  }, [])
 
   useEffect(() => {
     const hole = holeRef.current
-    if (!hole || phase === 'done') {
+    if (!hole || waiting) {
       stopKioskReel()
       return
     }
@@ -103,7 +95,7 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
       v.removeEventListener('timeupdate', onTime)
       v.removeEventListener('error', onErr)
     }
-  }, [src, id, skipped, phase, urls.length])
+  }, [src, id, skipped, waiting, urls.length])
 
   useEffect(() => () => stopKioskReel(), [])
 
@@ -113,20 +105,15 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
         <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>reel.mp4</span>
       </div>
       <div className="reel-stage" ref={holeRef}>
-        {phase === 'done' ? (
-          <div className="reel-session machine-line">
-            <div>SESSION RECORDED. {result?.rounds.filter((r) => r.rating).length ?? 0} PREFERENCES SAVED.</div>
-            <div style={{ marginTop: 18 }}>{result?.sessionLine || 'NO SESSION LINE.'}</div>
+        {waiting ? (
+          <div className="machine-line" style={{ color: '#c6ff3d', textAlign: 'center' }}>
+            SELECT A BUCKET ON THE PHONE.
           </div>
-        ) : !src ? (
-          <div className="machine-line" style={{ color: '#c6ff3d', textAlign: 'center' }}>LOADING.</div>
         ) : null}
       </div>
       <div className="xp-statusbar">
-        <span style={{ flex: 1 }}>
-          {phase === 'done' ? 'SESSION RECORDED.' : src ? `ITEM ${id}` : 'STANDBY.'}
-        </span>
-        <span style={{ width: 160 }}>{result?.source ? result.source.toUpperCase() : ''}</span>
+        <span style={{ flex: 1 }}>{waiting ? 'STANDBY.' : src ? 'PLAYING.' : 'LOADING.'}</span>
+        <span style={{ width: 160 }}>{id ? `ITEM ${id}` : ''}</span>
       </div>
     </>
   )

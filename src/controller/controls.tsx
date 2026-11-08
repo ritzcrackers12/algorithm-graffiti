@@ -148,6 +148,28 @@ export function Segmented<T extends string | number>({
   )
 }
 
+/** 0–100 fader with named poles. 11 detents. */
+export function PercentDial({
+  left, right, value, onChange, disabled,
+}: {
+  left: string
+  right: string
+  value: number
+  onChange: (n: number) => void
+  disabled?: boolean
+}) {
+  return (
+    <DetentSlider
+      steps={11}
+      value={Math.round(value / 10)}
+      onChange={(i) => onChange(i * 10)}
+      left={left}
+      right={right}
+      disabled={disabled}
+    />
+  )
+}
+
 export function Section({
   label, value, children, style, stack,
 }: { label: string; value?: string; children: ReactNode; style?: CSSProperties; stack?: boolean }) {

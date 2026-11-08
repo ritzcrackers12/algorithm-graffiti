@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react'
-import { preloadAdCatalog, preloadPlacement } from '../lib/adReady.ts'
 import { AssetImg } from '../components/AssetImg.tsx'
 import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
 import type { Live } from '../lib/live.ts'
 import { OBJECTS, type ObjectId } from '../shared/config.ts'
-import { gameIconLocked, objectsTouched } from '../shared/games.ts'
+import { objectLocked, objectsTouched, reportReady } from '../shared/gating.ts'
 import { hydrateProfile } from '../shared/profile.ts'
-import type { AdPlacement } from '../shared/ads.ts'
-import AdPopup from './AdPopup.tsx'
 import ArticleView from './ArticleView.tsx'
-import GameView from './GameView.tsx'
+import AdView from './AdView.tsx'
+import ChatView from './ChatView.tsx'
 import PlaceholderView from './PlaceholderView.tsx'
 import ReelView from './ReelView.tsx'
+import ReportView from './ReportView.tsx'
 import ProgressDialog from './ProgressDialog.tsx'
 import QrNote from './QrNote.tsx'
 import Taskbar from './Taskbar.tsx'
@@ -29,17 +28,12 @@ export default function Desktop({ live }: { live: Live }) {
   const [clicking, setClicking] = useState<ObjectId | null>(null)
   const [shown, setShown] = useState<ObjectId | null>(null)
   const [closing, setClosing] = useState(false)
-  const [adClosed, setAdClosed] = useState(0)
-
-  useEffect(() => {
-    preloadAdCatalog()
-  }, [])
 
   useEffect(() => {
     if (open) {
       setClosing(false)
       setClicking(open)
-      const instant = open === 'game' || open === 'reel'
+      const instant = open === 'reel' || open === 'chat' || open === 'ad'
       if (instant) setShown(open)
       else setShown(null)
       const t = setTimeout(() => {
@@ -60,16 +54,18 @@ export default function Desktop({ live }: { live: Live }) {
   const obj = OBJECTS.find((o) => o.id === shown)
   const completed = snap?.display.completed ?? []
   const profile = hydrateProfile(snap?.profile)
-  const place = profile.lastAd && profile.lastAd.at > Math.max(adClosed, profile.adClosedAt ?? 0)
-    ? profile.lastAd as AdPlacement
-    : null
-  const touched = objectsTouched(snap)
-  const gameLock = gameIconLocked(touched, profile.game.seen)
+  const used = objectsTouched(snap)
+  const showReport = !open && reportReady(used)
 
-  useEffect(() => {
-    preloadPlacement(profile.pendingAd as AdPlacement | null)
-    preloadPlacement(profile.lastAd as AdPlacement | null)
-  }, [profile.pendingAd, profile.lastAd])
+  if (showReport) {
+    return (
+      <div className="desktop desktop-fallback">
+        <div className="wallpaper" style={{ backgroundImage: `url("${asset('wallpaper.jpg')}")` }} />
+        <ReportView profile={profile} article={snap?.altered.article} />
+        <Taskbar live={live} openId={null} />
+      </div>
+    )
+  }
 
   return (
     <div className="desktop desktop-fallback">
@@ -79,7 +75,7 @@ export default function Desktop({ live }: { live: Live }) {
         {OBJECTS.map((o) => {
           const altered = !!snap?.altered[o.id as keyof typeof snap.altered]
           const done = completed.includes(o.id)
-          const locked = o.id === 'game' ? !!gameLock : !o.ready
+          const locked = objectLocked(o.id, used) || !o.ready
           const cls = [
             'desk-icon',
             clicking === o.id && 'clicking',
@@ -117,7 +113,7 @@ export default function Desktop({ live }: { live: Live }) {
       {obj && (
         <XpWindow
           key={`${obj.id}-${openedAt}`}
-          className={`${closing ? 'closing' : obj.id === 'reel' || obj.id === 'game' ? '' : 'opening'}`}
+          className={`${closing ? 'closing' : obj.id === 'reel' || obj.id === 'chat' || obj.id === 'ad' ? '' : 'opening'}`}
           style={WINDOW_RECT}
           title={`${obj.file} - ${view === 'altered' ? 'ALTERED' : 'ORIGINAL'}`}
           icon={<ObjectIcon id={obj.id} />}
@@ -130,18 +126,19 @@ export default function Desktop({ live }: { live: Live }) {
               profile={profile}
             />
           ) : obj.id === 'reel' ? (
-            <ReelView result={snap?.altered.reel} openedAt={openedAt} />
-          ) : obj.id === 'game' ? (
-            <GameView live={live} />
+            <ReelView result={snap?.altered.reel} openedAt={openedAt} profile={profile} />
+          ) : obj.id === 'ad' ? (
+            <AdView result={snap?.altered.ad} profile={profile} />
+          ) : obj.id === 'chat' ? (
+            <ChatView profile={profile} />
           ) : (
             <PlaceholderView id={obj.id} />
           )}
         </XpWindow>
       )}
 
-      {snap?.display.busy && snap.display.busy.object !== 'reel' && <ProgressDialog busy={snap.display.busy} />}
-      {place && open !== 'reel' && (!open || snap?.display.busy) && (
-        <AdPopup place={place} profile={profile} onClose={() => setAdClosed(place.at)} />
+      {snap?.display.busy && snap.display.busy.object !== 'reel' && snap.display.busy.object !== 'chat' && snap.display.busy.object !== 'ad' && (
+        <ProgressDialog busy={snap.display.busy} />
       )}
       <Taskbar live={live} openId={shown} />
     </div>

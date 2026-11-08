@@ -3,17 +3,15 @@ import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
 import { getLive, rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
 import { startVersionCheck } from '../lib/versionCheck.ts'
-import { resetGameWire } from '../lib/gameSync.ts'
-import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
-import { makeAd } from '../shared/ads.ts'
-import { CONFIG, type ObjectId } from '../shared/config.ts'
-import { objectsTouched } from '../shared/games.ts'
-import { addEvent, hydrateProfile } from '../shared/profile.ts'
+import { resetChatWire } from '../lib/chatSync.ts'
+import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile } from '../lib/profileClient.ts'
+import type { ObjectId } from '../shared/config.ts'
+import { objectsTouched, reportReady } from '../shared/gating.ts'
 import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
-import AdPhoneControls from './AdPhoneControls.tsx'
 import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
-import GameControls from './GameControls.tsx'
+import AdControls from './AdControls.tsx'
+import ChatControls from './ChatControls.tsx'
 import ReelControls from './ReelControls.tsx'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
@@ -72,14 +70,6 @@ function QueueScreen({ position }: { position: number }) {
   )
 }
 
-function DoneAllButton({ onDone }: { onDone: () => void }) {
-  return (
-    <PixelButton className="done-all" onClick={onDone}>
-      END SESSION
-    </PixelButton>
-  )
-}
-
 const REASONS: Record<string, string> = {
   cooldown: 'COOLDOWN ACTIVE.',
   busy: 'PROCESS ALREADY RUNNING.',
@@ -95,7 +85,6 @@ export default function Controller() {
   const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
   const [choosingArticle, setChoosingArticle] = useState(false)
   const lastTouch = useRef(0)
-  const lastPopup = useRef(0)
 
   useEffect(() => {
     startLive('controller')
@@ -112,13 +101,8 @@ export default function Controller() {
   const open = active ? snap.display.open : null
   const storyId = active ? snap.display.articleId : null
   const busy = active ? snap.display.busy : null
-
-  const endVisit = useCallback(() => {
-    haptic('press')
-    resetLocalProfile()
-    resetGameWire()
-    void sendCommand('end')
-  }, [])
+  const used = objectsTouched(snap)
+  const showingReport = !!(active && !open && !choosingArticle && reportReady(used))
 
   const wasBusy = useRef(false)
   useEffect(() => {
@@ -138,95 +122,10 @@ export default function Controller() {
     if (!active) setChoosingArticle(false)
     if (live.ended) {
       resetLocalProfile()
-      resetGameWire()
+      resetChatWire()
     }
     wasActive.current = active
   }, [active, live.ended])
-
-  const usedCount = snap?.display.used?.length ?? 0
-  const popups = snap?.profile?.popups ?? 0
-  const pendingKey = useRef('')
-  const eventN = snap?.profile?.events?.length ?? 0
-  const roundsN = snap?.altered.reel?.rounds?.length ?? 0
-
-  useEffect(() => {
-    if (!active || !snap) return
-    const p = hydrateProfile(snap.profile)
-    if (p.popups >= CONFIG.AD_POPUP_MAX) return
-    const showing = p.lastAd && p.lastAd.at > (p.adClosedAt ?? 0)
-    const extra = showing && p.lastAd ? [p.lastAd.adId] : []
-    const key = `${p.adsShown.join(',')}|${eventN}|${roundsN}|${p.popups}|${p.article.income}|${p.article.lean}`
-    if (p.pendingAd && pendingKey.current === key && !extra.includes(p.pendingAd.adId)) return
-    const place = makeAd(p, snap.altered.reel?.rounds, extra)
-    if (!place) return
-    if (p.pendingAd?.adId === place.adId && p.pendingAd.headline === place.headline && pendingKey.current === key) return
-    pendingKey.current = key
-    setLocalProfile({ ...getLocalProfile(), pendingAd: place })
-    void sendCommand('signal', JSON.stringify({ pendingAd: place }))
-  }, [active, snap, eventN, roundsN, popups])
-
-  useEffect(() => {
-    if (!active || !snap) return
-    if (snap.display.open === 'reel' || snap.display.busy?.object === 'reel') return
-    const used = snap.display.used ?? []
-    if (used.length < 1) return
-    const p = hydrateProfile(snap.profile)
-    if (p.popups >= CONFIG.AD_POPUP_MAX) return
-    const now = Date.now()
-    if (p.lastPopupAt && now - p.lastPopupAt < CONFIG.AD_POPUP_GAP_SECONDS * 1000) return
-    if (now - lastPopup.current < 2000) return
-    const atHome = !snap.display.open && !choosingArticle
-    const loading = !!snap.display.busy
-    const first = p.popups === 0 && atHome
-    const later = p.popups >= 1 && (atHome || loading)
-    if (!first && !later) return
-    const place = p.pendingAd && !p.adsShown.includes(p.pendingAd.adId)
-      ? { ...p.pendingAd, at: now }
-      : makeAd(p, snap.altered.reel?.rounds)
-    if (!place) return
-    lastPopup.current = now
-    pendingKey.current = ''
-    setLocalProfile({
-      ...getLocalProfile(),
-      lastAd: place,
-      pendingAd: null,
-      popups: p.popups + 1,
-      lastPopupAt: now,
-      adsShown: [...p.adsShown, place.adId],
-    })
-    void sendCommand('signal', JSON.stringify({
-      lastAd: place,
-      pendingAd: null,
-      popups: p.popups + 1,
-      lastPopupAt: now,
-      adsShown: [...p.adsShown, place.adId],
-    }))
-  }, [active, snap, choosingArticle, usedCount, popups, busy?.id, open])
-
-  const liveAd = snap?.profile
-    ? (() => {
-      const p = hydrateProfile(snap.profile)
-      return p.lastAd && p.lastAd.at > (p.adClosedAt ?? 0) ? p.lastAd : null
-    })()
-    : null
-
-  const closeAd = () => {
-    haptic('press')
-    const p = getLocalProfile()
-    const next = { ...p, adClosedAt: Date.now() }
-    setLocalProfile(next)
-    void sendCommand('signal', JSON.stringify({ adClosedAt: next.adClosedAt }))
-  }
-
-  const likeAd = (liked: boolean) => {
-    haptic('press')
-    const p = getLocalProfile()
-    const id = liveAd?.adId ?? 'ad'
-    const ev = addEvent(p, { source: 'ad', key: 'product_like', value: `${id}:${liked ? 'yes' : 'no'}`, at: Date.now() })
-    const next = { ...ev, adClosedAt: Date.now() }
-    setLocalProfile(next)
-    void sendCommand('signal', JSON.stringify({ adClosedAt: next.adClosedAt, events: next.events.slice(-16) }))
-  }
 
   const markActivity = () => {
     if (!active) return
@@ -260,7 +159,7 @@ export default function Controller() {
           <em>CONTROL TRANSFERRED.</em>
         </div>
         <div className="ctl-label">INPUT RECORDED.</div>
-        <PixelButton block onClick={() => { haptic('press'); resetGameWire(); rejoinQueue() }}>
+        <PixelButton block onClick={() => { haptic('press'); resetChatWire(); rejoinQueue() }}>
           REJOIN QUEUE
         </PixelButton>
       </Centered>
@@ -269,21 +168,21 @@ export default function Controller() {
     content = <QueueScreen position={snap.position} />
   } else if (!active) {
     content = <Centered><div className="scanline" /><div className="ctl-label">REQUESTING ACCESS...</div></Centered>
-  } else if (liveAd && open !== 'reel' && open !== 'game') {
+  } else if (showingReport) {
     content = (
-      <AdPhoneControls
-        place={liveAd}
-        profile={hydrateProfile(snap.profile)}
-        locked={!!busy}
-        onClose={closeAd}
-        onLike={likeAd}
-      />
+      <Centered>
+        <div className="ctl-display">
+          THANK YOU FOR YOUR INPUTS.
+          <br />
+          <em>SESSION RECORDED.</em>
+        </div>
+        <div className="ctl-label">SEE THE REPORT ON THE IPAD.</div>
+      </Centered>
     )
   } else if (!open && !choosingArticle) {
     content = (
       <Picker
-        used={objectsTouched(snap)}
-        seen={hydrateProfile(snap.profile).game.seen}
+        used={used}
         onPick={(id) => {
           if (id === 'article') setChoosingArticle(true)
           else void sendCommand('open', id)
@@ -306,7 +205,7 @@ export default function Controller() {
   } else {
     const hasAltered = open === 'article'
       ? snap.altered.article?.params.articleId === storyId
-      : false
+      : open === 'ad' ? !!snap.altered.ad : false
     content = (
       <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
         {open === 'article' && (
@@ -327,16 +226,13 @@ export default function Controller() {
           {open === 'reel' && (
             <ReelControls snap={snap} locked={!!busy} say={say} />
           )}
-          {open === 'game' && (
-            <GameControls snap={snap} locked={!!busy} />
+          {open === 'ad' && (
+            <AdControls snap={snap} locked={!!busy} />
           )}
-          {open && open !== 'article' && open !== 'reel' && open !== 'game' && (
-            <div className="ctl-center">
-              <div className="ctl-display">{open.toUpperCase()}</div>
-              <div className="ctl-label">CONTROLS NOT INSTALLED.</div>
-            </div>
+          {open === 'chat' && (
+            <ChatControls snap={snap} locked={!!busy} />
           )}
-          {busy && open !== 'reel' && (
+          {busy && open !== 'reel' && open !== 'chat' && open !== 'ad' && (
             <div className="lock-shade">
               <div>
                 <div className="ctl-display">PROCESSING.<br />CONTROLS LOCKED.</div>
@@ -376,7 +272,6 @@ export default function Controller() {
             <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
           </div>
           <div className="ctl-timer" />
-          {active && <DoneAllButton onDone={endVisit} />}
         </div>
         {content}
       </div>

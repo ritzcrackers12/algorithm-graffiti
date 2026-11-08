@@ -1,4 +1,19 @@
+import type { ChatTurn } from '../shared/chatScript.ts'
+import type { VisitorProfile } from '../shared/profile.ts'
 import type { AdminAction, AdminExtra, AdminStatus, GenerateRequest, GenerateResponse, Snapshot } from '../shared/types.ts'
+
+export interface ChatAsk {
+  history: ChatTurn[]
+  profile?: VisitorProfile
+}
+
+export interface ChatReply {
+  ok: boolean
+  bot?: string
+  chips?: string[]
+  topic?: string
+  source?: string
+}
 
 export type Command = 'touch' | 'open' | 'home' | 'view' | 'end' | 'done' | 'story' | 'signal'
 
@@ -13,10 +28,11 @@ export interface Backend {
   onPoke(cb: () => void): () => void
   /** Tell other devices to refresh now. */
   poke(): void
-  /** iPad reports clip duration / end so the phone can show LIKE / NEUTRAL / DISLIKE. */
+  /** iPad reports clip duration / end so the phone can follow along. */
   reportReel(clip: { id: string; ended?: boolean; duration?: number }): void
-  /** iPad ⇄ phone game bridge (controls, taps, ads, summary). */
-  reportGame(state: import('./gameSync.ts').GameWire): void
+  /** Phone ⇄ iPad chatbot lines. */
+  reportChat(state: import('./chatSync.ts').ChatWire): void
+  chat(req: ChatAsk): Promise<ChatReply>
 }
 
 let instance: Backend | null = null
