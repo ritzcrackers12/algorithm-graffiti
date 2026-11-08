@@ -15,6 +15,7 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
   const wire = useSyncExternalStore(subscribeGameWire, getGameWire)
   const lastEvent = useRef(0)
   const closed = useRef(false)
+  const lastTap = useRef(0)
   const profile = getLocalProfile()
   const seen = profile.game.seen
   const recommended = profile.game.recommended ?? pickRecommendedGame(profile, snap.altered.reel, seen)
@@ -142,15 +143,6 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
     )
   }
 
-  if (!wire.controls.length) {
-    return (
-      <div className="ctl-center">
-        <div className="ctl-display">WATCH THE GAME ON THE IPAD SCREEN.</div>
-      </div>
-    )
-  }
-
-  const lastTap = useRef(0)
   const press = (id: string, disabled?: boolean) => {
     if (disabled || locked || wire.locked) return
     const now = Date.now()
@@ -160,11 +152,15 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
     pushGame({ inputSeq: getGameWire().inputSeq + 1, actionId: id })
   }
 
-  const many = wire.controls.length > 4
+  const buttons = wire.controls.length
+    ? wire.controls
+    : [{ id: 'start', label: 'START', primary: true }]
+  const many = buttons.length > 4
   return (
-    <div className="ctl-center">
+    <div className="ctl-center game-ctl">
+      {!many && <div className="ctl-display">WATCH THE GAME ON THE IPAD SCREEN.</div>}
       <div className={`game-pad ctl-allow-scroll ${many ? 'wide' : ''}`}>
-        {wire.controls.map((b) => (
+        {buttons.map((b) => (
           <PixelButton
             key={b.id}
             type="button"
@@ -172,7 +168,6 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
             disabled={locked || wire.locked || !!b.disabled}
             onPointerDown={(e) => {
               if (e.button !== 0) return
-              e.preventDefault()
               press(b.id, b.disabled)
             }}
             onClick={() => press(b.id, b.disabled)}

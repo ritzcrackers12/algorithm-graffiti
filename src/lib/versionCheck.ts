@@ -1,10 +1,13 @@
 // Cache-busting: every build writes version.json. Pages poll it and reload when a new
-// version is deployed, so the iPad never keeps showing an old build.
+// version is deployed, so the iPad and phone never keep showing an old build.
 declare const __BUILD_ID__: string
 
+let started = false
+
 export function startVersionCheck(canReload: () => boolean) {
-  if (import.meta.env.DEV) return
-  setInterval(async () => {
+  if (import.meta.env.DEV || started) return
+  started = true
+  const check = async () => {
     try {
       const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' })
       const { build } = await res.json()
@@ -12,5 +15,7 @@ export function startVersionCheck(canReload: () => boolean) {
     } catch {
       /* offline: try again later */
     }
-  }, 60_000)
+  }
+  void check()
+  setInterval(() => { void check() }, 20_000)
 }

@@ -24,7 +24,7 @@ export interface GameWire {
   adPlace: AdPlacement | null
   ended: boolean
   summary: Record<string, unknown> | null
-  /** Monotonic. Older snapshots must not wipe newer START/controls. */
+  /** Date.now() on each emit so a reloaded phone still beats leftover iPad state. */
   rev: number
 }
 
@@ -76,19 +76,22 @@ function persist() {
   subs.forEach((cb) => cb())
 }
 
+function nextRev() {
+  return Math.max(Date.now(), (wire.rev ?? 0) + 1)
+}
+
 function note(patch: Partial<GameWire>) {
   const incomingRev = patch.rev
   if (incomingRev != null && incomingRev < (wire.rev ?? 0)) return
-  const rev = incomingRev != null ? incomingRev : (wire.rev ?? 0) + 1
+  const rev = incomingRev != null ? incomingRev : nextRev()
   wire = { ...wire, ...patch, rev }
   persist()
 }
 
 function applyRemote(incoming: GameWire) {
-  const hasRev = incoming.rev != null
   const incomingRev = incoming.rev ?? 0
-  if (hasRev && incomingRev < (wire.rev ?? 0)) return
-  wire = { ...EMPTY, ...incoming, rev: hasRev ? incomingRev : (wire.rev ?? 0) + 1 }
+  if (incomingRev < (wire.rev ?? 0)) return
+  wire = { ...EMPTY, ...incoming, rev: incomingRev || nextRev() }
   persist()
 }
 
@@ -120,5 +123,5 @@ export function emitGameWire(patch: Partial<GameWire>) {
 }
 
 export function resetGameWire(keep?: Partial<GameWire>) {
-  emitGameWire({ ...EMPTY, ...keep, rev: (wire.rev ?? 0) + 1 })
+  emitGameWire({ ...EMPTY, ...keep, rev: Date.now() })
 }

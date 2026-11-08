@@ -295,6 +295,7 @@ button { font: inherit; }
 .end-session { flex: none; }
 
 .ctl-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; padding: 0 8px; min-height: 0; }
+.ctl-center.game-ctl { justify-content: flex-start; overflow: hidden; }
 .ctl-display { font: 800 22px/1.2 var(--font-supreme); letter-spacing: 0.12em; }
 .ctl-display em { font-style: normal; color: #c9a227; }
 
@@ -523,14 +524,15 @@ button { font: inherit; }
 .reel-rates { display: grid; grid-template-columns: 1fr; gap: 10px; width: min(280px, 80vw); }
 .px-btn { touch-action: manipulation; }
 .game-pad {
-  display: grid; grid-template-columns: 1fr; gap: 10px;
-  width: min(280px, 80vw); max-height: 52vh; overflow-y: auto; padding: 2px 0 8px;
-  touch-action: manipulation;
+  display: grid; grid-template-columns: 1fr; gap: 8px;
+  width: min(280px, 80vw); flex: 1; min-height: 0; max-height: none;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 8px;
+  touch-action: pan-y;
 }
 .game-pad.wide {
-  grid-template-columns: 1fr 1fr; width: min(320px, 88vw);
+  grid-template-columns: 1fr 1fr; width: min(320px, 92vw); gap: 8px;
 }
-.game-pad .px-btn { font-size: 12px; min-height: 44px; }
+.game-pad .px-btn { font-size: 11px; min-height: 36px; padding: 8px 10px; }
 
 .game-stage {
   flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;

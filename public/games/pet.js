@@ -129,17 +129,17 @@
       function careControls() {
         const P = cfg.prices, list = [];
         list.push({ id: "feed", label: `FEED (${P.feed})`, disabled: !can(P.feed) });
-        list.push({ id: "feed_premium", label: `PREMIUM FOOD (${P.feedPremium})`, disabled: !can(P.feedPremium) });
+        list.push({ id: "feed_premium", label: `PREMIUM (${P.feedPremium})`, disabled: !can(P.feedPremium) });
         list.push({ id: "treat", label: `TREAT (${P.treat})`, disabled: !can(P.treat) });
-        list.push({ id: "play", label: `DOG PARK TICKET (${P.play})`, disabled: !can(P.play) });
+        list.push({ id: "play", label: `PARK (${P.play})`, disabled: !can(P.play) });
         list.push({ id: "clean", label: `CLEAN (${P.clean})`, disabled: !can(P.clean) });
-        list.push({ id: "medicine", label: `MEDICINE (${P.medicine})`, disabled: !can(P.medicine) });
+        list.push({ id: "medicine", label: `MEDS (${P.medicine})`, disabled: !can(P.medicine) });
         if (!hasToy) {
           list.push({ id: "toy_basic", label: `BALL (${P.toyBasic})`, disabled: !can(P.toyBasic) });
-          list.push({ id: "toy_premium", label: `DESIGNER TOY (${P.toyPremium})`, disabled: !can(P.toyPremium) });
+          list.push({ id: "toy_premium", label: `DESIGNER (${P.toyPremium})`, disabled: !can(P.toyPremium) });
         }
-        list.push({ id: "grooming", label: `GROOMING (${P.grooming})`, disabled: !can(P.grooming) });
-        list.push({ id: "spa", label: `GROOMING SPA (${P.spa})`, disabled: !can(P.spa) });
+        list.push({ id: "grooming", label: `GROOM (${P.grooming})`, disabled: !can(P.grooming) });
+        list.push({ id: "spa", label: `SPA (${P.spa})`, disabled: !can(P.spa) });
         list.push({ id: "photo", label: `PHOTO (${P.photo})`, disabled: !can(P.photo) });
         controls(list, false);
       }

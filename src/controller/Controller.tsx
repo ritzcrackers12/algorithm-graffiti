@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
-import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
+import { getLive, rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
+import { startVersionCheck } from '../lib/versionCheck.ts'
 import { resetGameWire } from '../lib/gameSync.ts'
 import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { makeAd } from '../shared/ads.ts'
@@ -99,6 +100,10 @@ export default function Controller() {
   useEffect(() => {
     startLive('controller')
     lockGestures()
+    startVersionCheck(() => {
+      const s = getLive().snap
+      return !s || (!s.display.open && !s.display.busy)
+    })
   }, [])
 
   const say = useCallback((text: string) => setToast({ text, key: Date.now() }), [])
@@ -255,7 +260,7 @@ export default function Controller() {
           <em>CONTROL TRANSFERRED.</em>
         </div>
         <div className="ctl-label">INPUT RECORDED.</div>
-        <PixelButton block onClick={() => { haptic('press'); rejoinQueue() }}>
+        <PixelButton block onClick={() => { haptic('press'); resetGameWire(); rejoinQueue() }}>
           REJOIN QUEUE
         </PixelButton>
       </Centered>

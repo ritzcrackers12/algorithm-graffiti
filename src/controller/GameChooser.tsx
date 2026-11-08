@@ -56,7 +56,6 @@ export default function GameChooser({
               disabled={shut}
               onPointerDown={(e) => {
                 if (e.button !== 0) return
-                e.preventDefault()
                 pick(g.id, shut)
               }}
               onClick={() => pick(g.id, shut)}
