@@ -1,0 +1,98 @@
+import type { AdPlacement } from '../shared/ads.ts'
+import type { GameId } from '../shared/games.ts'
+
+export interface GameButton {
+  id: string
+  label: string
+  primary?: boolean
+}
+
+export interface GameWire {
+  gameId: GameId | null
+  recommended: GameId | null
+  controls: GameButton[]
+  locked: boolean
+  inputSeq: number
+  actionId: string | null
+  eventSeq: number
+  eventType: string | null
+  eventData: unknown
+  adSeq: number
+  adStatus: 'idle' | 'request' | 'playing' | 'done'
+  adWatched: boolean
+  adPlace: AdPlacement | null
+  ended: boolean
+  summary: Record<string, unknown> | null
+}
+
+const EMPTY: GameWire = {
+  gameId: null,
+  recommended: null,
+  controls: [],
+  locked: false,
+  inputSeq: 0,
+  actionId: null,
+  eventSeq: 0,
+  eventType: null,
+  eventData: null,
+  adSeq: 0,
+  adStatus: 'idle',
+  adWatched: false,
+  adPlace: null,
+  ended: false,
+  summary: null,
+}
+
+let wire: GameWire = EMPTY
+const subs = new Set<() => void>()
+const KEY = 'ag-game-wire'
+
+export function getGameWire() {
+  return wire
+}
+
+export function subscribeGameWire(cb: () => void) {
+  subs.add(cb)
+  return () => subs.delete(cb)
+}
+
+function note(patch: Partial<GameWire>) {
+  wire = { ...wire, ...patch }
+  try { localStorage.setItem(KEY, JSON.stringify(wire)) } catch { /* ignore */ }
+  subs.forEach((cb) => cb())
+}
+
+let bc: BroadcastChannel | null = null
+function bus() {
+  if (typeof BroadcastChannel === 'undefined') return null
+  if (!bc) {
+    bc = new BroadcastChannel('ag-game')
+    bc.onmessage = (e) => {
+      if (e.data && typeof e.data === 'object') {
+        wire = { ...EMPTY, ...e.data as GameWire }
+        subs.forEach((cb) => cb())
+      }
+    }
+  }
+  return bc
+}
+bus()
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY || !e.newValue) return
+    try {
+      wire = { ...EMPTY, ...JSON.parse(e.newValue) as GameWire }
+      subs.forEach((cb) => cb())
+    } catch { /* ignore */ }
+  })
+}
+
+export function emitGameWire(patch: Partial<GameWire>) {
+  note(patch)
+  bus()?.postMessage(getGameWire())
+}
+
+export function resetGameWire(keep?: Partial<GameWire>) {
+  emitGameWire({ ...EMPTY, ...keep })
+}

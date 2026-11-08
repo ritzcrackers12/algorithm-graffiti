@@ -15,6 +15,8 @@ export interface Backend {
   poke(): void
   /** iPad reports clip duration / end so the phone can show LIKE / NEUTRAL / DISLIKE. */
   reportReel(clip: { id: string; ended?: boolean; duration?: number }): void
+  /** iPad ⇄ phone game bridge (controls, taps, ads, summary). */
+  reportGame(state: import('./gameSync.ts').GameWire): void
 }
 
 let instance: Backend | null = null

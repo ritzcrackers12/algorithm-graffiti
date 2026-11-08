@@ -51,9 +51,21 @@ export interface ArticleResult {
   sponsored?: AdPlacement
 }
 
+export interface GameResult {
+  gameId: string
+  endReason: string
+  traits: Record<string, string>
+  line: string
+  settings?: unknown
+  appliedProfile?: unknown
+  lots?: unknown
+  at: number
+}
+
 export interface Altered {
   article?: ArticleResult
   reel?: ReelResult
+  game?: GameResult
 }
 
 export interface Snapshot {

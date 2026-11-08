@@ -2,13 +2,16 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
 import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
-import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile } from '../lib/profileClient.ts'
+import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { pickAd, personalizeAd } from '../shared/ads.ts'
 import { CONFIG, type ObjectId } from '../shared/config.ts'
-import { hydrateProfile } from '../shared/profile.ts'
+import { objectsTouched } from '../shared/games.ts'
+import { addEvent, hydrateProfile } from '../shared/profile.ts'
 import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
+import AdPhoneControls from './AdPhoneControls.tsx'
 import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
+import GameControls from './GameControls.tsx'
 import ReelControls from './ReelControls.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
@@ -157,6 +160,31 @@ export default function Controller() {
     }))
   }, [active, snap, choosingArticle, usedCount, popups, busy?.id, open])
 
+  const liveAd = snap?.profile
+    ? (() => {
+      const p = hydrateProfile(snap.profile)
+      return p.lastAd && p.lastAd.at > (p.adClosedAt ?? 0) ? p.lastAd : null
+    })()
+    : null
+
+  const closeAd = () => {
+    haptic('press')
+    const p = getLocalProfile()
+    const next = { ...p, adClosedAt: Date.now() }
+    setLocalProfile(next)
+    void sendCommand('signal', JSON.stringify({ adClosedAt: next.adClosedAt }))
+  }
+
+  const likeAd = (liked: boolean) => {
+    haptic('press')
+    const p = getLocalProfile()
+    const id = liveAd?.adId ?? 'ad'
+    const ev = addEvent(p, { source: 'ad', key: 'product_like', value: `${id}:${liked ? 'yes' : 'no'}`, at: Date.now() })
+    const next = { ...ev, adClosedAt: Date.now() }
+    setLocalProfile(next)
+    void sendCommand('signal', JSON.stringify({ adClosedAt: next.adClosedAt, events: next.events.slice(-16) }))
+  }
+
   const markActivity = () => {
     if (!active) return
     const t = Date.now()
@@ -198,10 +226,21 @@ export default function Controller() {
     content = <QueueScreen position={snap.position} />
   } else if (!active) {
     content = <Centered><div className="scanline" /><div className="ctl-label">REQUESTING ACCESS...</div></Centered>
+  } else if (liveAd && open !== 'reel' && open !== 'game') {
+    content = (
+      <AdPhoneControls
+        place={liveAd}
+        profile={hydrateProfile(snap.profile)}
+        locked={!!busy}
+        onClose={closeAd}
+        onLike={likeAd}
+      />
+    )
   } else if (!open && !choosingArticle) {
     content = (
       <Picker
-        used={snap.display.used ?? []}
+        used={objectsTouched(snap)}
+        seen={hydrateProfile(snap.profile).game.seen}
         onPick={(id) => {
           if (id === 'article') setChoosingArticle(true)
           else void sendCommand('open', id)
@@ -246,7 +285,10 @@ export default function Controller() {
           {open === 'reel' && (
             <ReelControls snap={snap} locked={!!busy} say={say} />
           )}
-          {open && open !== 'article' && open !== 'reel' && (
+          {open === 'game' && (
+            <GameControls snap={snap} locked={!!busy} />
+          )}
+          {open && open !== 'article' && open !== 'reel' && open !== 'game' && (
             <div className="ctl-center">
               <div className="ctl-display">{open.toUpperCase()}</div>
               <div className="ctl-label">CONTROLS NOT INSTALLED.</div>

@@ -134,7 +134,7 @@ export const OBJECTS: { id: ObjectId; label: string; file: string; ready: boolea
   { id: 'article', label: 'ARTICLE', file: 'article.txt', ready: true },
   { id: 'reel', label: 'REEL', file: 'reel.mp4', ready: true },
   { id: 'song', label: 'SONG', file: 'station.wav', ready: true },
-  { id: 'game', label: 'GAME', file: 'game.exe', ready: false },
+  { id: 'game', label: 'GAME', file: 'game.exe', ready: true },
 ]
 
 /** Ready objects, in the order a visitor must finish them. */

@@ -15,8 +15,15 @@ export function setLocalProfile(p: VisitorProfile) {
 
 export function bootProfile() {
   if (!local.device) {
-    local = inferProfile({ ...local, device: captureDevice() })
-    void sendCommand('signal', JSON.stringify({ device: local.device, inferred: local.inferred, categories: local.categories }))
+    const urgencyGroup = local.game.urgencyGroup ?? (Math.random() < 0.5 ? 'urgent' : 'control')
+    local = inferProfile({
+      ...local,
+      device: captureDevice(),
+      game: { ...local.game, urgencyGroup },
+    })
+    void sendCommand('signal', JSON.stringify({
+      device: local.device, inferred: local.inferred, categories: local.categories, game: local.game,
+    }))
   }
   return local
 }

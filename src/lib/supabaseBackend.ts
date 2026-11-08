@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { CONFIG } from '../shared/config.ts'
 import type { Backend } from './backend.ts'
+import { emitGameWire, type GameWire } from './gameSync.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 import type { Snapshot } from '../shared/types.ts'
 
@@ -18,6 +19,10 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     if (payload && typeof payload === 'object' && 'id' in payload) {
       noteReelClip(payload as { id: string; ended?: boolean; duration?: number })
     }
+    fire()
+  })
+  channel.on('broadcast', { event: 'game' }, ({ payload }) => {
+    if (payload && typeof payload === 'object') emitGameWire(payload as GameWire)
     fire()
   })
   channel.subscribe((status) => {
@@ -65,6 +70,10 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     reportReel(clip) {
       emitReelClip(clip)
       void channel.send({ type: 'broadcast', event: 'reel', payload: clip })
+    },
+    reportGame(state) {
+      emitGameWire(state)
+      void channel.send({ type: 'broadcast', event: 'game', payload: state })
     },
   }
 }

@@ -4,6 +4,7 @@
 import { pickAd, personalizeAd, weaveSponsored } from '../shared/ads.ts'
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
 import { CONFIG, OBJECTS } from '../shared/config.ts'
+import { gameIconLocked, objectsTouched } from '../shared/games.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
 import {
@@ -14,6 +15,7 @@ import {
 import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
 import { loadArticle } from './content.ts'
+import { emitGameWire, type GameWire } from './gameSync.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 
 const REEL_KEY = 'ag-reel-ended'
@@ -270,6 +272,10 @@ export function createLocalBackend(): Backend {
         }
       } else if (cmd === 'open' && OBJECTS.some((o) => o.id === arg)) {
         const obj = arg as 'article' | 'reel' | 'song' | 'game'
+        if (obj === 'game' && gameIconLocked(objectsTouched(db), db.profile.game?.seen ?? [])) {
+          write(db, changed)
+          return { ...snapshot(db, session), ok: false }
+        }
         if (obj === 'reel') {
           const library = await loadReels()
           const latest = read()
@@ -449,6 +455,10 @@ export function createLocalBackend(): Backend {
     reportReel(clip) {
       emitReelClip(clip)
       localStorage.setItem(REEL_KEY, JSON.stringify(clip))
+      fire()
+    },
+    reportGame(state: GameWire) {
+      emitGameWire(state)
       fire()
     },
   }

@@ -4,10 +4,12 @@ import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
 import type { Live } from '../lib/live.ts'
 import { OBJECTS, type ObjectId } from '../shared/config.ts'
+import { gameIconLocked, objectsTouched } from '../shared/games.ts'
 import { hydrateProfile } from '../shared/profile.ts'
 import type { AdPlacement } from '../shared/ads.ts'
 import AdPopup from './AdPopup.tsx'
 import ArticleView from './ArticleView.tsx'
+import GameView from './GameView.tsx'
 import PlaceholderView from './PlaceholderView.tsx'
 import ReelView from './ReelView.tsx'
 import ProgressDialog from './ProgressDialog.tsx'
@@ -31,12 +33,14 @@ export default function Desktop({ live }: { live: Live }) {
   useEffect(() => {
     if (open) {
       setClosing(false)
-      setShown(null)
       setClicking(open)
+      const instant = open === 'game' || open === 'reel'
+      if (instant) setShown(open)
+      else setShown(null)
       const t = setTimeout(() => {
         setShown(open)
         setClicking(null)
-      }, CLICK_MS)
+      }, instant ? 0 : CLICK_MS)
       return () => clearTimeout(t)
     }
     setClicking(null)
@@ -51,7 +55,11 @@ export default function Desktop({ live }: { live: Live }) {
   const obj = OBJECTS.find((o) => o.id === shown)
   const completed = snap?.display.completed ?? []
   const profile = hydrateProfile(snap?.profile)
-  const place = profile.lastAd && profile.lastAd.at !== adClosed ? profile.lastAd as AdPlacement : null
+  const place = profile.lastAd && profile.lastAd.at > Math.max(adClosed, profile.adClosedAt ?? 0)
+    ? profile.lastAd as AdPlacement
+    : null
+  const touched = objectsTouched(snap)
+  const gameLock = gameIconLocked(touched, profile.game.seen)
 
   return (
     <div className="desktop desktop-fallback">
@@ -61,7 +69,7 @@ export default function Desktop({ live }: { live: Live }) {
         {OBJECTS.map((o) => {
           const altered = !!snap?.altered[o.id as keyof typeof snap.altered]
           const done = completed.includes(o.id)
-          const locked = !o.ready
+          const locked = o.id === 'game' ? !!gameLock : !o.ready
           const cls = [
             'desk-icon',
             clicking === o.id && 'clicking',
@@ -99,7 +107,7 @@ export default function Desktop({ live }: { live: Live }) {
       {obj && (
         <XpWindow
           key={`${obj.id}-${openedAt}`}
-          className={`${closing ? 'closing' : obj.id === 'reel' ? '' : 'opening'}`}
+          className={`${closing ? 'closing' : obj.id === 'reel' || obj.id === 'game' ? '' : 'opening'}`}
           style={WINDOW_RECT}
           title={`${obj.file} - ${view === 'altered' ? 'ALTERED' : 'ORIGINAL'}`}
           icon={<ObjectIcon id={obj.id} />}
@@ -113,6 +121,8 @@ export default function Desktop({ live }: { live: Live }) {
             />
           ) : obj.id === 'reel' ? (
             <ReelView result={snap?.altered.reel} openedAt={openedAt} />
+          ) : obj.id === 'game' ? (
+            <GameView live={live} />
           ) : (
             <PlaceholderView id={obj.id} />
           )}
