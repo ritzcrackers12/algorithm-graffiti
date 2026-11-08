@@ -109,9 +109,10 @@ export const CONFIG = {
     },
     music: {
       // Station object (the "advertisement"). Lyricless instrumental.
-      // No version pin so the proxy uses the current meta/musicgen. ~30-60s/clip.
+      // Must be version-pinned: meta/musicgen isn't on Replicate's official-models
+      // endpoint, so an unpinned call 404s. ~30-60s/clip (A100, "expensive").
       model: 'meta/musicgen',
-      version: '',
+      version: '671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
       kind: 'cheap' as const,
       note: 'instrumental station; slow (~30-60s). Cached by genre+dial corner.',
     },
