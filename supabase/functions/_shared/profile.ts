@@ -61,9 +61,12 @@ export interface SessionLog {
   reel: ReelSession
   ad: AdSession
   chat: ChatSession
+  /** Article side-by-side compare toggle (original + altered shown together on the iPad). */
+  articleCompare?: boolean
 }
 
 export const emptySession = (): SessionLog => ({
+  articleCompare: false,
   reel: {
     tried: [], skipped: [], bucket: null, dials: [50, 50, 50],
     currentId: null, currentSlot: null, legitimacy: null,
@@ -201,6 +204,7 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
     adClosedAt: r.adClosedAt ?? 0,
     device: r.device ?? null,
     session: {
+      articleCompare: r.session?.articleCompare ?? false,
       reel: {
         ...e.session.reel,
         ...(r.session?.reel ?? {}),
