@@ -3,13 +3,12 @@
 // same browser can act as iPad + phones. Generation is always mock here.
 import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../shared/ads.ts'
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
-import { adOverlay, nearestBrand } from '../shared/adTuner.ts'
+import { deriveGenre, genreMeta, stationLegitimacy } from '../shared/station.ts'
 import { scriptedNext } from '../shared/chatScript.ts'
 import { CONFIG, OBJECTS, type ObjectId } from '../shared/config.ts'
 import { objectLocked } from '../shared/gating.ts'
 import { resolveLocation } from '../shared/locations.ts'
 import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from '../shared/profile.ts'
-import { PARODY_BRANDS } from '../shared/parodyBrands.ts'
 import type { AdminStatus, AdResult, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
 import { loadArticle } from './content.ts'
@@ -288,19 +287,22 @@ export function createLocalBackend(): Backend {
               at: Date.now(),
             }
           } else if (req.object === 'ad') {
-            const p = req.params as { brandId?: string; dials?: [number, number, number] }
+            const p = req.params as { genre?: string; dials?: [number, number, number] }
             const dials = p.dials ?? [50, 50, 50]
             const profile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
-            const brand = PARODY_BRANDS.find((b) => b.id === p.brandId) ?? nearestBrand(dials, profile).brand
-            const hit = nearestBrand(dials, profile)
+            const genre = deriveGenre(profile)
+            const meta = genreMeta(genre)
             result = {
-              brandId: brand.id,
-              brandName: brand.name,
+              brandId: genre,
+              brandName: meta.label,
+              genre,
+              genreLabel: meta.label,
               dials,
+              audioUrl: null,
               imageUrl: null,
-              overlay: adOverlay(brand, dials),
-              legitimacy: hit.legitimacy,
-              matchedProfile: hit.matchedProfile,
+              overlay: { wordmark: meta.label, headline: '', cta: '' },
+              legitimacy: stationLegitimacy(genre),
+              matchedProfile: true,
               source: 'mock',
               at: Date.now(),
             } satisfies AdResult

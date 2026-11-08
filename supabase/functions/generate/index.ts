@@ -1,9 +1,8 @@
 // Builds every AI prompt from fixed templates. The phone only sends an object id and control values.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../_shared/ads.ts'
-import { adOverlay, fluxPrompt, nearestBrand } from '../_shared/adTuner.ts'
 import { CONFIG } from '../_shared/config.ts'
-import { PARODY_BRANDS } from '../_shared/parodyBrands.ts'
+import { deriveGenre, genreMeta, musicPrompt, stationLegitimacy, type GenreId } from '../_shared/station.ts'
 import type { ArticleParams, ReelParams } from '../_shared/types.ts'
 import {
   AFFINITY_KEY, addRating, attachPrefetch, emptyReelResult, logRound, parseAffinity,
@@ -219,58 +218,65 @@ async function produceReel(params: ReelParams, useAi: boolean, profile?: Visitor
   }
 }
 
-function asImageUrl(output: unknown): string | null {
+function asMediaUrl(output: unknown): string | null {
   if (typeof output === 'string' && /^https?:\/\//.test(output)) return output
   if (Array.isArray(output)) {
     for (const x of output) {
-      const u = asImageUrl(x)
+      const u = asMediaUrl(x)
       if (u) return u
     }
   }
   if (output && typeof output === 'object') {
     const o = output as Record<string, unknown>
-    if (typeof o.url === 'string') return o.url
-    if (typeof o.image === 'string') return o.image
+    for (const k of ['audio', 'url', 'image', 'output']) {
+      if (typeof o[k] === 'string' && /^https?:\/\//.test(o[k] as string)) return o[k] as string
+    }
   }
   return null
 }
 
-async function produceAd(
-  brandId: string,
+/** The "advertisement" object: a generated instrumental STATION (genre derived from the profile). */
+async function produceStation(
+  _genreIn: string,
   dials: [number, number, number],
   profile: VisitorProfile,
   useAi: boolean,
 ) {
-  const hit = nearestBrand(dials, profile)
-  const brand = PARODY_BRANDS.find((b) => b.id === brandId) ?? hit.brand
-  const overlay = adOverlay(brand, dials)
+  // Genre is DERIVED from the profile (master control); the phone only sends the 3 dials.
+  const genre: GenreId = deriveGenre(profile)
+  const g = genreMeta(genre)
+  const legitimacy = stationLegitimacy(genre)
   const base = {
-    brandId: brand.id,
-    brandName: brand.name,
+    brandId: genre,
+    brandName: g.label,
+    genre,
+    genreLabel: g.label,
     dials,
-    overlay,
-    legitimacy: hit.legitimacy,
-    matchedProfile: hit.matchedProfile,
+    overlay: { wordmark: g.label, headline: '', cta: '' },
+    legitimacy,
+    matchedProfile: true,
     at: Date.now(),
   }
-  if (!useAi) return { ...base, imageUrl: null as string | null, source: 'mock' as const }
+  if (!useAi) return { ...base, audioUrl: null as string | null, imageUrl: null as string | null, source: 'mock' as const }
   const pred = await predict({
-    job: 'image',
+    job: 'music',
+    timeoutSeconds: 60,
     input: {
-      prompt: fluxPrompt(brand, dials),
-      go_fast: true,
-      megapixels: '1',
-      num_outputs: 1,
-      aspect_ratio: '1:1',
-      output_format: 'webp',
-      num_inference_steps: 4,
+      prompt: musicPrompt(genre, dials),
+      model_version: 'stereo-large',
+      duration: 10,
+      output_format: 'mp3',
+      normalization_strategy: 'peak',
+      temperature: 0.9,
+      classifier_free_guidance: 5,
     },
   })
-  const imageUrl = pred.ok ? asImageUrl(pred.output) : null
+  const audioUrl = pred.ok ? asMediaUrl(pred.output) : null
   return {
     ...base,
-    imageUrl,
-    source: imageUrl ? (pred.source === 'cache' ? 'ai' : 'ai') : 'fallback' as const,
+    audioUrl,
+    imageUrl: null as string | null,
+    source: (audioUrl ? 'ai' : 'fallback') as const,
   }
 }
 
@@ -289,7 +295,7 @@ Deno.serve(async (req) => {
   if (!session || !object) return json({ ok: false, reason: 'invalid' })
 
   let articleParams = null as ReturnType<typeof validateArticleParams>
-  let adParams = null as { brandId: string; dials: [number, number, number] } | null
+  let adParams = null as { genre: string; dials: [number, number, number] } | null
   if (object === 'article') {
     articleParams = validateArticleParams(body.params)
     if (!articleParams) {
@@ -302,7 +308,7 @@ Deno.serve(async (req) => {
     const p = body.params && typeof body.params === 'object' ? body.params as Record<string, unknown> : {}
     const dials = Array.isArray(p.dials) ? p.dials.map((n) => Number(n)) : [50, 50, 50]
     adParams = {
-      brandId: typeof p.brandId === 'string' ? p.brandId : '',
+      genre: typeof p.genre === 'string' ? p.genre : '',
       dials: [dials[0] ?? 50, dials[1] ?? 50, dials[2] ?? 50],
     }
   }
@@ -312,7 +318,7 @@ Deno.serve(async (req) => {
 
   const [lo, hi] = CONFIG.MOCK_DELAY_SECONDS
   const mockDelay = object === 'ad' ? 0 : Math.round(lo + Math.random() * (hi - lo))
-  const etaAi = object === 'ad' ? 8 : (CONFIG.EXPECTED_SECONDS[object] ?? 12)
+  const etaAi = CONFIG.EXPECTED_SECONDS[object] ?? 12
   const { data: begin, error } = await db.rpc('ag_begin_generation', {
     p_session: session, p_object: object, p_eta_ai: etaAi, p_eta_mock: mockDelay,
     p_rate: object === 'ad' ? 0 : CONFIG.RATE_LIMIT_SECONDS, p_cap: CONFIG.DAILY_GENERATION_CAP, p_tz: CONFIG.TIME_ZONE,
@@ -337,7 +343,7 @@ Deno.serve(async (req) => {
         ;(result as { source: string }).source = source
         if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
       } else if (object === 'ad' && adParams) {
-        const out = await produceAd(adParams.brandId, adParams.dials, profile, useAi)
+        const out = await produceStation(adParams.genre, adParams.dials, profile, useAi)
         result = out
         source = out.source
         if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))

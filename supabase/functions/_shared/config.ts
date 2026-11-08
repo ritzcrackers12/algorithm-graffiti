@@ -49,7 +49,7 @@ export const CONFIG = {
   /** Fake delay range for mock mode, in seconds. */
   MOCK_DELAY_SECONDS: [2, 5] as [number, number],
   /** Rough expected time for real generations (drives the progress bar). */
-  EXPECTED_SECONDS: { article: 18, reel: 2, ad: 12, chat: 8 } as Record<string, number>,
+  EXPECTED_SECONDS: { article: 18, reel: 2, ad: 42, chat: 8 } as Record<string, number>,
   /** Time zone used for the daily cap and the staff page counter. */
   TIME_ZONE: 'America/New_York',
 
@@ -108,6 +108,14 @@ export const CONFIG = {
       kind: 'cheap' as const,
       note: 'Supabase Edge built-in, free, 384-d. Replicate only if that fails.',
     },
+    music: {
+      // Station object (the "advertisement"). Lyricless instrumental.
+      // No version pin so the proxy uses the current meta/musicgen. ~30-60s/clip.
+      model: 'meta/musicgen',
+      version: '',
+      kind: 'cheap' as const,
+      note: 'instrumental station; slow (~30-60s). Cached by genre+dial corner.',
+    },
   },
 
   // ---------- Ads ----------
@@ -161,7 +169,7 @@ export type ObjectId = 'article' | 'reel' | 'ad' | 'chat'
 export const OBJECTS: { id: ObjectId; label: string; file: string; ready: boolean }[] = [
   { id: 'article', label: 'ARTICLE', file: 'article.txt', ready: true },
   { id: 'reel', label: 'REEL', file: 'reel.mp4', ready: true },
-  { id: 'ad', label: 'ADVERTISEMENT', file: 'promo.bmp', ready: true },
+  { id: 'ad', label: 'STATION', file: 'station.wav', ready: true },
   { id: 'chat', label: 'CHATBOT', file: 'agent.exe', ready: true },
 ]
 

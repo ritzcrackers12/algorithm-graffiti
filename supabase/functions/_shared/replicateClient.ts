@@ -20,6 +20,8 @@ export interface PredictOpts {
   skipCache?: boolean
   /** Admin tests still hit the wrapper even if the last call expired or hit the daily cap. */
   force?: boolean
+  /** Override the default AI_TIMEOUT_SECONDS (e.g. music gen is slow). */
+  timeoutSeconds?: number
 }
 
 export interface PredictResult {
@@ -186,7 +188,7 @@ export async function predict(opts: PredictOpts): Promise<PredictResult> {
     await setStatus('limit')
     return { ok: false, output: null, source: 'error', ms: Date.now() - started, error: 'daily limit', status: 'limit', preview: '' }
   }
-  const deadline = Date.now() + CONFIG.AI_TIMEOUT_SECONDS * 1000
+  const deadline = Date.now() + (opts.timeoutSeconds ?? CONFIG.AI_TIMEOUT_SECONDS) * 1000
   const media = opts.fieldToConvertBase64ToURL && opts.fileFormat
     ? { field: opts.fieldToConvertBase64ToURL, format: opts.fileFormat }
     : undefined
