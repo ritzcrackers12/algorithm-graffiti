@@ -11,6 +11,7 @@ import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
 import AdPhoneControls from './AdPhoneControls.tsx'
 import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
+import CodeBackground, { codePulse, codeRelease, resetCodeBg } from './CodeBackground.tsx'
 import GameControls from './GameControls.tsx'
 import ReelControls from './ReelControls.tsx'
 import { Segmented } from './controls.tsx'
@@ -128,7 +129,10 @@ export default function Controller() {
       bootProfile()
     }
     if (!active) setChoosingArticle(false)
-    if (live.ended) resetLocalProfile()
+    if (live.ended) {
+      resetLocalProfile()
+      resetCodeBg()
+    }
     wasActive.current = active
   }, [active, live.ended])
 
@@ -192,6 +196,28 @@ export default function Controller() {
       lastTouch.current = t
       void sendCommand('touch')
     }
+  }
+
+  const ptr = useRef({ x: 0, y: 0, down: false, acc: 0 })
+  const onCodeDown = (e: { clientX: number; clientY: number }) => {
+    ptr.current = { x: e.clientX, y: e.clientY, down: true, acc: 0 }
+    codePulse(0.5)
+  }
+  const onCodeMove = (e: { clientX: number; clientY: number; buttons: number }) => {
+    const p = ptr.current
+    if (!p.down && e.buttons === 0) return
+    const dist = Math.hypot(e.clientX - p.x, e.clientY - p.y)
+    p.x = e.clientX
+    p.y = e.clientY
+    p.acc += dist
+    if (p.acc < 6) return
+    const intensity = Math.min(1, p.acc / 32)
+    p.acc = 0
+    codePulse(intensity)
+  }
+  const onCodeUp = () => {
+    ptr.current.down = false
+    codeRelease()
   }
 
   const transmit: Transmit = async (req) => {
@@ -317,9 +343,31 @@ export default function Controller() {
     )
   }
 
+  const bgObject = open ?? (choosingArticle ? 'article' : null)
+  const objectOn = bgObject ? (CONFIG.CODE_BG.objects as Record<ObjectId, boolean>)[bgObject] !== false : true
+  const codeOn = CONFIG.CODE_BG_ENABLED && objectOn
+
   return (
-    <div className="ctl" onPointerDownCapture={markActivity}>
-      <Background id={open ?? (choosingArticle ? 'article' : null)} />
+    <div
+      className={`ctl${codeOn ? ' ctl-code' : ''}`}
+      onPointerDownCapture={(e) => {
+        markActivity()
+        if (codeOn) onCodeDown(e)
+      }}
+      onPointerMoveCapture={(e) => {
+        if (codeOn) onCodeMove(e)
+      }}
+      onPointerUpCapture={onCodeUp}
+      onPointerCancelCapture={onCodeUp}
+      onKeyDownCapture={() => {
+        markActivity()
+        if (codeOn) {
+          codePulse(0.36)
+          codeRelease()
+        }
+      }}
+    >
+      {codeOn ? <CodeBackground /> : <Background id={bgObject} />}
       <div className="ctl-main">
         <div className="ctl-top">
           <div className="ctl-top-meta">

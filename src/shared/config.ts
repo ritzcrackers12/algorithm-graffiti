@@ -120,6 +120,31 @@ export const CONFIG = {
   /** Public address of the deployed site; the server reads articles and ads from here. */
   SITE_URL: 'https://ritzcrackers12.github.io/algorithm-graffiti',
 
+  /**
+   * Phone controller only. Live green telemetry behind the controls.
+   * Off = the old per-object metal backgrounds.
+   */
+  CODE_BG_ENABLED: true,
+  CODE_BG: {
+    /** Terminal green. */
+    color: '#33FF66',
+    /** Older lines. */
+    dim: '#1a7a3c',
+    /** Occasional brighter line. */
+    bright: '#b5ffcb',
+    fontSize: 11,
+    lineHeight: 13,
+    /** 1 = default. Raise for more lines per gesture. */
+    density: 1,
+    /** 1 = default typing rate. */
+    speed: 1,
+    /** After a tap, keep typing this long (ms) so a press can finish a burst. */
+    lingerMs: 260,
+    maxLines: 96,
+    /** Per-object off switch. Missing keys stay on. */
+    objects: { article: true, reel: true, song: true, game: true },
+  },
+
   /** Words that are rejected anywhere a visitor can type. Lowercase. Add more as needed. */
   BLOCKLIST: [
     'fuck', 'shit', 'cunt', 'bitch', 'nigger', 'nigga', 'faggot', 'fag', 'retard',

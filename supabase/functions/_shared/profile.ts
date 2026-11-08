@@ -72,6 +72,17 @@ export interface VisitorProfile {
   popups: number
   lastPopupAt: number
   lastAd: ProfileAd | null
+  adClosedAt: number
+  game: {
+    urgencyGroup: 'urgent' | 'control' | null
+    recommended: 'slots' | 'auction' | 'higherLower' | 'pet' | null
+    tookRecommended: boolean | null
+    seen: Array<'slots' | 'auction' | 'higherLower' | 'pet'>
+    trustedPersona: string | null
+    lastSummary: Record<string, unknown> | null
+    traits: Record<string, string>
+    lastLine: string
+  }
 }
 
 export const emptyProfile = (): VisitorProfile => ({
@@ -88,6 +99,17 @@ export const emptyProfile = (): VisitorProfile => ({
   popups: 0,
   lastPopupAt: 0,
   lastAd: null,
+  adClosedAt: 0,
+  game: {
+    urgencyGroup: null,
+    recommended: null,
+    tookRecommended: null,
+    seen: [],
+    trustedPersona: null,
+    lastSummary: null,
+    traits: {},
+    lastLine: '',
+  },
 })
 
 export function hydrateProfile(raw: unknown): VisitorProfile {
@@ -110,7 +132,14 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
     popups: r.popups ?? 0,
     lastPopupAt: r.lastPopupAt ?? 0,
     lastAd: r.lastAd ?? null,
+    adClosedAt: r.adClosedAt ?? 0,
     device: r.device ?? null,
+    game: {
+      ...e.game,
+      ...(r.game ?? {}),
+      seen: r.game?.seen ?? e.game.seen,
+      traits: { ...e.game.traits, ...(r.game?.traits ?? {}) },
+    },
   })
 }
 
