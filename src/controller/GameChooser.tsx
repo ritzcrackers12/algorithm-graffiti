@@ -37,7 +37,11 @@ export default function GameChooser({
                   summary: null,
                   controls: [],
                   locked: false,
+                  inputSeq: 0,
                   actionId: null,
+                  eventSeq: 0,
+                  eventType: null,
+                  eventData: null,
                   adStatus: 'idle',
                   adPlace: null,
                 })

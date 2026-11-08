@@ -372,8 +372,8 @@
       };
     };
 
-    instance = new p5(sketch);
-    return { end: (r) => instanceApi.end && instanceApi.end(r || "host_ended"), getSummary: () => instanceApi.getSummary && instanceApi.getSummary(), setTestButtons: (b) => instanceApi.setTestButtons && instanceApi.setTestButtons(b), destroy: () => { try { instanceApi.end && instanceApi.end("destroyed"); } catch (e) {} instance.remove(); } };
+    instance = new p5(sketch, container);
+    return { end: (r) => instanceApi.end && instanceApi.end(r || "host_ended"), getSummary: () => instanceApi.getSummary && instanceApi.getSummary(), setTestButtons: (b) => instanceApi.setTestButtons && instanceApi.setTestButtons(b), destroy: () => { try { instance.remove(); } catch (e) {} } };
   }
 
   window.Games = window.Games || {};

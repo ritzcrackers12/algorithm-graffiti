@@ -44,6 +44,7 @@ export default function Library() {
         <Desktop live={live} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
+      <div id="ag-game-layer" className="game-layer" />
     </div>
   )
 }

@@ -35,7 +35,7 @@ declare global {
   interface Window {
     GAME_HOST?: boolean
     Games?: Record<string, GameModule>
-    p5?: unknown
+    p5?: new (sketch: unknown, node?: HTMLElement) => unknown
   }
 }
 
@@ -56,12 +56,18 @@ function loadScript(src: string) {
   })
 }
 
+export function preloadP5() {
+  window.GAME_HOST = true
+  return loadScript(P5)
+}
+
 export async function loadGameModule(id: GameId): Promise<GameModule> {
   window.GAME_HOST = true
   await loadScript(P5)
+  if (typeof window.p5 !== 'function') throw new Error('p5 did not load')
   const row = GAMES.find((g) => g.id === id)
   if (!row) throw new Error(`unknown game ${id}`)
-  await loadScript(`${BASE}games/${row.file}`)
+  await loadScript(`${BASE}games/${row.file}?v=3`)
   const mod = window.Games?.[id] ?? window.Games?.[row.file.replace(/\.js$/, '')]
   if (!mod?.create) throw new Error(`game ${id} did not register`)
   return mod

@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { pickAd, personalizeAd } from '../shared/ads.ts'
 import type { AdPlacement } from '../shared/ads.ts'
 import { auctionAdItems, gameProfileFromVisitor, GAMES, traitLine } from '../shared/games.ts'
 import { hydrateProfile } from '../shared/profile.ts'
-import { loadGameModule, type GameHandle } from '../lib/gameHost.ts'
+import { loadGameModule, preloadP5, type GameHandle } from '../lib/gameHost.ts'
 import { pushGame } from '../lib/gamePush.ts'
 import { getGameWire, subscribeGameWire } from '../lib/gameSync.ts'
 import type { Live } from '../lib/live.ts'
 
 const BASE = import.meta.env.BASE_URL
 const AD_MS = 10000
+
+type Box = { left: number; top: number; width: number; height: number }
 
 function waitSize(el: HTMLElement) {
   return new Promise<void>((resolve) => {
@@ -23,6 +26,7 @@ function waitSize(el: HTMLElement) {
 }
 
 export default function GameView({ live }: { live: Live }) {
+  const markRef = useRef<HTMLDivElement>(null)
   const holeRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<GameHandle | null>(null)
   const inputSeq = useRef(0)
@@ -31,72 +35,155 @@ export default function GameView({ live }: { live: Live }) {
   const wire = useSyncExternalStore(subscribeGameWire, getGameWire)
   const [ad, setAd] = useState<AdPlacement | null>(null)
   const [line, setLine] = useState('')
+  const [fail, setFail] = useState('')
+  const [box, setBox] = useState<Box | null>(null)
+  const [layer, setLayer] = useState<HTMLElement | null>(null)
   const profile = hydrateProfile(live.snap?.profile)
   const gameId = wire.gameId
   const row = GAMES.find((g) => g.id === gameId)
+  const playing = !!gameId && !!row?.ready && !wire.ended && !fail
+
+  useLayoutEffect(() => {
+    setLayer(document.getElementById('ag-game-layer'))
+  }, [])
 
   useEffect(() => {
-    const hole = holeRef.current
-    if (!hole || !gameId || !row?.ready) {
+    void preloadP5()
+  }, [])
+
+  useLayoutEffect(() => {
+    const el = markRef.current
+    if (!el || !playing) {
+      setBox(null)
+      return
+    }
+    const sync = () => {
+      const r = el.getBoundingClientRect()
+      const next = { left: r.left, top: r.top, width: r.width, height: r.height }
+      setBox((prev) => {
+        if (
+          prev
+          && Math.abs(prev.left - next.left) < 0.5
+          && Math.abs(prev.top - next.top) < 0.5
+          && Math.abs(prev.width - next.width) < 0.5
+          && Math.abs(prev.height - next.height) < 0.5
+        ) return prev
+        return next
+      })
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    window.addEventListener('resize', sync)
+    window.addEventListener('orientationchange', sync)
+    const tick = window.setInterval(sync, 250)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('orientationchange', sync)
+      window.clearInterval(tick)
+    }
+  }, [playing])
+
+  useEffect(() => {
+    if (!playing || !box) return
+    window.dispatchEvent(new Event('resize'))
+  }, [playing, box?.width, box?.height])
+
+  useEffect(() => {
+    if (!gameId || !row?.ready) {
       handleRef.current?.destroy()
       handleRef.current = null
+      inputFn.current = null
       return
     }
     let gone = false
-    void waitSize(hole).then(() => {
+    inputSeq.current = 0
+    inputFn.current = null
+    setFail('')
+    setLine('')
+    setAd(null)
+    const flush = (actionId: string) => {
+      inputFn.current?.(actionId)
+    }
+    void (async () => {
+      for (let i = 0; i < 60; i++) {
+        if (gone) return
+        const hole = holeRef.current
+        if (hole && hole.clientWidth > 40 && hole.clientHeight > 40) break
+        await new Promise<void>((r) => window.requestAnimationFrame(() => r()))
+      }
+      const hole = holeRef.current
+      if (gone || !hole) return
+      await waitSize(hole)
       if (gone || !holeRef.current) return
-      return loadGameModule(gameId)
-    }).then((mod) => {
-      if (gone || !mod || !holeRef.current) return
-      const extra = gameId === 'auction' ? auctionAdItems() : undefined
-      const cfg = mod.configFromProfile(gameProfileFromVisitor(profile, live.snap?.altered.reel), extra)
-      const handle = mod.create(holeRef.current, cfg, {
-        onInput(fn) {
-          inputFn.current = fn
-        },
-        setControls(list, opts) {
-          pushGame({ controls: list, locked: !!opts?.locked })
-        },
-        emit(type, data) {
-          pushGame({ eventSeq: getGameWire().eventSeq + 1, eventType: type, eventData: data })
-        },
-        requestAd() {
-          const seq = getGameWire().adSeq + 1
-          const match = pickAd(profile)
-          const place = match ? personalizeAd(match, profile) : null
-          setAd(place)
-          pushGame({ adSeq: seq, adStatus: 'playing', adWatched: false, adPlace: place })
-          return new Promise((resolve) => {
-            adWait.current = { seq, resolve }
-            window.setTimeout(() => {
-              if (adWait.current?.seq !== seq) return
-              adWait.current = null
-              setAd(null)
-              pushGame({ adStatus: 'done', adWatched: true, adPlace: null })
-              resolve({ watched: true })
-            }, AD_MS)
-          })
-        },
-        onEnd(summary) {
-          const traits = (summary.traits && typeof summary.traits === 'object')
-            ? summary.traits as Record<string, string>
-            : {}
-          setLine(traitLine(traits))
-          handleRef.current?.destroy()
-          handleRef.current = null
-          pushGame({ ended: true, summary, eventSeq: getGameWire().eventSeq + 1, eventType: 'game_end', eventData: summary })
-        },
-      })
-      handleRef.current = handle
-    }).catch((err) => {
-      console.warn(err)
-      setLine('GAME FILE MISSING.')
-    })
+      try {
+        const mod = await loadGameModule(gameId)
+        if (gone || !holeRef.current) return
+        const extra = gameId === 'auction' ? auctionAdItems() : undefined
+        const cfg = mod.configFromProfile(gameProfileFromVisitor(profile, live.snap?.altered.reel), extra)
+        const handle = mod.create(holeRef.current, cfg, {
+          onInput(fn) {
+            inputFn.current = fn
+            const w = getGameWire()
+            if (w.actionId && w.inputSeq > inputSeq.current) {
+              inputSeq.current = w.inputSeq
+              fn(w.actionId)
+            }
+          },
+          setControls(list, opts) {
+            pushGame({ controls: list, locked: !!opts?.locked })
+          },
+          emit(type, data) {
+            pushGame({ eventSeq: getGameWire().eventSeq + 1, eventType: type, eventData: data })
+          },
+          requestAd() {
+            const seq = getGameWire().adSeq + 1
+            const match = pickAd(profile)
+            const place = match ? personalizeAd(match, profile) : null
+            setAd(place)
+            pushGame({ adSeq: seq, adStatus: 'playing', adWatched: false, adPlace: place })
+            return new Promise((resolve) => {
+              adWait.current = { seq, resolve }
+              window.setTimeout(() => {
+                if (adWait.current?.seq !== seq) return
+                adWait.current = null
+                setAd(null)
+                pushGame({ adStatus: 'done', adWatched: true, adPlace: null })
+                resolve({ watched: true })
+              }, AD_MS)
+            })
+          },
+          onEnd(summary) {
+            const reason = typeof summary.endReason === 'string' ? summary.endReason : ''
+            if (reason === 'destroyed') return
+            const traits = (summary.traits && typeof summary.traits === 'object')
+              ? summary.traits as Record<string, string>
+              : {}
+            setLine(traitLine(traits))
+            handleRef.current?.destroy()
+            handleRef.current = null
+            pushGame({ ended: true, summary, eventSeq: getGameWire().eventSeq + 1, eventType: 'game_end', eventData: summary })
+          },
+        })
+        if (gone) {
+          handle.destroy()
+          return
+        }
+        handleRef.current = handle
+      } catch (err) {
+        console.warn(err)
+        const msg = err instanceof Error && /p5/.test(err.message) ? 'GAME ENGINE MISSING.' : 'GAME FILE MISSING.'
+        setFail(msg)
+        setLine(msg)
+      }
+    })()
     const unsub = subscribeGameWire(() => {
       const w = getGameWire()
       if (w.inputSeq <= inputSeq.current || !w.actionId) return
+      if (!inputFn.current) return
       inputSeq.current = w.inputSeq
-      inputFn.current?.(w.actionId)
+      flush(w.actionId)
     })
     return () => {
       gone = true
@@ -121,20 +208,13 @@ export default function GameView({ live }: { live: Live }) {
     handleRef.current = null
   }, [])
 
-  return (
-    <>
-      <div className="xp-toolbar">
-        <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>{row ? row.file : 'game.exe'}</span>
-      </div>
-      <div className="game-stage">
+  const surface = playing && layer && box
+    ? createPortal(
+      <div
+        className="game-float"
+        style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+      >
         <div className="game-hole" ref={holeRef} />
-        {!gameId ? (
-          <div className="game-msg">SELECT A GAME ON THE PHONE.</div>
-        ) : !row?.ready ? (
-          <div className="game-msg">GAME FILE NOT INSTALLED.</div>
-        ) : wire.ended ? (
-          <div className="game-msg">{line || 'SESSION RECORDED.'}</div>
-        ) : null}
         {ad && (
           <div className="game-ad">
             <img src={`${BASE}assets/${ad.image}`} alt="" />
@@ -143,6 +223,27 @@ export default function GameView({ live }: { live: Live }) {
             <div className="ad-brand">{ad.brand}</div>
           </div>
         )}
+      </div>,
+      layer,
+    )
+    : null
+
+  return (
+    <>
+      <div className="xp-toolbar">
+        <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>{row ? row.file : 'game.exe'}</span>
+      </div>
+      <div className="game-stage" ref={markRef}>
+        {surface}
+        {!gameId ? (
+          <div className="game-msg">SELECT A GAME ON THE PHONE.</div>
+        ) : !row?.ready ? (
+          <div className="game-msg">GAME FILE NOT INSTALLED.</div>
+        ) : wire.ended ? (
+          <div className="game-msg">{line || 'SESSION RECORDED.'}</div>
+        ) : fail ? (
+          <div className="game-msg">{fail}</div>
+        ) : null}
       </div>
       <div className="xp-statusbar">
         <span style={{ flex: 1 }}>{wire.ended ? (line || 'SESSION RECORDED.') : row ? row.title : 'STANDBY.'}</span>

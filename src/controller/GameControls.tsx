@@ -55,6 +55,10 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
     if (!wire.ended || closed.current) return
     closed.current = true
     const summary = wire.summary ?? {}
+    if (summary.endReason === 'destroyed') {
+      closed.current = false
+      return
+    }
     const traits = (summary.traits && typeof summary.traits === 'object') ? summary.traits as Record<string, string> : {}
     const gameId = (wire.gameId ?? 'higherLower') as GameId
     const p = getLocalProfile()
