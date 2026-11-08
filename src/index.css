@@ -622,6 +622,8 @@ button { font: inherit; }
   flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
   background: #050505; overflow: hidden; position: relative;
 }
+.chat-stage { align-items: stretch; justify-content: stretch; background: #16181e; }
+.chat-stage > .machine-line { margin: auto; color: #c6ff3d; }
 .ad-hero {
   position: relative; width: min(640px, 90%); aspect-ratio: 1;
   overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.45);
@@ -646,6 +648,32 @@ button { font: inherit; }
 .chat-line span { font: 800 11px/1 var(--font-supreme); letter-spacing: 0.18em; color: #c6ff3d; }
 .chat-line.user span { color: #9ad4ff; }
 .chat-line p { margin: 6px 0 0; color: #eee; font: 16px/1.4 Tahoma, sans-serif; }
+.gc-log {
+  width: 100%; max-width: none; gap: 12px; padding: 18px 22px 22px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+.gc-row { display: flex; gap: 8px; align-items: flex-end; max-width: 78%; }
+.gc-row.you { margin-left: auto; justify-content: flex-end; max-width: 70%; }
+.gc-ava {
+  width: 28px; height: 28px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font: 700 11px/1 var(--font-supreme); letter-spacing: 0.04em;
+}
+.gc-name { font: 700 11px/1 Tahoma, sans-serif; letter-spacing: 0.04em; margin: 0 0 4px 2px; text-transform: lowercase; }
+.gc-bubble {
+  padding: 8px 12px; border-radius: 16px 16px 16px 4px;
+  font: 15px/1.35 Tahoma, sans-serif; word-break: break-word;
+}
+.gc-bubble.you {
+  background: #0b57d0; color: #fff; border-radius: 16px 16px 4px 16px;
+}
+.gc-typing { display: flex; gap: 5px; align-items: center; min-width: 42px; height: 18px; }
+.gc-typing i {
+  width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.7);
+  animation: gc-dot 1s ease-in-out infinite;
+}
+.gc-typing i:nth-child(2) { animation-delay: 0.15s; }
+.gc-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes gc-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
 .report-stage { align-items: stretch; justify-content: flex-start; flex-direction: column; background: #0b0b10; color: #e8e2d4; }
 .report-thanks {
   padding: 18px 24px 8px; font: 800 22px/1.2 var(--font-supreme); letter-spacing: 0.08em;

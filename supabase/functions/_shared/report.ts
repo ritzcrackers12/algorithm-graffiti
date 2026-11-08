@@ -72,11 +72,20 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
 
   const chatLines: ReportLine[] = s.chat.turns.length
     ? s.chat.turns.map((t, i) => ({
-      k: `${t.role.toUpperCase()} ${i + 1}${t.topic ? ` · ${t.topic.toUpperCase()}` : ''}`,
+      k: `${(t.from || t.role).toUpperCase()} ${i + 1}${t.topic ? ` · ${t.topic.toUpperCase()}` : ''}`,
       v: t.text,
     }))
     : [{ k: 'TURNS', v: 'NONE' }]
   chatLines.push({ k: 'SOURCE', v: (s.chat.source || 'UNSET').toUpperCase() })
+  const log = s.chat.log ?? []
+  if (log.length) {
+    chatLines.push(
+      ...log.map((row, i) => ({
+        k: `ANSWER ${i + 1} · ${row.topic.toUpperCase() || 'CHAT'}`,
+        v: `${row.text} · ${row.latencyMs}ms · edits ${row.edits} · len ${row.length} · overshare ${row.overshare ? 'YES' : 'NO'}`,
+      })),
+    )
+  }
 
   const device = p.device
   const covert: ReportLine[] = [

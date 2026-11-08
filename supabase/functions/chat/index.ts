@@ -1,4 +1,4 @@
-import { chatSystemPrompt, scriptedNext, type ChatTurn } from '../_shared/chatScript.ts'
+import { chatSystemPrompt, isPersona, isYou, scriptedNext, type ChatTurn, type PersonaId } from '../_shared/chatScript.ts'
 import { emptyProfile, hydrateProfile, type VisitorProfile } from '../_shared/profile.ts'
 import { isBlocked } from '../_shared/text.ts'
 
@@ -12,7 +12,15 @@ const json = (b: unknown, status = 200) =>
 
 function fallback(history: ChatTurn[], profile: VisitorProfile) {
   const next = scriptedNext(history, profile)
-  return { ok: true, bot: next.bot, chips: next.chips, topic: next.topic, source: 'scripted' }
+  return {
+    ok: true,
+    messages: next.messages,
+    bot: next.messages.at(-1)?.text ?? '',
+    chips: next.chips,
+    topic: next.topic,
+    source: 'scripted',
+    done: next.done,
+  }
 }
 
 function parseModelJson(text: string) {
@@ -20,23 +28,46 @@ function parseModelJson(text: string) {
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const raw = JSON.parse(text.slice(start, end + 1)) as { bot?: unknown; chips?: unknown; topic?: unknown }
-    const bot = typeof raw.bot === 'string' ? raw.bot.trim() : ''
+    const raw = JSON.parse(text.slice(start, end + 1)) as {
+      messages?: unknown
+      bot?: unknown
+      chips?: unknown
+      topic?: unknown
+      done?: unknown
+    }
+    const messages: { from: PersonaId; text: string }[] = []
+    if (Array.isArray(raw.messages)) {
+      for (const row of raw.messages) {
+        if (!row || typeof row !== 'object') continue
+        const from = String((row as { from?: unknown }).from || '')
+        const line = typeof (row as { text?: unknown }).text === 'string' ? (row as { text: string }).text.trim() : ''
+        if (isPersona(from) && line) messages.push({ from, text: line })
+      }
+    }
+    if (!messages.length && typeof raw.bot === 'string' && raw.bot.trim()) {
+      messages.push({ from: 'rik', text: raw.bot.trim() })
+    }
     const chips = Array.isArray(raw.chips) ? raw.chips.map((c) => String(c).toUpperCase()).filter(Boolean).slice(0, 4) : []
     const topic = typeof raw.topic === 'string' ? raw.topic : ''
-    if (!bot) return null
-    return { bot, chips: chips.length ? chips : ['YES', 'NO', 'UNSURE', 'SKIP'], topic }
+    if (!messages.length) return null
+    return {
+      messages,
+      bot: messages.at(-1)?.text ?? '',
+      chips: chips.length ? chips : ['YES', 'NO', 'UNSURE', 'SKIP'],
+      topic,
+      done: raw.done === true,
+    }
   } catch {
     return null
   }
 }
 
+function transcript(history: ChatTurn[]) {
+  if (!history.length) return '(empty)'
+  return history.map((t) => `${isYou(t) ? 'you' : (t.from || 'jules')}: ${t.text}`).join('\n')
+}
+
 async function gemini(system: string, history: ChatTurn[], key: string, model: string) {
-  const contents = history.slice(-10).map((t) => ({
-    role: t.role === 'bot' ? 'model' : 'user',
-    parts: [{ text: t.text }],
-  }))
-  contents.push({ role: 'user', parts: [{ text: 'Continue. Return JSON only.' }] })
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
     {
@@ -44,8 +75,8 @@ async function gemini(system: string, history: ChatTurn[], key: string, model: s
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents,
-        generationConfig: { temperature: 0.8, maxOutputTokens: 240 },
+        contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT\n${transcript(history)}\n\nContinue as the group. JSON only.` }] }],
+        generationConfig: { temperature: 0.85, maxOutputTokens: 420 },
       }),
       signal: AbortSignal.timeout(12_000),
     },
@@ -56,13 +87,6 @@ async function gemini(system: string, history: ChatTurn[], key: string, model: s
 }
 
 async function anthropic(system: string, history: ChatTurn[], key: string, model: string) {
-  const messages = history.slice(-10).map((t) => ({
-    role: t.role === 'bot' ? 'assistant' : 'user',
-    content: t.text,
-  }))
-  if (!messages.length || messages[0].role !== 'user') {
-    messages.unshift({ role: 'user', content: 'Start.' })
-  }
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -72,9 +96,9 @@ async function anthropic(system: string, history: ChatTurn[], key: string, model
     },
     body: JSON.stringify({
       model,
-      max_tokens: 240,
+      max_tokens: 420,
       system,
-      messages,
+      messages: [{ role: 'user', content: `TRANSCRIPT\n${transcript(history)}\n\nContinue as the group. JSON only.` }],
     }),
     signal: AbortSignal.timeout(12_000),
   })
@@ -94,13 +118,21 @@ Deno.serve(async (req) => {
   }
   const history = Array.isArray(body.history) ? body.history as ChatTurn[] : []
   const profile = hydrateProfile(body.profile ?? emptyProfile())
-  const lastUser = [...history].reverse().find((t) => t.role === 'user')
+  const lastUser = [...history].reverse().find(isYou)
   if (lastUser && isBlocked(lastUser.text)) {
-    return json({ ok: true, bot: 'Try that another way.', chips: ['OK', 'NEVER MIND', 'SOMETHING ELSE', 'SKIP'], topic: 'blocked', source: 'scripted' })
+    return json({
+      ok: true,
+      messages: [{ from: 'mina', text: 'wait what 😭 say that again but like… normal' }],
+      bot: 'wait what 😭 say that again but like… normal',
+      chips: ['OK', 'NEVER MIND', 'SOMETHING ELSE', 'SKIP'],
+      topic: 'blocked',
+      source: 'scripted',
+    })
   }
-  const provider = (Deno.env.get('CHAT_PROVIDER') || 'scripted').toLowerCase()
   const key = Deno.env.get('CHAT_API_KEY') || ''
+  const provider = (Deno.env.get('CHAT_PROVIDER') || (key ? 'gemini' : 'scripted')).toLowerCase()
   const model = Deno.env.get('CHAT_MODEL') || (provider === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-2.0-flash-lite')
+  // No key → predetermined bank. Key present → custom LLM on that same flow map.
   if (!key || provider === 'scripted') return json(fallback(history, profile))
   try {
     const system = chatSystemPrompt(profile)

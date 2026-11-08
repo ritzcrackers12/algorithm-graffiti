@@ -9,10 +9,12 @@ export interface ChatAsk {
 
 export interface ChatReply {
   ok: boolean
+  messages?: { from: import('../shared/chatScript.ts').PersonaId; text: string }[]
   bot?: string
   chips?: string[]
   topic?: string
   source?: string
+  done?: boolean
 }
 
 export type Command = 'touch' | 'open' | 'home' | 'view' | 'end' | 'done' | 'story' | 'signal'

@@ -1,23 +1,27 @@
-import type { ChatPrompt } from '../shared/chatScript.ts'
+import type { ChatFrom, PersonaId } from '../shared/chatScript.ts'
 
 export interface ChatWire {
   session: string
   rev: number
   bot: string
+  from: ChatFrom
   chips: string[]
   topic: string
   n: number
   waiting: boolean
+  typingFrom: PersonaId | ''
 }
 
 const empty: ChatWire = {
   session: '',
   rev: 0,
   bot: '',
+  from: 'jules',
   chips: [],
   topic: '',
   n: 0,
   waiting: false,
+  typingFrom: '',
 }
 
 let wire: ChatWire = { ...empty }
@@ -54,17 +58,6 @@ export function applyRemoteChat(next: ChatWire) {
 export function resetChatWire() {
   wire = { ...empty, rev: Date.now() }
   subs.forEach((cb) => cb())
-}
-
-export function applyPrompt(session: string, prompt: ChatPrompt, n: number) {
-  emitChatWire({
-    session,
-    bot: prompt.bot,
-    chips: prompt.chips,
-    topic: prompt.topic,
-    n,
-    waiting: false,
-  })
 }
 
 let bc: BroadcastChannel | null = null

@@ -37,6 +37,7 @@ interface DB {
 }
 
 const KEY = 'ag-local-db-v3'
+const POKE_KEY = 'ag-local-poke'
 const HOME: DisplayState = { open: null, view: 'original', busy: null, openedAt: 0, completed: [], used: [], articleId: null }
 
 function fresh(): DB {
@@ -58,7 +59,7 @@ export function createLocalBackend(): Backend {
   const listeners = new Set<() => void>()
   const fire = () => listeners.forEach((cb) => cb())
   window.addEventListener('storage', (e) => {
-    if (e.key === KEY) fire()
+    if (e.key === KEY || e.key === POKE_KEY) fire()
     if (e.key === REEL_KEY && e.newValue) {
       try {
         noteReelClip(JSON.parse(e.newValue))
@@ -367,7 +368,10 @@ export function createLocalBackend(): Backend {
       listeners.add(cb)
       return () => listeners.delete(cb)
     },
-    poke() {},
+    poke() {
+      try { localStorage.setItem(POKE_KEY, String(Date.now())) } catch { /* ignore */ }
+      fire()
+    },
     reportReel(clip) {
       emitReelClip(clip)
       localStorage.setItem(REEL_KEY, JSON.stringify(clip))
@@ -379,7 +383,15 @@ export function createLocalBackend(): Backend {
     },
     async chat(req) {
       const next = scriptedNext(req.history ?? [], req.profile)
-      return { ok: true, bot: next.bot, chips: next.chips, topic: next.topic, source: 'scripted' }
+      return {
+        ok: true,
+        messages: next.messages,
+        bot: next.messages.at(-1)?.text ?? '',
+        chips: next.chips,
+        topic: next.topic,
+        source: 'scripted',
+        done: next.done,
+      }
     },
   }
 }

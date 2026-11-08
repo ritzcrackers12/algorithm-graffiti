@@ -143,7 +143,7 @@ export default function Admin() {
               ? 'DIRECT. KEEP REPLICATE_API_KEY AS A SUPABASE SECRET.'
               : 'BEFORE NOV 16: SWITCH TO DIRECT + SET REPLICATE_API_KEY. PROXY TOKEN EXPIRES ~HOURLY.'}
           />
-          <Row k="CHAT LLM" v="CHAT_PROVIDER / CHAT_API_KEY / CHAT_MODEL SECRETS ON THE CHAT FUNCTION." />
+          <Row k="CHAT LLM" v="PREDETERMINED BANK UNTIL CHAT_API_KEY IS SET ON THE CHAT FUNCTION. THEN CHAT_PROVIDER / CHAT_MODEL OPTIONAL." />
           <Row
             k="PROXY TOKEN"
             v={s?.proxyTokenLast4

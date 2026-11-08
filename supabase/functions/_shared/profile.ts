@@ -54,6 +54,7 @@ export interface ChatSession {
   topic: string
   n: number
   source: string
+  log: import('./chatScript.ts').ChatCovert[]
 }
 
 export interface SessionLog {
@@ -73,7 +74,7 @@ export const emptySession = (): SessionLog => ({
     dials: [50, 50, 50], brandId: null, brandName: null, legitimacy: null,
     lingered: false, matchedProfile: null, imageUrl: null, overlay: null, source: null,
   },
-  chat: { turns: [], topic: '', n: 0, source: '' },
+  chat: { turns: [], topic: '', n: 0, source: '', log: [] },
 })
 
 export interface InferredProfile {
@@ -213,6 +214,7 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
         ...e.session.chat,
         ...(r.session?.chat ?? {}),
         turns: Array.isArray(r.session?.chat?.turns) ? r.session.chat.turns : e.session.chat.turns,
+        log: Array.isArray(r.session?.chat?.log) ? r.session.chat.log : e.session.chat.log,
       },
     },
     game: {
@@ -284,7 +286,8 @@ export function inferProfile(p: VisitorProfile): VisitorProfile {
   else if (a.education === 5) ageRange = '30-54'
   else if (p.device?.type === 'phone' && hour >= 21) ageRange = '18-34'
 
-  const blob = p.events.map((e) => e.value).join(' ').toLowerCase()
+  const chatBlob = (p.session?.chat?.turns ?? []).filter((t) => t.role === 'user' || t.from === 'you').map((t) => t.text)
+  const blob = [...p.events.map((e) => e.value), ...chatBlob].join(' ').toLowerCase()
   const interests: string[] = []
   if ((a.lean ?? 0) <= -1) interests.push('civic', 'labor')
   if ((a.lean ?? 0) >= 1) interests.push('security', 'markets')

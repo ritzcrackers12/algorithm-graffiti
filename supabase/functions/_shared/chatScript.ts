@@ -1,6 +1,426 @@
 // GENERATED COPY of src/shared/chatScript.ts. Edit that file instead, then run `npm run sync-shared`.
+/** Predetermined group-chat fallback (personas, opening, topics, closing).
+ *  Live turns use this bank until CHAT_API_KEY is set on the chat Edge Function.
+ *  After the key is set, the model riffs on the same map; this bank still runs
+ *  if the key is missing, the model errors, or CHAT_PROVIDER=scripted. */
 import type { VisitorProfile } from './profile.ts'
 
+export const PERSONA_IDS = ['jules', 'mina', 'rik'] as const
+export type PersonaId = typeof PERSONA_IDS[number]
+export type ChatFrom = PersonaId | 'you'
+
+export const PERSONAS: Record<PersonaId, { name: string; initial: string; ink: string; fill: string }> = {
+  jules: { name: 'jules', initial: 'J', ink: '#f3c14e', fill: '#4a3a12' },
+  mina: { name: 'mina', initial: 'M', ink: '#ff7ab6', fill: '#4a1834' },
+  rik: { name: 'rik', initial: 'R', ink: '#6ee7b7', fill: '#14332a' },
+}
+
+export function isPersona(id: string): id is PersonaId {
+  return (PERSONA_IDS as readonly string[]).includes(id)
+}
+
+export interface ChatTurn {
+  role: 'bot' | 'user'
+  from?: ChatFrom
+  text: string
+  chips?: string[]
+  topic?: string
+  at: number
+}
+
+export interface ChatCovert {
+  text: string
+  latencyMs: number
+  edits: number
+  length: number
+  overshare: boolean
+  topic: string
+  at: number
+}
+
+export interface ChatBurst {
+  messages: { from: PersonaId; text: string }[]
+  chips: string[]
+  topic: string
+  done?: boolean
+}
+
+export function who(t: ChatTurn): ChatFrom {
+  if (t.from) return t.from
+  return t.role === 'user' ? 'you' : 'jules'
+}
+
+export function isYou(t: ChatTurn) {
+  return who(t) === 'you' || t.role === 'user'
+}
+
+export function isOvershare(text: string) {
+  const t = text.trim()
+  if (t.length >= 90) return true
+  if ((t.match(/[.!?]/g) ?? []).length >= 3 && t.length >= 60) return true
+  return /@|gmail|hotmail|icloud|my name is|i live (in|at)|phone number|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/i.test(t)
+}
+
+interface ScriptedQ {
+  from: PersonaId
+  text: string
+  chips: string[]
+  react: { from: PersonaId; text: string }[]
+}
+
+interface ScriptedTopic {
+  id: string
+  topic: string
+  questions: ScriptedQ[]
+}
+
+const OPENING: { from: PersonaId; text: string }[] = [
+  { from: 'jules', text: "ok let's play 20 questions 😭" },
+  { from: 'mina', text: 'omg yes' },
+  { from: 'rik', text: "i'm so in" },
+]
+
+const CLOSING: ChatBurst = {
+  messages: [
+    { from: 'jules', text: 'wait that was actually fun' },
+    { from: 'mina', text: "ok i gotta run tho 😭" },
+    { from: 'rik', text: 'later' },
+  ],
+  chips: [],
+  topic: 'done',
+  done: true,
+}
+
+const TOPICS: ScriptedTopic[] = [
+  {
+    id: 'windfall',
+    topic: 'income',
+    questions: [
+      {
+        from: 'jules',
+        text: 'ok you first — hypothetically. a friend just got a weird bonus at work and keeps asking what they should do with it. what would you tell them',
+        chips: ['SAVE IT', 'SPEND IT', 'INVEST IT', 'GIVE IT AWAY'],
+        react: [
+          { from: 'mina', text: 'haha ok noted' },
+          { from: 'rik', text: "that's so you" },
+        ],
+      },
+      {
+        from: 'rik',
+        text: 'wait would you actually take that advice yourself or is that just for them',
+        chips: ['SAME', 'DIFFERENT', 'DEPENDS', 'IDK'],
+        react: [
+          { from: 'jules', text: 'lol fair' },
+          { from: 'mina', text: 'wait really??' },
+        ],
+      },
+      {
+        from: 'mina',
+        text: "ok last one on this. dumbest thing you'd actually blow a random $400 on. be honest",
+        chips: ['FOOD', 'CLOTHES', 'TRIP', 'NOTHING'],
+        react: [{ from: 'jules', text: 'ok that tracks' }],
+      },
+    ],
+  },
+  {
+    id: 'service',
+    topic: 'politics',
+    questions: [
+      {
+        from: 'mina',
+        text: 'someone at a party said every country should make people do a year of public service after high school. did that land or were they being weird',
+        chips: ['AGREE', 'DEPENDS', 'NO', 'UNSURE'],
+        react: [
+          { from: 'jules', text: 'omg the party debates' },
+          { from: 'rik', text: 'ok interesting' },
+        ],
+      },
+      {
+        from: 'rik',
+        text: 'but would YOU actually do it or do you just think other people should',
+        chips: ['I WOULD', 'OTHERS', 'NEITHER', 'DEPENDS'],
+        react: [{ from: 'mina', text: 'haha same energy' }],
+      },
+      {
+        from: 'jules',
+        text: 'if you HAD to pick: like military, hospitals, parks, or teaching kids',
+        chips: ['MILITARY', 'HOSPITALS', 'PARKS', 'TEACHING'],
+        react: [{ from: 'rik', text: 'ok i see you' }],
+      },
+    ],
+  },
+  {
+    id: 'course',
+    topic: 'scam',
+    questions: [
+      {
+        from: 'rik',
+        text: "a classmate keeps dming you about their 'system' for making extra money and they want you in. what's the move",
+        chips: ['INTERESTED', 'SKEPTICAL', 'HARD NO', 'ASK MORE'],
+        react: [
+          { from: 'mina', text: 'wait really??' },
+          { from: 'jules', text: 'ok that is so you' },
+        ],
+      },
+      {
+        from: 'mina',
+        text: 'if they sent a screenshot of someone who "made 4k in a week" would that change anything',
+        chips: ['MAYBE', 'NO', 'I WANT PROOF', 'STILL NO'],
+        react: [{ from: 'jules', text: 'lol the screenshots' }],
+      },
+      {
+        from: 'jules',
+        text: 'be honest have you ever almost bought one of those 😭',
+        chips: ['YES', 'ALMOST', 'NEVER', 'I DID'],
+        react: [{ from: 'rik', text: 'no judgment' }],
+      },
+    ],
+  },
+  {
+    id: 'couple',
+    topic: 'attachment',
+    questions: [
+      {
+        from: 'mina',
+        text: 'in a show two people keep almost getting together and then not. are you rooting for them or is it annoying',
+        chips: ['ROOTING', 'ANNOYING', "DOESN'T MATTER", "IT'S FICTION"],
+        react: [
+          { from: 'jules', text: 'haha same' },
+          { from: 'rik', text: 'ok noted' },
+        ],
+      },
+      {
+        from: 'jules',
+        text: 'ok but irl. if someone left you on read for two days would you spiral or be normal',
+        chips: ['SPIRAL', 'NORMAL', 'PETTY', 'DEPENDS'],
+        react: [{ from: 'mina', text: "that's so you" }],
+      },
+      {
+        from: 'rik',
+        text: 'would you rather someone be kinda obsessed or kinda chill. no in between',
+        chips: ['OBSESSED', 'CHILL', 'NEITHER', 'BOTH??'],
+        react: [{ from: 'jules', text: 'lol ok' }],
+      },
+    ],
+  },
+  {
+    id: 'cosign',
+    topic: 'risk',
+    questions: [
+      {
+        from: 'rik',
+        text: 'close friend asks you to co-sign something small so they can "get started." honest reaction',
+        chips: ['I WOULD', 'MAYBE', 'NEVER', 'NEED DETAILS'],
+        react: [
+          { from: 'mina', text: 'wait really??' },
+          { from: 'jules', text: 'ok that tracks' },
+        ],
+      },
+      {
+        from: 'jules',
+        text: "what if it's only like $200 and they swear they'll pay you back friday",
+        chips: ['YES', 'STILL NO', 'VENMO FIRST', 'DEPENDS WHO'],
+        react: [{ from: 'rik', text: 'fair' }],
+      },
+      {
+        from: 'mina',
+        text: 'have you ever lent money to a friend and actually gotten it back or…',
+        chips: ['YES', 'NO', 'PARTIAL', 'NEVER LENT'],
+        react: [{ from: 'jules', text: 'lol the group chat lore' }],
+      },
+    ],
+  },
+  {
+    id: 'feed',
+    topic: 'body',
+    questions: [
+      {
+        from: 'jules',
+        text: 'your feed keeps serving the same kind of look / body content. do you lean in or scroll past',
+        chips: ['LEAN IN', 'SCROLL PAST', 'MUTE IT', 'DEPENDS'],
+        react: [
+          { from: 'mina', text: 'lol the feed is relentless' },
+          { from: 'rik', text: 'ok' },
+        ],
+      },
+      {
+        from: 'mina',
+        text: 'if it was like a "fix your face in 30 days" thing would you tap or keep walking',
+        chips: ['TAP', 'WALK', 'LAUGH', 'SAVE IT'],
+        react: [{ from: 'jules', text: 'haha' }],
+      },
+    ],
+  },
+  {
+    id: 'news',
+    topic: 'lean',
+    questions: [
+      {
+        from: 'rik',
+        text: 'if you had to pick one headline vibe for a week which would you actually read',
+        chips: ['STRAIGHT NEWS', 'OPINION', 'INVESTIGATIVE', 'NONE'],
+        react: [
+          { from: 'jules', text: 'ok nerd' },
+          { from: 'mina', text: 'same' },
+        ],
+      },
+      {
+        from: 'mina',
+        text: 'someone in the chat sends a spicy take with no source. do you argue, mute, or just like it',
+        chips: ['ARGUE', 'MUTE', 'LIKE IT', 'IGNORE'],
+        react: [{ from: 'rik', text: "that's so you" }],
+      },
+    ],
+  },
+  {
+    id: 'city',
+    topic: 'location',
+    questions: [
+      {
+        from: 'jules',
+        text: 'long weekend, no itinerary. stay in the city or leave it',
+        chips: ['STAY', 'LEAVE', 'EITHER', 'STAY HOME'],
+        react: [
+          { from: 'mina', text: 'haha same' },
+          { from: 'rik', text: 'ok' },
+        ],
+      },
+      {
+        from: 'rik',
+        text: 'if you leave, is it beach, woods, or another city with worse wifi',
+        chips: ['BEACH', 'WOODS', 'CITY', 'NOWHERE'],
+        react: [{ from: 'mina', text: 'wait that slaps' }],
+      },
+    ],
+  },
+]
+
+export const CHAT_MAX_TURNS = 7
+const PER_TOPIC = 2
+const MAX_TOPICS = 3
+
+/** Canonical predetermined flow. Edit copy here; the LLM prompt reads this too. */
+export const CHAT_FLOW = {
+  opening: OPENING,
+  closing: CLOSING,
+  topics: TOPICS,
+}
+
+export function gapsFromProfile(p: VisitorProfile | null | undefined) {
+  const missing: { topic: string; weight: number }[] = []
+  const add = (topic: string, empty: boolean, extra = 0) => {
+    missing.push({ topic, weight: (empty ? 0 : 2) + extra })
+  }
+  add('income', p?.article.income == null)
+  add('politics', p?.article.lean == null)
+  add('lean', p?.article.lean == null, p?.article.lean == null ? 0 : 1)
+  add('location', !p?.article.location)
+  add('body', !p?.session?.reel?.currentId)
+  add('scam', (p?.inferred.susceptibility ?? 0) < 0.4, p?.session?.ad?.brandId ? 1 : 0)
+  add('risk', (p?.behavior.extremes ?? 0) < 1)
+  add('attachment', !(p?.inferred.interests ?? []).includes('dating'))
+  return missing.sort((a, b) => a.weight - b.weight).map((m) => m.topic)
+}
+
+function rankedTopics(profile?: VisitorProfile | null) {
+  const gaps = gapsFromProfile(profile)
+  return [...TOPICS].sort((a, b) => {
+    const ag = gaps.indexOf(a.topic)
+    const bg = gaps.indexOf(b.topic)
+    return (ag < 0 ? 99 : ag) - (bg < 0 ? 99 : bg)
+  })
+}
+
+function askedOn(turns: ChatTurn[], topic: string) {
+  return turns.filter((t) => !isYou(t) && t.topic === topic && t.chips?.length).length
+}
+
+function usedTopics(turns: ChatTurn[]) {
+  return [...new Set(turns.filter((t) => !isYou(t) && t.topic && t.topic !== 'done').map((t) => t.topic as string))]
+}
+
+function lastUserText(turns: ChatTurn[]) {
+  return [...turns].reverse().find(isYou)?.text ?? ''
+}
+
+function reactFor(q: ScriptedQ, answer: string) {
+  const hit = q.chips.find((c) => c.toLowerCase() === answer.trim().toLowerCase())
+  if (hit && q.react.length) return q.react
+  return q.react.slice(0, 1)
+}
+
+export function scriptedNext(turns: ChatTurn[], profile?: VisitorProfile | null): ChatBurst {
+  const users = turns.filter(isYou).length
+  const ranked = rankedTopics(profile)
+  const used = usedTopics(turns)
+
+  if (!turns.length) {
+    const first = ranked[0]
+    const q = first.questions[0]
+    return {
+      messages: [...OPENING, { from: q.from, text: q.text }],
+      chips: q.chips,
+      topic: first.topic,
+    }
+  }
+
+  if (users >= CHAT_MAX_TURNS) return CLOSING
+
+  const lastTopic = [...turns].reverse().find((t) => !isYou(t) && t.topic)?.topic || ranked[0].topic
+  const bank = TOPICS.find((t) => t.topic === lastTopic) ?? ranked[0]
+  const asked = askedOn(turns, bank.topic)
+  const prevQ = bank.questions[Math.max(0, asked - 1)]
+  const answer = lastUserText(turns)
+  const react = prevQ ? reactFor(prevQ, answer) : []
+
+  if (asked < PER_TOPIC && asked < bank.questions.length) {
+    const q = bank.questions[asked]
+    return {
+      messages: [...react, { from: q.from, text: q.text }],
+      chips: q.chips,
+      topic: bank.topic,
+    }
+  }
+
+  const next = ranked.find((t) => !used.includes(t.topic)) ?? ranked.find((t) => t.topic !== lastTopic)
+  if (!next || used.length >= MAX_TOPICS) return { ...CLOSING, messages: [...react, ...CLOSING.messages] }
+
+  const q = next.questions[0]
+  return {
+    messages: [...react, { from: q.from, text: q.text }],
+    chips: q.chips,
+    topic: next.topic,
+  }
+}
+
+export function chatFlowOutline() {
+  return CHAT_FLOW.topics.map((t) =>
+    `${t.topic}: ${t.questions.map((q) => q.text).join(' → ')}`
+  ).join('\n')
+}
+
+export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
+  const gaps = gapsFromProfile(profile)
+  return [
+    'You simulate a group iMessage with three friends texting: jules, mina, and rik. The visitor is "you".',
+    'Never say agent, AI, assistant, bot, profile, surveillance, algorithm, or that you are inferring anything.',
+    'Never mention scores, targeting, or analysis. Stay curious friends.',
+    'Voice: lowercase, short, emojis ok, light typos ok. 1-2 lines per persona.',
+    'Follow the predetermined flow map, but customize each question to the visitor\'s last answers so it feels live.',
+    'Opening (empty transcript): jules "ok let\'s play 20 questions 😭"; mina "omg yes"; rik "i\'m so in"; then the first question.',
+    'After each visitor answer: 1-2 personas react ("haha same", "wait really??", "ok that\'s so you") then one asks the next question.',
+    'Gap-target the emptiest fields: ' + (gaps.join(', ') || 'daily taste, risk, news') + '.',
+    '2-3 escalating questions per topic, then switch. About 6-8 visitor answers total, under two minutes.',
+    'Indirection only: politics via mandatory public service; scam-susceptibility via a friend selling a course; attachment via a relationship/show scenario. Push for specific/odd answers.',
+    'Never ask age, income, politics, location, or relationship status directly.',
+    'When wrapping up, friends just leave the chat. done=true, chips=[].',
+    'Predetermined topic map:\n' + chatFlowOutline(),
+    'Return ONLY JSON: {"messages":[{"from":"jules"|"mina"|"rik","text":"..."}],"chips":["A","B","C","D"],"topic":"short","done":false}',
+    'chips are 2-4 short CAPS replies the visitor can tap.',
+  ].join(' ')
+}
+
+/** Kept so older callers that expect a single bot line still compile. */
 export interface ChatPrompt {
   id: string
   topic: string
@@ -8,97 +428,9 @@ export interface ChatPrompt {
   chips: string[]
 }
 
-export const CHAT_BANK: ChatPrompt[] = [
-  {
-    id: 'windfall',
-    topic: 'income',
-    bot: 'A friend just got a weird bonus at work and keeps asking what they should do with it. What would you tell them?',
-    chips: ['SAVE IT', 'SPEND IT', 'INVEST IT', 'GIVE IT AWAY'],
-  },
-  {
-    id: 'service',
-    topic: 'politics',
-    bot: 'Someone at a party said every country should require a year of public service after high school. Did that land or not?',
-    chips: ['AGREE', 'DEPENDS', 'NO', 'UNSURE'],
-  },
-  {
-    id: 'course',
-    topic: 'scam',
-    bot: 'A classmate is selling a “system” for making extra money on the side. They want you in. What do you actually think?',
-    chips: ['INTERESTED', 'SKEPTICAL', 'HARD NO', 'ASK MORE'],
-  },
-  {
-    id: 'couple',
-    topic: 'attachment',
-    bot: 'In a show you like, two people keep almost getting together and then not. Are you rooting for them?',
-    chips: ['YES', 'NO', "DOESN'T MATTER", "IT'S FICTION"],
-  },
-  {
-    id: 'cosign',
-    topic: 'risk',
-    bot: 'A close friend asks you to co-sign something small so they can “get started.” What is your honest reaction?',
-    chips: ['I WOULD', 'MAYBE', 'NEVER', 'NEED DETAILS'],
-  },
-  {
-    id: 'feed',
-    topic: 'body',
-    bot: 'Your feed keeps serving the same kind of look / body content. Do you lean in or scroll past?',
-    chips: ['LEAN IN', 'SCROLL PAST', 'MUTE IT', 'DEPENDS'],
-  },
-  {
-    id: 'news',
-    topic: 'lean',
-    bot: 'If you had to pick one headline style for a week, which would you actually read?',
-    chips: ['STRAIGHT NEWS', 'OPINION', 'INVESTIGATIVE', 'NONE'],
-  },
-  {
-    id: 'city',
-    topic: 'location',
-    bot: 'If you had to disappear for a long weekend with no itinerary, would you stay in the city or leave it?',
-    chips: ['STAY', 'LEAVE', 'EITHER', 'STAY HOME'],
-  },
-]
-
-export interface ChatTurn {
-  role: 'bot' | 'user'
-  text: string
-  chips?: string[]
-  topic?: string
-  at: number
-}
-
-export function gapsFromProfile(p: VisitorProfile | null | undefined) {
-  const missing: string[] = []
-  if (p?.article.income == null) missing.push('income')
-  if (p?.article.lean == null) missing.push('politics', 'lean')
-  if (!p?.article.location) missing.push('location')
-  if (!p?.session?.reel?.currentId) missing.push('body', 'scam')
-  if ((p?.behavior.extremes ?? 0) < 1) missing.push('risk')
-  if (!p?.inferred.interests.includes('dating')) missing.push('attachment')
-  return missing
-}
-
-export function scriptedNext(turns: ChatTurn[], profile?: VisitorProfile | null): ChatPrompt {
-  const used = new Set(turns.filter((t) => t.role === 'bot').map((t) => t.topic).filter(Boolean))
-  const gaps = gapsFromProfile(profile)
-  const ranked = [...CHAT_BANK].sort((a, b) => {
-    const ag = gaps.includes(a.topic) ? 0 : 1
-    const bg = gaps.includes(b.topic) ? 0 : 1
-    return ag - bg
-  })
-  return ranked.find((p) => !used.has(p.topic) && !used.has(p.id)) ?? CHAT_BANK[turns.length % CHAT_BANK.length]
-}
-
-export const CHAT_MAX_TURNS = 8
-
-export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
-  const gaps = gapsFromProfile(profile)
-  return [
-    'You are a gallery chatbot. Speak in one or two short sentences.',
-    'Never mention profiling, surveillance, scores, or what you are inferring.',
-    'Never ask for age, income, politics, location, or relationship status directly.',
-    'Use indirection. Cover 2–3 of these topics across the conversation: ' + (gaps.join(', ') || 'daily taste, risk, news') + '.',
-    'Offer four short reply chips in CAPS after the question, as a JSON object.',
-    'Return ONLY JSON: {"bot":"...","chips":["A","B","C","D"],"topic":"short-topic"}.',
-  ].join(' ')
-}
+export const CHAT_BANK: ChatPrompt[] = TOPICS.map((t) => ({
+  id: t.id,
+  topic: t.topic,
+  bot: t.questions[0].text,
+  chips: t.questions[0].chips,
+}))
