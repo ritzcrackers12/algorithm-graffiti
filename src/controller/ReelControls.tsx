@@ -5,7 +5,7 @@ import { haptic } from '../lib/haptics.ts'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { sendCommand } from '../lib/live.ts'
 import { clearReelClip, getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
-import { REEL_BUCKETS, nearestSlot, type ReelBucket } from '../shared/reelLibrary.ts'
+import { REEL_BUCKETS, bucketMeta, nearestSlot, type ReelBucket } from '../shared/reelLibrary.ts'
 import type { ReelSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
@@ -223,21 +223,23 @@ export default function ReelControls({ snap, locked }: { snap: Snapshot; locked:
   }
 
   const canSend = moved[0] && moved[1] && moved[2]
+  const poles = bucketMeta(bucket).poles
 
   return (
     <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 8 }}>
-      <div className="knob-row three">
-        {([0, 1, 2] as const).map((i) => (
-          <div key={i} className="panel stack" style={{ padding: 8 }}>
-            <div className="ctl-label">KNOB {i + 1}</div>
+      <div className="knob-stack">
+        {poles.map((pole, i) => (
+          <div key={pole[0]} className="knob-labeled">
+            <span className="knob-pole left">{pole[0]}</span>
             <Knob
               steps={KNOB_STEPS}
               value={Math.round(dials[i] / 10)}
-              onChange={(step) => twist(i, step)}
+              onChange={(step) => twist(i as 0 | 1 | 2, step)}
               disabled={locked}
               size={72}
-              label={`KNOB ${i + 1}`}
+              label={`${pole[0]} TO ${pole[1]}`}
             />
+            <span className="knob-pole right">{pole[1]}</span>
           </div>
         ))}
       </div>

@@ -47,7 +47,7 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
     { k: 'BUCKETS SKIPPED', v: reel.skipped.length ? reel.skipped.map((b) => b.toUpperCase()).join(', ') : 'NONE' },
     { k: 'FINAL BUCKET', v: reel.bucket ? reel.bucket.toUpperCase() : 'UNSET' },
     { k: 'COORDINATE', v: `${reel.dials[0]} / ${reel.dials[1]} / ${reel.dials[2]}` },
-    { k: 'HIDDEN POLES', v: poles
+    { k: 'POLES', v: poles
       ? `${poles[0][0]}↔${poles[0][1]} ${reel.dials[0]} · ${poles[1][0]}↔${poles[1][1]} ${reel.dials[1]} · ${poles[2][0]}↔${poles[2][1]} ${reel.dials[2]}`
       : 'UNSET' },
     { k: 'CORNER REEL', v: reel.currentId ? `${reel.currentId}${reel.currentSlot ? ` · ${reel.currentSlot}` : ''}` : 'UNSET' },
