@@ -80,6 +80,18 @@ async function runTests(all: boolean): Promise<{ rows: AiTestRow[]; used: number
     const pred = await predict({ job: r.job, input, skipCache: true, force: true })
     add({ job: r.job, ok: pred.ok, ms: pred.ms, source: pred.source, preview: pred.preview, error: pred.error })
   }
+
+  // Station audio (meta/musicgen) — slow model, needs a longer deadline.
+  if (!live) {
+    add({ job: 'music', ok: true, skipped: true, ms: 0, source: 'skip', preview: 'no proxy/direct token yet' })
+  } else {
+    const music = await predict({
+      job: 'music',
+      input: { prompt: 'calm ambient pads, no vocals', model_version: 'stereo-large', duration: 5, output_format: 'mp3' },
+      skipCache: true, force: true, timeoutSeconds: 60,
+    })
+    add({ job: 'music', ok: music.ok, ms: music.ms, source: music.source, preview: music.preview, error: music.error })
+  }
   return { rows, used }
 }
 
