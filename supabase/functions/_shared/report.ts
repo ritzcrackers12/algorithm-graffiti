@@ -1,5 +1,5 @@
 // GENERATED COPY of src/shared/report.ts. Edit that file instead, then run `npm run sync-shared`.
-import { AD_POLES } from './adTuner.ts'
+import { STATION_POLES } from './station.ts'
 import { bucketMeta, type ReelBucket } from './reelLibrary.ts'
 import { CONNOTATION_LABELS, EDUCATION_LABELS, INCOME_LABELS, LEAN_LABELS, SENSATION_LABELS } from './article.ts'
 import { resolveLocation } from './locations.ts'
@@ -62,12 +62,11 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
 
   const ad = s.ad
   const adLines: ReportLine[] = [
-    { k: 'DIALS', v: `${AD_POLES[0][0]}↔${AD_POLES[0][1]} ${ad.dials[0]} · ${AD_POLES[1][0]}↔${AD_POLES[1][1]} ${ad.dials[1]} · ${AD_POLES[2][0]}↔${AD_POLES[2][1]} ${ad.dials[2]}` },
-    { k: 'BRAND', v: ad.brandName || ad.brandId || 'UNSET' },
+    { k: 'GENRE', v: (ad.genreLabel || ad.genre || ad.brandName || 'UNSET').toString().toUpperCase() },
+    { k: 'DIALS', v: `${STATION_POLES[0][0]}↔${STATION_POLES[0][1]} ${ad.dials[0]} · ${STATION_POLES[1][0]}↔${STATION_POLES[1][1]} ${ad.dials[1]} · ${STATION_POLES[2][0]}↔${STATION_POLES[2][1]} ${ad.dials[2]}` },
     { k: 'LEGITIMACY', v: ad.legitimacy == null ? 'UNSET' : String(ad.legitimacy) },
-    { k: 'MATCHED IMPLIED PROFILE', v: ad.matchedProfile == null ? 'UNSET' : ad.matchedProfile ? 'YES' : 'NO' },
     { k: 'LINGERED', v: ad.lingered ? 'YES' : 'NO' },
-    { k: 'IMAGE', v: ad.imageUrl ? 'GENERATED' : 'TEMPLATE CARD' },
+    { k: 'AUDIO', v: ad.audioUrl ? 'GENERATED' : 'NONE' },
   ]
 
   const chatLines: ReportLine[] = s.chat.turns.length
@@ -112,7 +111,7 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
     blocks: [
       { title: 'ARTICLE', lines: articleLines },
       { title: 'REEL', lines: reelLines },
-      { title: 'ADVERTISEMENT', lines: adLines },
+      { title: 'STATION', lines: adLines },
       { title: 'CHATBOT', lines: chatLines },
       { title: 'COVERT', lines: covert },
     ],

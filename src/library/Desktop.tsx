@@ -128,7 +128,7 @@ export default function Desktop({ live }: { live: Live }) {
           ) : obj.id === 'reel' ? (
             <ReelView result={snap?.altered.reel} openedAt={openedAt} profile={profile} />
           ) : obj.id === 'ad' ? (
-            <AdView result={snap?.altered.ad} profile={profile} />
+            <AdView result={snap?.altered.ad} profile={profile} tuning={snap?.display.busy?.object === 'ad'} />
           ) : obj.id === 'chat' ? (
             <ChatView profile={profile} />
           ) : (

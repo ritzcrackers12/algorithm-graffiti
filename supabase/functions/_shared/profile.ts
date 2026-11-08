@@ -41,6 +41,10 @@ export interface AdSession {
   dials: [number, number, number]
   brandId: string | null
   brandName: string | null
+  /** Station: derived genre + its audio. */
+  genre?: string | null
+  genreLabel?: string | null
+  audioUrl?: string | null
   legitimacy: number | null
   lingered: boolean
   matchedProfile: boolean | null

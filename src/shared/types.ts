@@ -58,9 +58,15 @@ export interface AdOverlay {
 }
 
 export interface AdResult {
+  /** Station: the derived genre id + label. (brandId/brandName kept for back-compat.) */
   brandId: string
   brandName: string
+  genre?: string
+  genreLabel?: string
   dials: [number, number, number]
+  /** Station audio (mp3/wav URL). */
+  audioUrl?: string | null
+  /** Legacy image ad field; unused by the station. */
   imageUrl: string | null
   overlay: AdOverlay
   legitimacy: number
@@ -108,7 +114,9 @@ export interface ReelParams {
 }
 
 export interface AdParams {
+  /** Station: genre is derived server-side; the phone sends the 3 dials + a submit flag. */
   brandId: string
+  genre?: string
   dials: [number, number, number]
   cacheKey?: string
 }
