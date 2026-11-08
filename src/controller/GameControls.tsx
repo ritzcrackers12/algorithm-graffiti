@@ -4,7 +4,7 @@ import { getLocalProfile, markAdShown, setLocalProfile } from '../lib/profileCli
 import { sendCommand } from '../lib/live.ts'
 import { pushGame } from '../lib/gamePush.ts'
 import { getGameWire, subscribeGameWire } from '../lib/gameSync.ts'
-import { pickRecommendedGame, traitLine, type GameId } from '../shared/games.ts'
+import { petSessionLine, pickRecommendedGame, traitLine, type GameId } from '../shared/games.ts'
 import { addEvent, inferProfile } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import AdPhoneControls from './AdPhoneControls.tsx'
@@ -70,7 +70,7 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
         seen: nextSeen,
         lastSummary: summary,
         traits: { ...p.game.traits, ...traits },
-        lastLine: traitLine(traits),
+        lastLine: [traitLine(traits), petSessionLine(summary)].filter(Boolean).join(' · '),
         tookRecommended: p.game.recommended ? p.game.recommended === gameId : null,
       },
     })
@@ -135,7 +135,7 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
         <div className="ctl-display">
           SESSION RECORDED.
           <br />
-          <em>{traitLine((wire.summary?.traits as Record<string, string> | undefined) ?? profile.game.traits)}</em>
+          <em>{[traitLine((wire.summary?.traits as Record<string, string> | undefined) ?? profile.game.traits), petSessionLine(wire.summary)].filter(Boolean).join(' · ')}</em>
         </div>
       </div>
     )
@@ -149,16 +149,18 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
     )
   }
 
+  const many = wire.controls.length > 4
   return (
     <div className="ctl-center">
-      <div className="reel-rates">
+      <div className={`game-pad ${many ? 'wide ctl-allow-scroll' : ''}`}>
         {wire.controls.map((b) => (
           <button
             key={b.id}
-            className={`big-btn ${b.primary ? '' : 'ghost'}`}
+            className="big-btn"
             type="button"
-            disabled={locked || wire.locked}
+            disabled={locked || wire.locked || !!b.disabled}
             onClick={() => {
+              if (b.disabled) return
               haptic('press')
               pushGame({ inputSeq: wire.inputSeq + 1, actionId: b.id })
             }}

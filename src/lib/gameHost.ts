@@ -7,6 +7,7 @@ export interface GameButton {
   id: string
   label: string
   primary?: boolean
+  disabled?: boolean
 }
 
 export interface GameBridge {
@@ -67,7 +68,7 @@ export async function loadGameModule(id: GameId): Promise<GameModule> {
   if (typeof window.p5 !== 'function') throw new Error('p5 did not load')
   const row = GAMES.find((g) => g.id === id)
   if (!row) throw new Error(`unknown game ${id}`)
-  await loadScript(`${BASE}games/${row.file}?v=3`)
+  await loadScript(`${BASE}games/${row.file}?v=5`)
   const mod = window.Games?.[id] ?? window.Games?.[row.file.replace(/\.js$/, '')]
   if (!mod?.create) throw new Error(`game ${id} did not register`)
   return mod

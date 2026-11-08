@@ -1,18 +1,36 @@
+import { useEffect, useState } from 'react'
+import { adImageReady, adImageUrl, preloadAdImage } from '../lib/adReady.ts'
 import type { AdPlacement } from '../shared/ads.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import { WhyButton } from './WhyAd.tsx'
 import { XpWindow } from './XpWindow.tsx'
 
-const BASE = import.meta.env.BASE_URL
-
 export default function AdPopup({
   place, profile, onClose,
 }: { place: AdPlacement; profile: VisitorProfile; onClose: () => void }) {
+  const src = adImageUrl(place.image)
+  const [ready, setReady] = useState(() => adImageReady(place.image))
+
+  useEffect(() => {
+    preloadAdImage(place.image)
+    if (adImageReady(place.image)) {
+      setReady(true)
+      return
+    }
+    setReady(false)
+    const img = new Image()
+    img.onload = () => setReady(true)
+    img.onerror = () => setReady(true)
+    img.src = src
+  }, [place.image, src])
+
+  if (!ready) return null
+
   return (
     <div className="ad-popup">
       <XpWindow title="Message" menu={null} onClose={onClose}>
         <div className="ad-popup-body">
-          <img src={`${BASE}assets/${place.image}`} alt="" />
+          <img src={src} alt="" />
           <div className="ad-popup-copy">
             <div className="ad-kicker">Sponsored <WhyButton place={place} profile={profile} /></div>
             <div className="ad-headline">{place.headline}</div>

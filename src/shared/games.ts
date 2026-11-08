@@ -1,4 +1,5 @@
-import { ADS } from './ads.ts'
+import { ADS, adFromParody } from './ads.ts'
+import { PARODY_BRANDS } from './parodyBrands.ts'
 import type { VisitorProfile } from './profile.ts'
 import type { ReelResult } from './reel.ts'
 
@@ -18,7 +19,7 @@ export const GAME_UNLOCK_AFTER = 2
 export const GAME_RECOMMEND = {
   slots: { impulsivity: 0.55, sensationalism: 3, fastMs: 1800, extremes: 2 },
   higherLower: { mediumShare: 0.5, slowMs: 2500 },
-  pet: { moods: ['anxious', 'melancholy', 'numb', 'sad', 'concerned'] },
+  pet: { moods: ['anxious', 'melancholy', 'numb', 'sad', 'concerned'], probeValues: true },
   auction: { incomeMin: 3, vibes: ['aspirational'], categories: ['lifestyle', 'finance'] },
 }
 
@@ -83,7 +84,8 @@ export function gameProfileFromVisitor(p: VisitorProfile, reel?: ReelResult | nu
 }
 
 export function auctionAdItems() {
-  return ADS.map((ad, i) => ({
+  const rows = PARODY_BRANDS.length ? PARODY_BRANDS.map(adFromParody) : ADS
+  return rows.slice(0, 12).map((ad, i) => ({
     id: ad.id,
     name: ad.product,
     value: 25 + i * 35,
@@ -111,6 +113,7 @@ export function pickRecommendedGame(
   const mediumShare = rounds.length ? rounds.filter((r) => r.rating === 'MEDIUM').length / rounds.length : 0
   if (mediumShare >= R.higherLower.mediumShare || avgH >= R.higherLower.slowMs) scores.higherLower += 2
   if (R.pet.moods.includes(p.inferred.mood) || p.article.connotation === -1) scores.pet += 2
+  if (R.pet.probeValues && !p.game.traits.QUALITY_PREFERENCE) scores.pet += 1
   const income = p.article.income ?? 0
   const highs = reel?.rounds.filter((r) => r.rating === 'HIGH') ?? []
   if (income >= R.auction.incomeMin) scores.auction += 1
@@ -130,4 +133,11 @@ export function pickRecommendedGame(
 export function traitLine(traits: Record<string, string> | undefined) {
   if (!traits) return 'NO TRAITS RECORDED.'
   return Object.entries(traits).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(' · ')
+}
+
+export function petSessionLine(summary: Record<string, unknown> | null | undefined) {
+  if (!summary || summary.game !== 'pet') return ''
+  const bought = Array.isArray(summary.itemsBought) ? (summary.itemsBought as string[]).join(', ') : ''
+  const tops = Array.isArray(summary.topCategories) ? (summary.topCategories as string[]).join(', ') : ''
+  return `AD CONTINUES: ${summary.adContinues ?? 0} · CONTINUE: ${summary.choseToContinue ? 'YES' : 'NO'} · BOUGHT: ${bought || 'NOTHING'} · VALUES: ${tops || 'NONE'}`
 }

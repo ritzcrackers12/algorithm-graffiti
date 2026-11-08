@@ -5,6 +5,7 @@ export interface GameButton {
   id: string
   label: string
   primary?: boolean
+  disabled?: boolean
 }
 
 export interface GameWire {

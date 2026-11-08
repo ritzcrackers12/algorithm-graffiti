@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
-  kioskVideo, pauseKioskReel, playKioskReel, reelAudioFile, stopKioskReel, syncKioskAudio,
+  kioskVideo, pauseKioskReel, playKioskReel, preloadReelAudio, reelAudioFile, stopKioskReel, syncKioskAudio,
 } from '../lib/audio.ts'
 import { getBackend } from '../lib/backend.ts'
 import { loadReelLibrary, reelUrls } from '../lib/content.ts'
@@ -21,6 +21,38 @@ export default function ReelView({ result, openedAt = 0 }: { result?: ReelResult
   useEffect(() => {
     setSrcIndex(0)
   }, [id])
+
+  useEffect(() => {
+    let gone = false
+    const nodes: HTMLVideoElement[] = []
+    const buffer = (clipId: string) => {
+      preloadReelAudio(clipId)
+      for (const url of reelUrls(clipId)) {
+        const v = document.createElement('video')
+        v.preload = 'auto'
+        v.muted = true
+        v.playsInline = true
+        v.setAttribute('playsinline', 'true')
+        v.src = url
+        v.load()
+        nodes.push(v)
+      }
+    }
+    void loadReelLibrary().then((rows) => {
+      if (gone) return
+      for (const row of rows) {
+        if (row.sponsored) buffer(row.id)
+      }
+    })
+    if (result?.prefetchId && result.prefetchId !== id) buffer(result.prefetchId)
+    return () => {
+      gone = true
+      for (const v of nodes) {
+        v.removeAttribute('src')
+        v.load()
+      }
+    }
+  }, [result?.prefetchId, id])
 
   useEffect(() => {
     if (result?.currentId || phase === 'done') return

@@ -129,7 +129,7 @@ Columns: `id, file, link, creator, topic, subtopic, audience, mood, energy, form
 | **MEDIUM** | Keep audience **or** topic | Same | — | Small sideways step by meaning |
 | **LOW** | Different audience | −1 (min 1) | Different | Different mood too |
 
-Energy moves at most one step per round, except after LOW. **Round 3 is always a sponsored reel** matching the profile, preferring the same audience as HIGH-rated reels. "Sponsored" + ⓘ. Apply `notes` rules. Never repeat within a turn. After 5 rounds: `SESSION RECORDED. 5 PREFERENCES SAVED.` Own player: vertical, autoplay, loop, XP window, muted until tap-to-begin. No Instagram branding, links or UI. Mock: tag-word overlap.
+Energy moves at most one step per round, except after LOW. **Round 3 is always a sponsored reel** (`sponsored = yes` in the library): embed/overlap its `description + tags` against the visitor's liked audiences/topics, inferred interests, mood, and best-matching ad category; if nothing fits well, fall back to the next-closest by `ad_category`. Never show the same sponsored reel twice in a turn. **No "Sponsored" label and no ⓘ** — it looks like a normal reel (UGC-style native ad; only the end-session data reveals it). Its rating still feeds the profile. **No pop-up ads while the Reel object is open.** Apply `notes` rules. Never repeat a reel within a turn. After 5 rounds: `SESSION RECORDED. 5 PREFERENCES SAVED.` Own player: vertical, autoplay, loop, XP window, muted until tap-to-begin. No Instagram branding, links or UI. Mock: tag-word overlap.
 
 **Step 5 — Data.** Log each round: reel id, tags, rating, hesitation, depth. Profile: audience affinity (HIGH), max depth + path, topic/subtopic/mood prefs, sponsored rating. Session data view, plain system language only, e.g. `AUDIENCE SEGMENT: YOUNG MEN / SELF-IMPROVEMENT · MAX DEPTH: 4 · PATH: 1→2→3→4→4`. No commentary.
 
@@ -153,11 +153,12 @@ Icon starts **locked:** `ACCESS RESTRICTED. INSUFFICIENT DATA.` ⓘ "Why can't I
 
 Profile picks 1 of 3 tiny games ("RECOMMENDED FOR YOU"); the other two locked with their own ⓘ:
 
-1. Slot machine: tap to pull; outcomes and near-misses tuned by profile
-2. Choose a door: three doors, a few rounds, risk vs. safe
-3. Clicker: tap for points, upgrades for sale
+1. Slot machine: tap to pull; outcomes and near-misses tuned by profile (not installed)
+2. Auction (not installed)
+3. Higher or Lower
+4. DigiPet: Tamagotchi economy. Starting allowance from `incomeBracket`. Every care action is a purchase. Measures attachment (revives / ad-continues) and what they buy (`itemsBought`, `topCategories`, `QUALITY_PREFERENCE`). Recommended when mood is anxious / melancholy / numb. Phone is a same-color priced grid; iPad is the pet only.
 
-Phone is the controller. Short delay phone→iPad: slow, timing-forgiving, nothing twitchy. Each game includes the in-game shop offer (Section 8), priced by income. Choices feed the profile.
+Phone is the controller. Short delay phone→iPad: slow, timing-forgiving, nothing twitchy. DigiPet spending maps into ad scoring via `PET_AD_RULES` in `adTaxonomy.ts`.
 
 ---
 
@@ -165,11 +166,23 @@ Phone is the controller. Short delay phone→iPad: slow, timing-forgiving, nothi
 
 ### Ad library
 
-`content/ads.csv`: `id, category, brand, product, tagline, image, voice_script, target_rules`.
+`content/ads.csv`: placeholder image rows (`id, category, brand, product, tagline, image, voice_script, target_rules`). Images live in `public/assets/ads/`.
 
-I'll add real (fictional) ads later. Until then: **6 placeholder rows** (PLACEHOLDER BRAND 1…), generic categories, so the system can be built. `target_rules` = conditions on the profile (e.g. `income<=60k AND mood=anxious`). `image` = file in `public/assets/ads/`. If missing, generate once with Replicate, cache in Supabase Storage `ads/`, reuse.
+**Parody brand catalog** (the actual brands the engine riffs on): `src/shared/parodyBrands.ts`. Each entry: parody name, real brand/category it references, category, product copy, and target keywords. Add, rename, or retarget there. Hard limits: names and logos **reference but never copy** a real brand; **never parody or depict a real person**; drug/vape/gambling copy is **satirical, not promotional**.
 
-README guide: how to add ads, what columns mean, how to write `target_rules`.
+How the engine uses it:
+
+1. Score every catalog row against the visitor profile (interests, inferred demographics, mood, income, susceptibility, liked reel tags). Pick the **best match**.
+2. If nothing fits well, **invent a new parody brand** in the closest category rather than forcing a bad row — prefer things currently in culture/media.
+3. Generate copy (and later images) from that parody plus the profile and the placement.
+
+Starting catalog (edit in `src/shared/parodyBrands.ts`): POLECULEMARKET (Polymarket), BLUE COW (Red Bull), DEMON (Monster), FORYOU FINDS (TikTok Shop), SONARA (JBL / Marshall), VOID ATELIER (Rick Owens aesthetic — invented house name), MAISON NÉANT No. 9 (Chanel), MOON LAB (Round Lab), THE GENERIC (The Ordinary), ZEMPIK (Ozempic / GLP-1, satirical), SOLACE AI (Replika), QUICKCASH (payday / BNPL, satirical), KINGSBET (DraftKings / FanDuel, satirical), COINFLIP (Coinbase / meme coins, satirical), ZING (Zyn, satirical), GRINDSET ACADEMY (hustle courses), HAUL (Shein / Temu), RIZZ (Tinder / Hinge), BULKMAX (gym supplements), VOLTA (Tesla), plus NYC 18–40 additions: EDENHAUS (Erewhon), FRESHLEAF (Sweetgreen), INFERNO (Barry's), REFORM (reformer Pilates), BLANK SLATE (Blank Street), CLARITY (BetterHelp), SERENE (Calm / Headspace), ROAM (Hims), BLOOM (Hers), ASTRL (Co-Star), SHERWOOD (Robinhood), BORO (Aimé Leon Dore), COGNIS (ChatGPT / AI tools), OUR TABLE (Our Place), APEX RESERVE (Amex Platinum), NATTY (natural wine), GREEN DOOR (NY dispensary, satirical), SPINNR (Spotify). After editing, run `node scripts/sync-shared.mjs`.
+
+Scoring (in `src/shared/parodyBrands.ts` + `src/shared/adTaxonomy.ts`): premium vs budget from Article income + pet `SPENDING` / `QUALITY_PREFERENCE`; wellness/therapy/meditation from anxious/melancholy mood; betting/trading/crypto from game risk and loss-chasing; ROAM vs BLOOM from a **low-confidence gender guess** (reel audience tags, never appearance); luxury/status (APEX RESERVE, MAISON NÉANT, VOLTA, EDENHAUS) from high income + aspirational + premium; ASTRL / COGNIS from education + the on-theme “algorithm knows you” angle. Low-confidence profiles fall back to broad daily brands (BLANK SLATE, SPINNR, FRESHLEAF, FORYOU FINDS) instead of a niche miss.
+
+Reel **Lists** tab (`content/reel-library.xlsx`) includes matching `topic` / `subtopic` / `audience` / `ad_category` clusters so HIGH ratings can actually point at a family.
+
+Reel native ads do **not** use this catalog: they use sponsored rows in the reel library.
 
 ### Personalization
 
@@ -181,21 +194,21 @@ Personalize copy with the profile (headline, framing, tone), matched to educatio
 
 | Object | Native ad |
 |---|---|
-| Reel | Sponsored reel in round 3 |
-| Article | Sponsored paragraph |
-| Song | Radio ad between stations |
-| Game | In-game shop offer or banner, priced/worded by income |
+| Reel | Sponsored reel in round 3 (no overlay, no "Sponsored", no ⓘ) |
+| Article | Sponsored paragraph (parody brand) |
+| Song | Radio ad between stations (parody brand) |
+| Game | In-game shop offer or banner, priced/worded by income (parody brand) |
 
-Plus **2–3 pop-up ads** per turn on the iPad: XP-style windows, fake-looking close (real close works), ad image + personalized headline.
+Plus **2–3 pop-up ads** per turn on the iPad: XP-style windows, fake-looking close (real close works), ad image + personalized headline. **Never while the Reel object is open.**
 
-**Timing.** Native ads in every object, including the first one opened. Pop-ups: max 3 per turn; first after the visitor finishes their first object; at least 45 seconds apart; only during loading dialogs or when switching objects; never during a rating, a game move, or the end screen.
+**Timing.** Native ads in every object, including the first one opened. Pop-ups: max 3 per turn; first after the visitor finishes their first object; at least 45 seconds apart; only during loading dialogs or when switching objects; never during a rating, a game move, the Reel window, or the end screen.
 
 ### "Why am I seeing this?"
 
-Every ad (native and pop-up) has ⓘ → two-layer panel:
+Every generated ad (article, pop-up, radio, shop) has ⓘ → two-layer panel. Reel sponsored items do **not**.
 
 1. Official: vague, like real platforms: `You're seeing this ad based on your activity.`
-2. **FULL REPORT** button: exact signals, source, time, match confidence. 100% accurate from actual scores and rules that fired, never AI guessing. Plain system language only.
+2. **FULL REPORT** button: exact signals, source, time, match confidence. 100% accurate from actual scores and rules that fired, never AI guessing. Plain system language only. Name the parody and its real reference, e.g. `… → BETTING (parody of Polymarket) "POLECULEMARKET"`.
 
 ---
 

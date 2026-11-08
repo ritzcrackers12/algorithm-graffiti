@@ -1,6 +1,6 @@
 // iPad Safari will not start a new audible <video> after TAP TO BEGIN.
-// Keep one HTMLAudioElement looping same-origin silence from that tap, then
-// play reel AAC through the already-running AudioContext (silent-switch safe).
+// Keep one HTMLAudioElement alive from that tap, then swap its src to the reel.
+// Web Audio is a backup only while the context is still running (silent-switch).
 const BASE = import.meta.env.BASE_URL
 const UNLOCK = `${BASE}assets/unlock.m4a`
 const SILENCE = `${BASE}assets/silence.m4a`
@@ -15,6 +15,7 @@ let clipNode: AudioBufferSourceNode | null = null
 let clipBuf: AudioBuffer | null = null
 let clipOffset = 0
 let armed = false
+let usingElement = false
 const buffers = new Map<string, AudioBuffer>()
 
 function graph() {
@@ -28,10 +29,18 @@ function graph() {
   return ctx
 }
 
+function setPlaybackSession() {
+  try {
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+    if (session) session.type = 'playback'
+  } catch { /* older Safari */ }
+}
+
 function armResume() {
   if (armed) return
   armed = true
   const kick = () => {
+    setPlaybackSession()
     void graph().resume()
     const a = audio
     if (a && a.paused && unlocked) void a.play().catch(() => {})
@@ -65,15 +74,27 @@ function kioskAudio() {
     audio = new Audio()
     audio.preload = 'auto'
     audio.loop = true
-    audio.crossOrigin = 'anonymous'
     audio.setAttribute('playsinline', 'true')
     audio.setAttribute('webkit-playsinline', 'true')
+    audio.addEventListener('playing', () => { void graph().resume() })
+    audio.addEventListener('timeupdate', () => {
+      if (ctx && ctx.state !== 'running') void ctx.resume()
+    })
   }
   return audio
 }
 
 export function reelAudioFile(id: string) {
-  return `${BASE}content/reel-audio/${id}.m4a?v=2`
+  return `${BASE}content/reel-audio/${id}.m4a?v=3`
+}
+
+export function preloadReelAudio(id: string) {
+  if (!id) return
+  const src = reelAudioFile(id)
+  void loadBuffer(src).catch(() => {})
+  const hint = new Audio()
+  hint.preload = 'auto'
+  hint.src = src
 }
 
 function stopClip() {
@@ -109,20 +130,43 @@ function startClip(buf: AudioBuffer, offset: number) {
   clipNode = node
   clipBuf = buf
   clipOffset = ac.currentTime - off
+  usingElement = false
+}
+
+function absUrl(src: string) {
+  return new URL(src, location.href).href
+}
+
+function playThroughKiosk(src: string) {
+  const a = kioskAudio()
+  a.loop = false
+  a.muted = false
+  a.volume = 1
+  if (a.src !== absUrl(src)) {
+    a.src = src
+    a.load()
+  }
+  try { a.currentTime = 0 } catch { /* ignore */ }
+  usingElement = true
+  return a.play()
 }
 
 function holdSilence() {
+  usingElement = false
   const a = kioskAudio()
   a.loop = true
   a.muted = false
   a.volume = 1
-  const abs = new URL(SILENCE, location.href).href
-  if (a.src !== abs) a.src = SILENCE
+  if (a.src !== absUrl(SILENCE)) {
+    a.src = SILENCE
+    a.load()
+  }
   void a.play().catch(() => {})
 }
 
 export function unlockAudio() {
   unlocked = true
+  setPlaybackSession()
   armResume()
   try {
     const ac = graph()
@@ -163,7 +207,7 @@ export function unlockAudio() {
   void v.play().catch(() => {})
 
   ;['001', '002', '003', '004', '005'].forEach((id) => {
-    void loadBuffer(reelAudioFile(id)).catch(() => {})
+    preloadReelAudio(id)
   })
 
   window.dispatchEvent(new Event('ag-media-unlock'))
@@ -174,28 +218,30 @@ export function playKioskReel(videoSrc: string, audioSrc: string) {
   v.muted = true
   v.loop = false
   v.style.cssText = ''
-  if (v.currentSrc !== new URL(videoSrc, location.href).href) v.src = videoSrc
+  if (v.currentSrc !== absUrl(videoSrc)) v.src = videoSrc
   void v.play().catch(() => {})
 
-  holdSilence()
+  stopClip()
+  setPlaybackSession()
   void graph().resume()
-  return loadBuffer(audioSrc)
-    .then((buf) => {
-      startClip(buf, 0)
-    })
+
+  return playThroughKiosk(audioSrc)
+    .catch(() => playThroughKiosk(videoSrc))
     .catch(() => {
-      const a = kioskAudio()
-      a.loop = false
-      a.muted = false
-      a.volume = 1
-      const abs = new URL(audioSrc, location.href).href
-      if (a.src !== abs) a.src = audioSrc
-      try { a.currentTime = 0 } catch { /* ignore */ }
-      return a.play().catch(() => a.play())
+      usingElement = false
+      return loadBuffer(audioSrc).then((buf) => {
+        startClip(buf, 0)
+      })
     })
 }
 
 export function syncKioskAudio(seconds: number) {
+  if (usingElement && audio && !audio.paused) {
+    if (Math.abs(audio.currentTime - seconds) > 0.35) {
+      try { audio.currentTime = seconds } catch { /* ignore */ }
+    }
+    return
+  }
   if (clipNode && clipBuf && ctx) {
     const now = ctx.currentTime - clipOffset
     if (Math.abs(now - seconds) > 0.4) startClip(clipBuf, seconds)
@@ -210,6 +256,7 @@ export function syncKioskAudio(seconds: number) {
 export function pauseKioskReel() {
   video?.pause()
   stopClip()
+  usingElement = false
   if (unlocked) holdSilence()
 }
 

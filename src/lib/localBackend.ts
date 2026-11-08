@@ -1,7 +1,7 @@
 // LOCAL MODE: used when Supabase isn't configured (or with ?local in the URL).
 // Mirrors the SQL rules in supabase/migrations using localStorage, so several tabs in the
 // same browser can act as iPad + phones. Generation is always mock here.
-import { pickAd, personalizeAd, weaveSponsored } from '../shared/ads.ts'
+import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../shared/ads.ts'
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
 import { CONFIG, OBJECTS } from '../shared/config.ts'
 import { gameIconLocked, objectsTouched } from '../shared/games.ts'
@@ -10,7 +10,7 @@ import { emptyProfile, hydrateProfile, inferProfile, type VisitorProfile } from 
 import {
   AFFINITY_KEY, addRating, emptyAffinity, emptyReelResult, logRound,
   parseAffinity, pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
-  type ReelResult, type ReelRow,
+  attachPrefetch, type ReelResult, type ReelRow,
 } from '../shared/reel.ts'
 import type { AdminStatus, Altered, ArticleResult, DisplayState, ProxyStatus, ReplicateMode, Snapshot, Source } from '../shared/types.ts'
 import type { Backend } from './backend.ts'
@@ -172,7 +172,7 @@ export function createLocalBackend(): Backend {
     return reelLibrary
   }
 
-  function produceReel(params: { action: string; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined): ReelResult {
+  function produceReel(params: { action: string; seed?: number; rating?: 'HIGH' | 'MEDIUM' | 'LOW'; hesitationMs?: number }, library: ReelRow[], prev: ReelResult | undefined, profile?: VisitorProfile): ReelResult {
     const current = prev ?? emptyReelResult()
     if (params.action === 'start' || params.action === 'word') {
       if (current.phase === 'done') return current
@@ -181,12 +181,12 @@ export function createLocalBackend(): Backend {
       if (!pick) {
         return { ...emptyReelResult(), phase: 'done', sessionLine: 'NO LIBRARY.', at: Date.now(), source: 'fallback' }
       }
-      return {
+      return attachPrefetch({
         word: '',
         phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
         rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
-        source: 'mock', at: Date.now(),
-      }
+        source: 'mock', at: Date.now(), prefetchId: null,
+      }, library, loadAffinity(), profile)
     }
     const rating = params.rating
     if (!rating || !current.currentId) return { ...current, at: Date.now() }
@@ -197,16 +197,16 @@ export function createLocalBackend(): Backend {
     if (!cur) return { ...current, rounds, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now() }
     const last = rounds[rounds.length - 1]
     if (last) saveAffinity(addRating(loadAffinity(), last, rating))
-    const next = pickNext(library, current.usedIds, cur, rating, rounds, loadAffinity(), null, true)
+    const next = pickNext(library, current.usedIds, cur, rating, rounds, loadAffinity(), null, true, profile)
     if (!next) {
-      return { ...current, rounds, currentId: null, videoUrl: null, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now(), source: 'mock' }
+      return { ...current, rounds, currentId: null, videoUrl: null, phase: 'done', sessionLine: sessionLine(rounds), at: Date.now(), source: 'mock', prefetchId: null }
     }
     const nextRounds = [...rounds, logRound(next, null, 0)]
-    return {
+    return attachPrefetch({
       ...current, rounds: nextRounds, usedIds: [...current.usedIds, next.id],
       currentId: next.id, videoUrl: playableUrl(next.id), phase: 'playing',
-      sessionLine: sessionLine(nextRounds), at: Date.now(), source: 'mock',
-    }
+      sessionLine: sessionLine(nextRounds), at: Date.now(), source: 'mock', prefetchId: null,
+    }, library, loadAffinity(), profile)
   }
 
   function finish(id: number, session: string, object: 'article' | 'reel', result: unknown, source: Source) {
@@ -290,7 +290,7 @@ export function createLocalBackend(): Backend {
             if (pick) {
               db.altered = {
                 ...db.altered,
-                reel: {
+                reel: attachPrefetch({
                   word: '',
                   phase: 'playing',
                   currentId: pick.id,
@@ -300,7 +300,8 @@ export function createLocalBackend(): Backend {
                   sessionLine: '',
                   source: 'mock',
                   at: Date.now(),
-                },
+                  prefetchId: null,
+                }, library, loadAffinity(), db.profile),
               }
             }
           }
@@ -374,7 +375,7 @@ export function createLocalBackend(): Backend {
             const p = articleParams
             const out = mockArticle(p, await loadArticle(p.articleId), resolveLocation(p.location))
             const profile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
-            const match = pickAd(profile)
+            const match = pickAd({ ...profile, adsShown: reservedAdIds(profile) }, undefined, db.altered.reel?.rounds)
             const sponsored = match ? personalizeAd(match, profile) : undefined
             result = {
               params: canonicalArticleParams(p),
@@ -386,7 +387,8 @@ export function createLocalBackend(): Backend {
             }
           } else if (req.object === 'reel' && reelParams) {
             const library = await loadReels()
-            result = produceReel(reelParams, library, db.altered.reel)
+            const reelProfile = inferProfile({ ...emptyProfile(), ...db.profile, ...(req.profile ?? {}) })
+            result = produceReel(reelParams, library, db.altered.reel, reelProfile)
           }
         } catch (e) {
           console.error(e)

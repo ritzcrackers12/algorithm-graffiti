@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { preloadAdCatalog, preloadPlacement } from '../lib/adReady.ts'
 import { AssetImg } from '../components/AssetImg.tsx'
 import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
@@ -31,6 +32,10 @@ export default function Desktop({ live }: { live: Live }) {
   const [adClosed, setAdClosed] = useState(0)
 
   useEffect(() => {
+    preloadAdCatalog()
+  }, [])
+
+  useEffect(() => {
     if (open) {
       setClosing(false)
       setClicking(open)
@@ -60,6 +65,11 @@ export default function Desktop({ live }: { live: Live }) {
     : null
   const touched = objectsTouched(snap)
   const gameLock = gameIconLocked(touched, profile.game.seen)
+
+  useEffect(() => {
+    preloadPlacement(profile.pendingAd as AdPlacement | null)
+    preloadPlacement(profile.lastAd as AdPlacement | null)
+  }, [profile.pendingAd, profile.lastAd])
 
   return (
     <div className="desktop desktop-fallback">
@@ -130,7 +140,7 @@ export default function Desktop({ live }: { live: Live }) {
       )}
 
       {snap?.display.busy && snap.display.busy.object !== 'reel' && <ProgressDialog busy={snap.display.busy} />}
-      {place && (!open || snap?.display.busy) && (
+      {place && open !== 'reel' && (!open || snap?.display.busy) && (
         <AdPopup place={place} profile={profile} onClose={() => setAdClosed(place.at)} />
       )}
       <Taskbar live={live} openId={shown} />

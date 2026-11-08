@@ -48,6 +48,9 @@ export interface ProfileAd {
   reasons: string[]
   confidence: number
   at: number
+  riffsOn?: string
+  report?: string
+  invented?: boolean
 }
 
 export interface VisitorProfile {
@@ -72,6 +75,8 @@ export interface VisitorProfile {
   popups: number
   lastPopupAt: number
   lastAd: ProfileAd | null
+  /** Built off-screen so the next popup/shop ad can paint without waiting. */
+  pendingAd: ProfileAd | null
   adClosedAt: number
   game: {
     urgencyGroup: 'urgent' | 'control' | null
@@ -99,6 +104,7 @@ export const emptyProfile = (): VisitorProfile => ({
   popups: 0,
   lastPopupAt: 0,
   lastAd: null,
+  pendingAd: null,
   adClosedAt: 0,
   game: {
     urgencyGroup: null,
@@ -132,6 +138,7 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
     popups: r.popups ?? 0,
     lastPopupAt: r.lastPopupAt ?? 0,
     lastAd: r.lastAd ?? null,
+    pendingAd: r.pendingAd ?? null,
     adClosedAt: r.adClosedAt ?? 0,
     device: r.device ?? null,
     game: {
@@ -203,6 +210,7 @@ export function inferProfile(p: VisitorProfile): VisitorProfile {
   else if (a.education === 5) ageRange = '30-54'
   else if (p.device?.type === 'phone' && hour >= 21) ageRange = '18-34'
 
+  const blob = p.events.map((e) => e.value).join(' ').toLowerCase()
   const interests: string[] = []
   if ((a.lean ?? 0) <= -1) interests.push('civic', 'labor')
   if ((a.lean ?? 0) >= 1) interests.push('security', 'markets')
@@ -210,6 +218,36 @@ export function inferProfile(p: VisitorProfile): VisitorProfile {
   if ((a.income ?? 0) >= 4) interests.push('premium')
   if (mood === 'anxious' || mood === 'restless') interests.push('relief')
   if (mood === 'upbeat') interests.push('lifestyle')
+  const clusters: [string, RegExp][] = [
+    ['wellness', /wellness|pilates|meditation|skincare|smoothie/],
+    ['fitness', /fitness|gym|hiit|workout/],
+    ['fashion', /fashion|streetwear|sneakers/],
+    ['food', /food|bowl|lunch|coffee|matcha/],
+    ['finance', /finance|invest|trading|crypto|markets/],
+    ['mental-health', /therapy|mental|lonely|anxious/],
+    ['tech', /\bai\b|tech|chatgpt/],
+    ['astrology', /astrology|spiritual|cosmic/],
+    ['nightlife', /nightlife|wine|bar|dispensary/],
+    ['luxury', /luxury|premium|status|platinum/],
+    ['dating', /dating|single|rizz/],
+    ['music', /music|audio|spotify/],
+    ['gaming', /gaming|gamer/],
+    ['sports', /sports/],
+  ]
+  for (const [name, re] of clusters) {
+    if (re.test(blob) && !interests.includes(name)) interests.push(name)
+  }
+  const petCats = Array.isArray(p.game?.lastSummary?.topCategories) ? p.game.lastSummary.topCategories as string[] : []
+  const petMap: Record<string, string> = {
+    food: 'food', indulgence: 'lifestyle', hygiene: 'wellness', health: 'wellness', goods: 'fashion', luxury: 'luxury',
+  }
+  for (const cat of petCats) {
+    const mapped = petMap[cat]
+    if (mapped && !interests.includes(mapped)) interests.push(mapped)
+  }
+  const quality = (p.game?.traits?.QUALITY_PREFERENCE ?? '').toUpperCase()
+  if (quality.includes('PREMIUM') && !interests.includes('premium')) interests.push('premium')
+  if (quality.includes('BUDGET') && !interests.includes('value')) interests.push('value')
 
   const sens = (a.sensationalism ?? 0) / 4
   const ext = Math.min(1, p.behavior.extremes / 4)
@@ -218,19 +256,19 @@ export function inferProfile(p: VisitorProfile): VisitorProfile {
   const inferred: InferredProfile = {
     incomeBracket, region, lean, mood, interests, ageRange, susceptibility,
   }
-  return { ...p, inferred, categories: scoreCategories(inferred, p.device) }
+  return { ...p, inferred, categories: scoreCategories(inferred, p.device, blob) }
 }
 
-function scoreCategories(inf: InferredProfile, device: DeviceSignals | null): CategoryScore[] {
+function scoreCategories(inf: InferredProfile, device: DeviceSignals | null, blob = ''): CategoryScore[] {
   const rows: CategoryScore[] = [
     {
       category: 'wellness',
-      confidence: inf.mood === 'anxious' || inf.mood === 'restless' ? 0.72 : 0.28,
+      confidence: inf.mood === 'anxious' || inf.mood === 'restless' || inf.interests.includes('wellness') ? 0.72 : 0.28,
       reasons: [`MOOD: ${inf.mood.toUpperCase()}`],
     },
     {
       category: 'finance',
-      confidence: inf.incomeBracket && /\$100K|\$200K|\$500K/.test(inf.incomeBracket) ? 0.7 : 0.25,
+      confidence: inf.interests.includes('finance') || inf.interests.includes('crypto') || (inf.incomeBracket && /\$100K|\$200K|\$500K/.test(inf.incomeBracket)) ? 0.7 : 0.25,
       reasons: inf.incomeBracket ? [`INCOME ${inf.incomeBracket}`] : ['INCOME UNSET'],
     },
     {
@@ -253,7 +291,36 @@ function scoreCategories(inf: InferredProfile, device: DeviceSignals | null): Ca
       confidence: inf.mood === 'upbeat' || inf.interests.includes('lifestyle') ? 0.65 : 0.3,
       reasons: [`MOOD: ${inf.mood.toUpperCase()}`],
     },
+    {
+      category: 'mental-health',
+      confidence: inf.mood === 'anxious' || inf.interests.includes('mental-health') ? 0.7 : 0.2,
+      reasons: [`MOOD: ${inf.mood.toUpperCase()}`],
+    },
+    {
+      category: 'fitness',
+      confidence: inf.interests.includes('fitness') ? 0.68 : 0.18,
+      reasons: inf.interests.includes('fitness') ? ['INTEREST FITNESS'] : ['FITNESS UNSET'],
+    },
+    {
+      category: 'fashion',
+      confidence: inf.interests.includes('fashion') || inf.interests.includes('luxury') ? 0.66 : 0.18,
+      reasons: inf.interests.includes('fashion') ? ['INTEREST FASHION'] : ['FASHION UNSET'],
+    },
+    {
+      category: 'luxury',
+      confidence: inf.interests.includes('luxury') || inf.interests.includes('premium') ? 0.7 : 0.18,
+      reasons: inf.interests.includes('premium') ? ['INTEREST PREMIUM'] : ['LUXURY UNSET'],
+    },
+    {
+      category: 'tech',
+      confidence: inf.interests.includes('tech') ? 0.64 : 0.18,
+      reasons: inf.interests.includes('tech') ? ['INTEREST TECH'] : ['TECH UNSET'],
+    },
   ]
+  if (blob && /wellness|therapy/.test(blob)) {
+    const w = rows.find((r) => r.category === 'wellness')
+    if (w) w.confidence = Math.min(0.9, w.confidence + 0.12)
+  }
   if (inf.region) {
     for (const row of rows) {
       row.reasons.push(`REGION ${inf.region.toUpperCase()}`)

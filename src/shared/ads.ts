@@ -1,5 +1,6 @@
 import type { VisitorProfile } from './profile.ts'
 import { clockLabel } from './profile.ts'
+import { absurdItem, pickParody, parodyReportLine, type ParodyBrand, type ParodyReelSignal } from './parodyBrands.ts'
 
 export interface Ad {
   id: string
@@ -10,6 +11,12 @@ export interface Ad {
   image: string
   voiceScript: string
   targetRules: string
+  riffsOn?: string
+  report?: string
+  invented?: boolean
+  satirical?: boolean
+  inventItems?: boolean
+  adStyle?: string
 }
 
 export interface AdMatch {
@@ -30,6 +37,10 @@ export interface AdPlacement {
   reasons: string[]
   confidence: number
   at: number
+  riffsOn?: string
+  report?: string
+  invented?: boolean
+  adStyle?: string
 }
 
 export const ADS: Ad[] = [
@@ -153,15 +164,64 @@ export function scoreAd(ad: Ad, p: VisitorProfile): AdMatch {
   }
 }
 
-export function rankAds(p: VisitorProfile, ads: Ad[] = ADS): AdMatch[] {
-  return ads
-    .filter((a) => !p.adsShown.includes(a.id))
-    .map((a) => scoreAd(a, p))
-    .sort((a, b) => b.score - a.score)
+function imageFor(brand: ParodyBrand) {
+  let n = 0
+  for (const c of brand.id) n = (n + c.charCodeAt(0)) % ADS.length
+  return ADS[n]?.image ?? 'ads/ph-1.svg'
 }
 
-export function pickAd(p: VisitorProfile, ads: Ad[] = ADS): AdMatch | null {
-  return rankAds(p, ads)[0] ?? null
+export function adFromParody(brand: ParodyBrand): Ad {
+  return {
+    id: `parody-${brand.id}`,
+    category: brand.category,
+    brand: brand.name,
+    product: brand.product,
+    tagline: brand.tagline,
+    image: imageFor(brand),
+    voiceScript: brand.voiceScript,
+    targetRules: '',
+    riffsOn: brand.riffsOn,
+    report: brand.report,
+    invented: brand.invented,
+    satirical: brand.satirical,
+    inventItems: brand.inventItems,
+    adStyle: brand.adStyle,
+  }
+}
+
+export function rankAds(p: VisitorProfile, ads: Ad[] = ADS, rounds: ParodyReelSignal[] = []): AdMatch[] {
+  if (ads !== ADS) {
+    return ads
+      .filter((a) => !p.adsShown.includes(a.id))
+      .map((a) => scoreAd(a, p))
+      .sort((a, b) => b.score - a.score)
+  }
+  const match = pickParody(p, p.adsShown, rounds)
+  const ad = adFromParody(match.brand)
+  return [{
+    ad,
+    score: match.score,
+    reasons: match.reasons,
+    confidence: match.confidence,
+  }]
+}
+
+export function pickAd(p: VisitorProfile, ads: Ad[] = ADS, rounds: ParodyReelSignal[] = []): AdMatch | null {
+  return rankAds(p, ads, rounds)[0] ?? null
+}
+
+export function reservedAdIds(p: VisitorProfile): string[] {
+  const ids = [...p.adsShown]
+  if (p.pendingAd?.adId) ids.push(p.pendingAd.adId)
+  if (p.lastAd?.adId && p.lastAd.at > (p.adClosedAt ?? 0)) ids.push(p.lastAd.adId)
+  return [...new Set(ids)]
+}
+
+/** Build a placement without marking it shown. Used to warm the next ad off-screen. */
+export function makeAd(p: VisitorProfile, rounds: ParodyReelSignal[] = [], extraShown: string[] = []): AdPlacement | null {
+  const shown = [...new Set([...p.adsShown, ...extraShown])]
+  const match = pickAd({ ...p, adsShown: shown }, undefined, rounds)
+  return match ? personalizeAd(match, p) : null
 }
 
 /** Templates only. CONFIG.AI_AD_COPY is off; live AI copy is a later optional path. */
@@ -171,7 +231,11 @@ export function personalizeAd(match: AdMatch, p: VisitorProfile): AdPlacement {
   const mood = inf.mood.toUpperCase()
   const edu = p.article.education ?? 3
   let headline = match.ad.tagline.toUpperCase()
-  if (edu <= 1) headline = `${match.ad.product.toUpperCase()} — MADE FOR ${region}.`
+  if (match.ad.adStyle) {
+    headline = edu <= 1
+      ? `${match.ad.product.toUpperCase()} — ${region}.`
+      : match.ad.tagline.toUpperCase()
+  } else if (edu <= 1) headline = `${match.ad.product.toUpperCase()} — MADE FOR ${region}.`
   else if ((p.article.lean ?? 0) <= -1) headline = `${region}: ${match.ad.product.toUpperCase()} FOR PEOPLE DOING THE WORK.`
   else if ((p.article.lean ?? 0) >= 1) headline = `${match.ad.product.toUpperCase()}. NO NOISE. ${region}.`
   else headline = `${mood === 'NEUTRAL' ? '' : `FEELING ${mood} IN ${region}? `}${match.ad.tagline.toUpperCase()}`
@@ -188,6 +252,10 @@ export function personalizeAd(match: AdMatch, p: VisitorProfile): AdPlacement {
     reasons: match.reasons,
     confidence: match.confidence,
     at: Date.now(),
+    riffsOn: match.ad.riffsOn,
+    report: match.ad.report,
+    invented: match.ad.invented,
+    adStyle: match.ad.adStyle,
   }
 }
 
@@ -195,20 +263,30 @@ export function sponsoredParagraph(match: AdMatch, p: VisitorProfile): string {
   const inf = p.inferred
   const region = inf.region ?? 'this market'
   const brand = match.ad.brand
-  const product = match.ad.product
+  const product = match.ad.inventItems ? absurdItem(p) : match.ad.product
+  const riff = match.ad.riffsOn ? ` (a parody of ${match.ad.riffsOn}, not the real company)` : ''
+  if (match.ad.satirical) {
+    return `${brand} paid for this space${riff}. ${product}: ${match.ad.tagline} This is commentary on the category, not an offer.`
+  }
+  if (match.ad.inventItems) {
+    return `${brand} paid for this paragraph${riff}. Today's drop for ${region}: ${product}. ${match.ad.tagline}`
+  }
+  if (match.ad.adStyle) {
+    return `${brand} paid for this paragraph${riff}. ${match.ad.voiceScript}`
+  }
   const lean = p.article.lean ?? 0
   const edu = p.article.education ?? 3
   if (lean <= -1) {
     return edu <= 1
-      ? `${brand} paid to say this: ${product} is for people in ${region} who are tired of being last in line.`
-      : `A note from ${brand}, which paid for this space: ${product} is being sold as a practical tool for workers and renters in ${region} — the same households the rest of this story keeps circling.`
+      ? `${brand} paid to say this${riff}: ${product} is for people in ${region} who are tired of being last in line.`
+      : `A note from ${brand}, which paid for this space${riff}: ${product} is being sold as a practical tool for workers and renters in ${region} — the same households the rest of this story keeps circling.`
   }
   if (lean >= 1) {
     return edu >= 4
-      ? `${brand} purchased this insertion. ${product} is positioned as a private-market answer in ${region}, independent of the public programs debated above.`
-      : `${brand} paid for this line. They say ${product} is a straightforward option in ${region} if you would rather not wait on the next round of rules.`
+      ? `${brand} purchased this insertion${riff}. ${product} is positioned as a private-market answer in ${region}, independent of the public programs debated above.`
+      : `${brand} paid for this line${riff}. They say ${product} is a straightforward option in ${region} if you would rather not wait on the next round of rules.`
   }
-  return `${brand} paid for this paragraph. ${product}: ${match.ad.tagline} Available in ${region}.`
+  return `${brand} paid for this paragraph${riff}. ${product}: ${match.ad.tagline} Available in ${region}.`
 }
 
 export const SPONSORED_MARK = '%%SPONSORED%%'
@@ -224,11 +302,35 @@ export function officialWhy() {
   return "You're seeing this ad based on your activity."
 }
 
+function petReportLine(p: VisitorProfile): string {
+  const s = p.game?.lastSummary
+  if (!s || s.game !== 'pet') return ''
+  const bought = Array.isArray(s.itemsBought) ? (s.itemsBought as string[]).map((x) => x.toUpperCase()).join(', ') : ''
+  const quality = p.game.traits.QUALITY_PREFERENCE || 'UNKNOWN'
+  const values = Array.isArray(s.topCategories) ? (s.topCategories as string[]).join(', ') : ''
+  return `BOUGHT: ${bought || 'NOTHING'} · QUALITY: ${quality} · VALUES: ${values || 'none'}`
+}
+
 export function fullReport(place: AdPlacement, p: VisitorProfile): string {
   const bits = place.reasons.map((r) => {
     const ev = p.events.find((e) => r.toUpperCase().includes(e.key.toUpperCase()) || r.includes(e.value))
     return ev ? `${r} (${ev.source.toUpperCase()}, ${clockLabel(ev.at)})` : r
   })
   const conf = Math.round(place.confidence * 100)
-  return `${bits.join(' + ')} → CATEGORY: ${place.category.toUpperCase()} · MATCH CONFIDENCE ${conf}%.`
+  const parody = place.riffsOn
+    ? parodyReportLine({
+      id: place.adId,
+      name: place.brand,
+      riffsOn: place.riffsOn,
+      report: place.report || place.category.toUpperCase(),
+      category: place.category,
+      product: place.product,
+      tagline: place.headline,
+      voiceScript: '',
+      targets: [],
+      invented: place.invented,
+    })
+    : `CATEGORY: ${place.category.toUpperCase()}`
+  const pet = petReportLine(p)
+  return `${[pet, bits.join(' + ')].filter(Boolean).join(' · ')} → ${parody} · MATCH CONFIDENCE ${conf}%.`
 }

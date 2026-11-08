@@ -11,7 +11,8 @@ Five rows `001`–`005` from `content/reel-library.xlsx`. Raw files stay in `con
 - **Upload:** `reels/001.mp4` … `005.mp4` at `https://nkmeiqwhwuuysdahyzju.supabase.co/storage/v1/object/public/reels/{id}.mp4`
 - **Tag:** empty cells only. Energy from ffmpeg (all medium, speech detected). Vision captions (moondream) + Llama JSON. STT skipped: pinned `incredibly-fast-whisper` version is disabled on Replicate, and the unpinned model 404s. Tagged file: `content/reel-library-tagged.xlsx` (light blue + `ai_filled`).
 - **Import:** 5 rows + 5 gte-small embeddings in `ag_reels`. Local copy `public/content/reels.json`.
-- **Visitor flow:** phone `ENTER ONE WORD` → closest reel → HIGH/MEDIUM/LOW → next, no repeats. Sponsored items look like normal reels (no “Sponsored”, no ⓘ). Session line at the end includes `SPONSORED ITEMS`. `#/credits` lists creator names (empty until that column is filled).
+- **Visitor flow:** phone SKIP / LIKE / NEUTRAL / DISLIKE. Round 3 is a profile-matched sponsored reel (description + tags; fallback `ad_category`). No pop-ups while Reel is open. Sponsored items look like normal reels (no “Sponsored”, no ⓘ). Session line at the end includes `SPONSORED ITEMS`. `#/credits` lists creator names (empty until that column is filled).
+- **Parody catalog:** `src/shared/parodyBrands.ts` drives article / pop-up / shop / radio copy. FULL REPORT names the parody and the real reference. Expanded for 18–40 NYC college-grad audience (EDENHAUS, FRESHLEAF, CLARITY, APEX RESERVE, etc.). Interest taxonomy in `src/shared/adTaxonomy.ts` + reel Lists. Low-confidence picks fall back to coffee / streaming / snack.
 
 ### Library balance (these 5)
 
@@ -54,8 +55,12 @@ Four icons, no turn timer, visitor profile, placeholder ads, sponsored paragraph
 3. Optional: `REPLICATE_API_TOKEN` if we switch to **direct** for the show.
 4. `ADMIN_PASSCODE` secret before the gallery.
 
+## DigiPet (Tamagotchi economy)
+
+`public/games/pet.js`. Allowance from income. Every action costs credits (no free play). Death / empty wallet → ad-continue, max 2, then `out_of_ads`. Summary includes `itemsBought`, `topCategories`, `adContinues`, `choseToContinue`. Ad mapping: `PET_AD_RULES` in `src/shared/adTaxonomy.ts`. Phone: identical gold priced grid, disabled when unaffordable.
+
 ## Decisions / notes
 
-- 5-reel test: no round-3 forced sponsored, no sponsored chrome on the player.
+- 5-reel test: round 3 is a forced sponsored match; no sponsored chrome on the player; no pop-ups during Reel.
 - Proxy media: data URLs with `image/jpeg` were rejected (`only works for png, jpg, and wav`). Tag assets are uploaded to `reels/tag/` and passed as public URLs.
 - Do not git-push large MP4s. Raw and work folders are gitignored.

@@ -1,4 +1,5 @@
 import { isBlocked } from './text.ts'
+import type { VisitorProfile } from './profile.ts'
 
 export type ReelRating = 'HIGH' | 'MEDIUM' | 'LOW'
 export type ReelPhase = 'idle' | 'word' | 'playing' | 'rate' | 'done'
@@ -56,6 +57,8 @@ export interface ReelResult {
   sessionLine: string
   source: 'ai' | 'mock' | 'fallback' | 'cap'
   at: number
+  /** Next sponsored clip to buffer while the current one plays. */
+  prefetchId: string | null
 }
 
 export function playableUrl(id: string): string {
@@ -302,6 +305,95 @@ function lookup(library: ReelRow[], id: string): ReelRow | undefined {
   return library.find((r) => r.id === id)
 }
 
+function averageVec(vecs: number[][]) {
+  if (!vecs.length) return null
+  const n = vecs[0].length
+  const out = new Array(n).fill(0)
+  for (const v of vecs) {
+    if (v.length !== n) continue
+    for (let i = 0; i < n; i++) out[i] += v[i]
+  }
+  for (let i = 0; i < n; i++) out[i] /= vecs.length
+  return out
+}
+
+function sponsoredHay(r: ReelRow) {
+  return [r.description, r.topic, r.subtopic, r.audience, r.mood, r.keywords, r.ad_category, r.vibe, r.curator_notes].join(' ')
+}
+
+function profileQuery(rounds: ReelRoundLog[], profile?: VisitorProfile | null) {
+  const high = rounds.filter((r) => r.rating === 'HIGH')
+  const inf = profile?.inferred
+  const topCat = (profile?.categories ?? []).slice().sort((a, b) => b.confidence - a.confidence)[0]
+  return [
+    ...high.flatMap((r) => [r.audience, r.topic, r.subtopic, r.mood, r.vibe, r.keywords]),
+    inf?.mood, inf?.ageRange, inf?.incomeBracket, ...(inf?.interests ?? []),
+    topCat?.category,
+    ...(profile?.events.filter((e) => e.source === 'reel').map((e) => e.value) ?? []),
+  ].filter(Boolean).join(' ')
+}
+
+function tokenHits(query: string, hay: string): number {
+  const H = hay.toLowerCase()
+  let s = 0
+  for (const t of new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter((x) => x.length > 2))) {
+    if (H.includes(t)) s += 1
+  }
+  return s
+}
+
+/** Closest unused sponsored reel to this visitor. Fallback: ad_category vs profile categories. */
+export function pickSponsored(
+  library: ReelRow[],
+  used: string[],
+  rounds: ReelRoundLog[],
+  affinity: CrowdAffinity,
+  profile?: VisitorProfile | null,
+): ReelRow | null {
+  const unused = library.filter((r) => r.sponsored && !used.includes(r.id))
+  if (!unused.length) return null
+  const query = profileQuery(rounds, profile)
+  const highs = rounds.filter((r) => r.rating === 'HIGH')
+  const liked = highs
+    .map((r) => lookup(library, r.reelId))
+    .filter((r): r is ReelRow => !!r)
+  const queryVec = averageVec(liked.map((r) => r.embedding).filter((v): v is number[] => !!v?.length))
+  const topCat = (profile?.categories ?? []).slice().sort((a, b) => b.confidence - a.confidence)[0]
+  const scored = unused.map((r) => {
+    const hay = sponsoredHay(r)
+    let s = tokenHits(query, hay) * 3.2
+    s += affinityScore(r, affinity) * 0.5
+    if (queryVec) s += cosine(queryVec, r.embedding) * 10
+    for (const round of highs) {
+      if (same(r.audience, round.audience)) s += 5
+      if (same(r.topic, round.topic)) s += 2
+      if (same(r.subtopic, round.subtopic)) s += 2
+    }
+    const adCat = r.ad_category.toLowerCase()
+    s += tokenHits(query, r.ad_category) * 2
+    for (const c of profile?.categories ?? []) {
+      const key = c.category.toLowerCase()
+      if (adCat.includes(key) || key.includes(adCat.split(/\s+/)[0] || '___')) s += c.confidence * 6
+    }
+    return { r, s, cat: adCat }
+  })
+  scored.sort((a, b) => b.s - a.s || a.r.id.localeCompare(b.r.id))
+  const best = scored[0]
+  if (best && best.s >= 1) return best.r
+  if (topCat) {
+    const key = topCat.category.toLowerCase()
+    scored.sort((a, b) => {
+      const ac = a.cat.includes(key) || key.includes(a.cat.split(/\s+/)[0] || '___') ? 1 : 0
+      const bc = b.cat.includes(key) || key.includes(b.cat.split(/\s+/)[0] || '___') ? 1 : 0
+      return bc - ac || b.s - a.s
+    })
+  }
+  return scored[0]?.r ?? null
+}
+
+export const REEL_ROUNDS = 5
+export const SPONSORED_ROUND = 3
+
 function seededIndex(n: number, seed: number) {
   if (n <= 0) return 0
   const x = Math.sin(seed || 1) * 10000
@@ -310,8 +402,9 @@ function seededIndex(n: number, seed: number) {
 
 /** First clip: closest to what other visitors liked. If nobody has rated yet, seeded random. */
 export function pickStart(library: ReelRow[], affinity: CrowdAffinity, seed = 1): ReelRow | null {
-  const pool = library.filter((r) => !notesBlock(r, [], null, 0))
-  const src = pool.length ? pool : library
+  const open = library.filter((r) => !notesBlock(r, [], null, 0))
+  const organic = open.filter((r) => !r.sponsored)
+  const src = organic.length ? organic : open.length ? open : library
   if (!src.length) return null
   const scored = src.map((r) => ({ r, s: affinityScore(r, affinity) }))
   scored.sort((a, b) => b.s - a.s || a.r.id.localeCompare(b.r.id))
@@ -341,13 +434,21 @@ export function pickNext(
   affinity: CrowdAffinity,
   wordVec: number[] | null,
   mock: boolean,
+  profile?: VisitorProfile | null,
 ): ReelRow | null {
+  if (used.length >= REEL_ROUNDS) return null
+  if (used.length + 1 === SPONSORED_ROUND) {
+    const sponsored = pickSponsored(library, used, rounds, affinity, profile)
+    if (sponsored) return sponsored
+  }
   const left = library.filter((r) => !used.includes(r.id) && r.id !== current.id)
   if (!left.length) return null
   const roundIndex = used.length
+  const organic = left.filter((r) => !r.sponsored)
+  const prefer = organic.length ? organic : left
   const last = rating
-  const candidates = left.filter((r) => !notesBlock(r, used, last, roundIndex))
-  const pool = candidates.length ? candidates : left
+  const candidates = prefer.filter((r) => !notesBlock(r, used, last, roundIndex))
+  const pool = candidates.length ? candidates : prefer.length ? prefer : left
 
   const rowsFor = (want: ReelRating) =>
     rounds.map((log) => (log.rating === want ? lookup(library, log.reelId) : undefined)).filter((r): r is ReelRow => !!r)
@@ -445,5 +546,20 @@ export function emptyReelResult(): ReelResult {
     sessionLine: '',
     source: 'mock',
     at: Date.now(),
+    prefetchId: null,
   }
+}
+
+/** Buffer the upcoming sponsored reel while earlier rounds play. */
+export function attachPrefetch(
+  result: ReelResult,
+  library: ReelRow[],
+  affinity: CrowdAffinity,
+  profile?: VisitorProfile | null,
+): ReelResult {
+  if (result.phase === 'done' || result.usedIds.length >= SPONSORED_ROUND) {
+    return { ...result, prefetchId: null }
+  }
+  const row = pickSponsored(library, result.usedIds, result.rounds, affinity, profile)
+  return { ...result, prefetchId: row?.id ?? null }
 }

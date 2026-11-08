@@ -1,10 +1,10 @@
 // Builds every AI prompt from fixed templates. The phone only sends an object id and control values.
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { pickAd, personalizeAd, weaveSponsored } from '../_shared/ads.ts'
+import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../_shared/ads.ts'
 import { CONFIG } from '../_shared/config.ts'
 import type { ArticleParams, ReelParams } from '../_shared/types.ts'
 import {
-  AFFINITY_KEY, addRating, emptyReelResult, logRound, parseAffinity,
+  AFFINITY_KEY, addRating, attachPrefetch, emptyReelResult, logRound, parseAffinity,
   pickNext, pickStart, playableUrl, rowFromRecord, sessionLine,
   type ReelResult, type ReelRow,
 } from '../_shared/reel.ts'
@@ -50,8 +50,8 @@ async function fetchSite(path: string): Promise<string> {
   throw new Error(`could not load ${path}`)
 }
 
-function attachSponsored(body: string, profile: VisitorProfile) {
-  const match = pickAd(profile)
+function attachSponsored(body: string, profile: VisitorProfile, rounds?: { rating?: string | null; audience?: string; topic?: string; subtopic?: string; mood?: string; vibe?: string; keywords?: string }[]) {
+  const match = pickAd({ ...profile, adsShown: reservedAdIds(profile) }, undefined, rounds)
   if (!match) return { body, sponsored: undefined }
   const sponsored = personalizeAd(match, profile)
   return { body: weaveSponsored(body, sponsored.paragraph), sponsored }
@@ -148,7 +148,7 @@ async function saveAffinity(affinity: ReturnType<typeof parseAffinity>) {
   await db.from('ag_ai_cache').upsert({ key: AFFINITY_KEY, job: 'reel', input: {}, output: affinity })
 }
 
-async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result: ReelResult }> {
+async function produceReel(params: ReelParams, useAi: boolean, profile?: VisitorProfile): Promise<{ result: ReelResult }> {
   const library = await loadLibrary()
   const { data: state } = await db.from('ag_state').select('altered').eq('id', 1).maybeSingle()
   const prev = ((state?.altered as { reel?: ReelResult } | null)?.reel) ?? emptyReelResult()
@@ -166,12 +166,13 @@ async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result
         },
       }
     }
+    const affinity = await loadAffinity()
     return {
-      result: {
+      result: attachPrefetch({
         word: '', phase: 'playing', currentId: pick.id, videoUrl: playableUrl(pick.id),
         rounds: [logRound(pick, null, 0)], usedIds: [pick.id], sessionLine: '',
-        source, at: Date.now(),
-      },
+        source, at: Date.now(), prefetchId: null,
+      }, library, affinity, profile),
     }
   }
 
@@ -190,18 +191,18 @@ async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result
     affinity = addRating(affinity, last, rating)
     await saveAffinity(affinity)
   }
-  const next = pickNext(library, prev.usedIds, current, rating, rounds, affinity, current.embedding ?? null, !current.embedding)
+  const next = pickNext(library, prev.usedIds, current, rating, rounds, affinity, current.embedding ?? null, !current.embedding, profile)
   if (!next) {
     return {
       result: {
         ...prev, rounds, currentId: null, videoUrl: null, phase: 'done',
-        sessionLine: sessionLine(rounds), at: Date.now(), source,
+        sessionLine: sessionLine(rounds), at: Date.now(), source, prefetchId: null,
       },
     }
   }
   const nextRounds = [...rounds, logRound(next, null, 0)]
   return {
-    result: {
+    result: attachPrefetch({
       ...prev,
       rounds: nextRounds,
       usedIds: [...prev.usedIds, next.id],
@@ -211,7 +212,8 @@ async function produceReel(params: ReelParams, useAi: boolean): Promise<{ result
       sessionLine: sessionLine(nextRounds),
       at: Date.now(),
       source,
-    },
+      prefetchId: null,
+    }, library, affinity, profile),
   }
 }
 
@@ -280,7 +282,7 @@ Deno.serve(async (req) => {
         ;(result as { source: string }).source = source
         if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))
       } else if (object === 'reel' && reelParams) {
-        const out = await produceReel(reelParams, useAi)
+        const out = await produceReel(reelParams, useAi, profile)
         result = out.result
         source = out.result.source
         if (!useAi) await sleep(Math.max(0, mockDelay * 1000 - (Date.now() - started)))

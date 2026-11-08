@@ -3,7 +3,7 @@ import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
 import { rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
 import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
-import { pickAd, personalizeAd } from '../shared/ads.ts'
+import { makeAd } from '../shared/ads.ts'
 import { CONFIG, type ObjectId } from '../shared/config.ts'
 import { objectsTouched } from '../shared/games.ts'
 import { addEvent, hydrateProfile } from '../shared/profile.ts'
@@ -138,8 +138,29 @@ export default function Controller() {
 
   const usedCount = snap?.display.used?.length ?? 0
   const popups = snap?.profile?.popups ?? 0
+  const pendingKey = useRef('')
+  const eventN = snap?.profile?.events?.length ?? 0
+  const roundsN = snap?.altered.reel?.rounds?.length ?? 0
+
   useEffect(() => {
     if (!active || !snap) return
+    const p = hydrateProfile(snap.profile)
+    if (p.popups >= CONFIG.AD_POPUP_MAX) return
+    const showing = p.lastAd && p.lastAd.at > (p.adClosedAt ?? 0)
+    const extra = showing && p.lastAd ? [p.lastAd.adId] : []
+    const key = `${p.adsShown.join(',')}|${eventN}|${roundsN}|${p.popups}|${p.article.income}|${p.article.lean}`
+    if (p.pendingAd && pendingKey.current === key && !extra.includes(p.pendingAd.adId)) return
+    const place = makeAd(p, snap.altered.reel?.rounds, extra)
+    if (!place) return
+    if (p.pendingAd?.adId === place.adId && p.pendingAd.headline === place.headline && pendingKey.current === key) return
+    pendingKey.current = key
+    setLocalProfile({ ...getLocalProfile(), pendingAd: place })
+    void sendCommand('signal', JSON.stringify({ pendingAd: place }))
+  }, [active, snap, eventN, roundsN, popups])
+
+  useEffect(() => {
+    if (!active || !snap) return
+    if (snap.display.open === 'reel' || snap.display.busy?.object === 'reel') return
     const used = snap.display.used ?? []
     if (used.length < 1) return
     const p = hydrateProfile(snap.profile)
@@ -152,12 +173,23 @@ export default function Controller() {
     const first = p.popups === 0 && atHome
     const later = p.popups >= 1 && (atHome || loading)
     if (!first && !later) return
-    const match = pickAd(p)
-    if (!match) return
-    const place = personalizeAd(match, p)
+    const place = p.pendingAd && !p.adsShown.includes(p.pendingAd.adId)
+      ? { ...p.pendingAd, at: now }
+      : makeAd(p, snap.altered.reel?.rounds)
+    if (!place) return
     lastPopup.current = now
+    pendingKey.current = ''
+    setLocalProfile({
+      ...getLocalProfile(),
+      lastAd: place,
+      pendingAd: null,
+      popups: p.popups + 1,
+      lastPopupAt: now,
+      adsShown: [...p.adsShown, place.adId],
+    })
     void sendCommand('signal', JSON.stringify({
       lastAd: place,
+      pendingAd: null,
       popups: p.popups + 1,
       lastPopupAt: now,
       adsShown: [...p.adsShown, place.adId],
