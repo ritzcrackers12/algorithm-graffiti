@@ -73,7 +73,7 @@ function kioskAudio() {
 }
 
 export function reelAudioFile(id: string) {
-  return `${BASE}content/reel-audio/${id}.m4a`
+  return `${BASE}content/reel-audio/${id}.m4a?v=2`
 }
 
 function stopClip() {
