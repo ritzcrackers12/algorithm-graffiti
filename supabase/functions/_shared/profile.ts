@@ -45,6 +45,8 @@ export interface AdSession {
   genre?: string | null
   genreLabel?: string | null
   audioUrl?: string | null
+  /** When TUNE IN was pressed — drives the radio-tuning graphic on the iPad. */
+  submittedAt?: number | null
   legitimacy: number | null
   lingered: boolean
   matchedProfile: boolean | null

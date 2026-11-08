@@ -12,6 +12,13 @@ const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
   auth: { persistSession: false },
 })
 
+/** Strip anything that isn't a visible ASCII character so a messy copy-paste
+ *  (stray newline, space, smart-quote, zero-width char) can't break the
+ *  Authorization header with a "not a valid ByteString" error. */
+function cleanToken(token: string): string {
+  return (token || '').replace(/[^\x21-\x7E]/g, '')
+}
+
 export interface PredictOpts {
   job: AiJob
   input: Record<string, unknown>
@@ -102,7 +109,7 @@ async function callProxy(token: string, job: AiJob, input: Record<string, unknow
   }
   const res = await fetch(CONFIG.PROXY_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cleanToken(token)}` },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())),
   })
@@ -146,7 +153,7 @@ async function callDirect(token: string, job: AiJob, input: Record<string, unkno
     ? 'https://api.replicate.com/v1/predictions'
     : `https://api.replicate.com/v1/models/${m.model}/predictions`
   const payload = m.version ? { version: m.version, input: resolved } : { input: resolved }
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'wait=25' }
+  const headers = { Authorization: `Bearer ${cleanToken(token)}`, 'Content-Type': 'application/json', Prefer: 'wait=25' }
   const signal = AbortSignal.timeout(Math.max(1000, deadline - Date.now()))
   let pred = await (await fetch(url, { method: 'POST', headers, signal, body: JSON.stringify(payload) })).json() as Record<string, unknown>
   const getUrl = pred?.urls && typeof pred.urls === 'object' ? (pred.urls as { get?: string }).get : null

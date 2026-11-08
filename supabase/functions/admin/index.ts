@@ -80,6 +80,18 @@ async function runTests(all: boolean): Promise<{ rows: AiTestRow[]; used: number
     const pred = await predict({ job: r.job, input, skipCache: true, force: true })
     add({ job: r.job, ok: pred.ok, ms: pred.ms, source: pred.source, preview: pred.preview, error: pred.error })
   }
+
+  // Station audio (meta/musicgen) — slow model, needs a longer deadline.
+  if (!live) {
+    add({ job: 'music', ok: true, skipped: true, ms: 0, source: 'skip', preview: 'no proxy/direct token yet' })
+  } else {
+    const music = await predict({
+      job: 'music',
+      input: { prompt: 'calm ambient pads, no vocals', model_version: 'stereo-large', duration: 5, output_format: 'mp3' },
+      skipCache: true, force: true, timeoutSeconds: 60,
+    })
+    add({ job: 'music', ok: music.ok, ms: music.ms, source: music.source, preview: music.preview, error: music.error })
+  }
   return { rows, used }
 }
 
@@ -98,7 +110,9 @@ Deno.serve(async (req) => {
   const action = typeof body.action === 'string' ? body.action : 'status'
 
   if (action === 'set_proxy_token') {
-    const token = typeof body.token === 'string' ? body.token.trim() : ''
+    // Strip anything that isn't visible ASCII (stray newline/space/smart-quote/
+    // zero-width char from a copy-paste) so the Bearer header stays valid.
+    const token = typeof body.token === 'string' ? body.token.replace(/[^\x21-\x7E]/g, '') : ''
     if (token.length < 8) return json({ ok: false, reason: 'invalid' })
     const { error } = await db.from('ag_state').update({
       proxy_token: token,
