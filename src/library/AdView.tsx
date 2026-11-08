@@ -3,6 +3,8 @@ import type { VisitorProfile } from '../shared/profile.ts'
 import { genreMeta, type GenreId } from '../shared/station.ts'
 import type { AdResult } from '../shared/types.ts'
 
+const TUNE_TIMEOUT_MS = 75_000
+
 /** The STATION object: a generated instrumental tuned to the visitor's profile. */
 export default function AdView({
   result, profile, tuning,
@@ -15,24 +17,37 @@ export default function AdView({
   const genre = (result?.genre || session?.genre || result?.brandId || session?.brandId || 'ambient') as GenreId
   const label = genreMeta(genre).label
   const audioUrl = result?.audioUrl ?? session?.audioUrl ?? null
+  const submittedAt = session?.submittedAt ?? 0
+  const resultAt = result?.at ?? 0
   const audioRef = useRef<HTMLAudioElement>(null)
   const [band, setBand] = useState(12)
+  const [now, setNow] = useState(() => Date.now())
 
-  // Radio-tuning sweep while the track generates (placeholder graphic — polish later).
+  // Generation has returned for this submission (with or without audio).
+  const resolved = resultAt > 0 && resultAt >= submittedAt
+  // Keep the radio up from TUNE IN until the track returns or we time out.
+  const pending = submittedAt > 0 && !audioUrl && !resolved && now - submittedAt < TUNE_TIMEOUT_MS
+  const showTuning = !!tuning || pending
+  const failed = submittedAt > 0 && resolved && !audioUrl
+
+  // Tick while tuning so `pending` can expire and the sweep animates.
   useEffect(() => {
-    if (!tuning) return
-    const t = window.setInterval(() => setBand((b) => (b + 7) % 100), 140)
+    if (!showTuning) return
+    const t = window.setInterval(() => {
+      setBand((b) => (b + 7) % 100)
+      setNow(Date.now())
+    }, 140)
     return () => window.clearInterval(t)
-  }, [tuning])
+  }, [showTuning])
 
   useEffect(() => {
     if (audioUrl && audioRef.current) {
       audioRef.current.load()
-      audioRef.current.play().catch(() => { /* autoplay may require a gesture */ })
+      audioRef.current.play().catch(() => { /* autoplay may need a gesture */ })
     }
   }, [audioUrl])
 
-  const status = tuning ? 'TUNING IN…' : audioUrl ? 'ON AIR.' : 'STANDBY.'
+  const status = showTuning ? 'TUNING IN…' : audioUrl ? 'ON AIR.' : failed ? 'NO SIGNAL.' : 'STANDBY.'
 
   return (
     <>
@@ -40,7 +55,7 @@ export default function AdView({
         <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>station.wav</span>
       </div>
       <div className="ad-stage">
-        {tuning ? (
+        {showTuning ? (
           <div className="radio-tuner">
             <div className="radio-dial">
               <div className="radio-needle" style={{ left: `${band}%` }} />
@@ -58,6 +73,8 @@ export default function AdView({
             </div>
             <audio ref={audioRef} src={audioUrl} loop autoPlay controls />
           </div>
+        ) : failed ? (
+          <div className="machine-line" style={{ color: '#c6ff3d' }}>NO SIGNAL. SET THE DIALS AND TUNE IN AGAIN.</div>
         ) : (
           <div className="machine-line" style={{ color: '#c6ff3d' }}>SET THE DIALS ON THE PHONE, THEN TUNE IN.</div>
         )}

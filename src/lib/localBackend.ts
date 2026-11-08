@@ -100,7 +100,7 @@ export function createLocalBackend(): Backend {
       db.activeSession &&
       (!db.queue.some((q) => q.id === db.activeSession && fresh(q)) ||
         turnOver ||
-        (!busy && db.lastActivityAt! <= now - CONFIG.IDLE_SECONDS * 1000))
+        (CONFIG.IDLE_SECONDS > 0 && !busy && db.lastActivityAt! <= now - CONFIG.IDLE_SECONDS * 1000))
     ) {
       db.queue = db.queue.filter((q) => q.id !== db.activeSession)
       db.activeSession = db.turnStartedAt = db.lastActivityAt = null

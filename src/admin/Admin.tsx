@@ -121,7 +121,7 @@ export default function Admin() {
             v={s ? `${s.today.total} total · ${s.today.ai} AI / ${CONFIG.DAILY_GENERATION_CAP} cap · ${s.today.mock} mock · ${s.today.fallback} fallback` : '…'}
           />
           <Row k="RESET MODE" v={CONFIG.RESET_MODE.toUpperCase()} />
-          <Row k="TURN / IDLE" v={`NONE / ${CONFIG.IDLE_SECONDS}s (hidden)`} />
+          <Row k="TURN / IDLE" v={`NONE / ${CONFIG.IDLE_SECONDS > 0 ? `${CONFIG.IDLE_SECONDS}s (hidden)` : 'DISABLED'}`} />
         </div>
 
         <div className="mb-5 rounded-2xl border border-white/15 bg-white/5 px-4 py-2">

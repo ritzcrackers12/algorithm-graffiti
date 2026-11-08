@@ -16,8 +16,8 @@ export const CONFIG = {
    * Do not show a countdown on the iPad or phones.
    */
   TURN_SECONDS: 0,
-  /** Seconds without touching anything before control passes on. Invisible — no countdown. */
-  IDLE_SECONDS: 60,
+  /** Seconds without touching anything before control passes on. 0 = never drop for inactivity (turn ends only at the report or staff skip). */
+  IDLE_SECONDS: 0,
   /** The visitor in control is dropped if their phone stops checking in (locked / tab closed) this long. */
   GONE_SECONDS: 12,
   /** People waiting in line keep their place this long with a locked phone (they're skipped if their turn comes while away). */

@@ -53,6 +53,8 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
       legitimacy: stationLegitimacy(genre),
       matchedProfile: true,
       lingered: linger.current,
+      submittedAt: Date.now(),
+      audioUrl: null,
       source: 'template',
     })
     void sendGenerate({
