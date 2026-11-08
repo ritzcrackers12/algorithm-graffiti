@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { VisitorProfile } from '../shared/profile.ts'
-import { genreMeta, type GenreId } from '../shared/station.ts'
 import type { AdResult } from '../shared/types.ts'
 
 const TUNE_TIMEOUT_MS = 75_000
+const STATION_LOOPS = 4 // play the ~15s clip 4x ≈ one minute
 
 /** The STATION object: a generated instrumental tuned to the visitor's profile. */
 export default function AdView({
@@ -14,12 +14,11 @@ export default function AdView({
   tuning?: boolean
 }) {
   const session = profile?.session.ad
-  const genre = (result?.genre || session?.genre || result?.brandId || session?.brandId || 'ambient') as GenreId
-  const label = genreMeta(genre).label
   const audioUrl = result?.audioUrl ?? session?.audioUrl ?? null
   const submittedAt = session?.submittedAt ?? 0
   const resultAt = result?.at ?? 0
   const audioRef = useRef<HTMLAudioElement>(null)
+  const playsRef = useRef(0)
   const [band, setBand] = useState(12)
   const [now, setNow] = useState(() => Date.now())
 
@@ -40,12 +39,22 @@ export default function AdView({
     return () => window.clearInterval(t)
   }, [showTuning])
 
+  // Auto-start when the track arrives; loop a fixed number of times (~1 min).
   useEffect(() => {
+    playsRef.current = 0
     if (audioUrl && audioRef.current) {
       audioRef.current.load()
       audioRef.current.play().catch(() => { /* autoplay may need a gesture */ })
     }
   }, [audioUrl])
+
+  const onEnded = () => {
+    playsRef.current += 1
+    if (playsRef.current < STATION_LOOPS && audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(() => {})
+    }
+  }
 
   const status = showTuning ? 'TUNING IN…' : audioUrl ? 'ON AIR.' : failed ? 'NO SIGNAL.' : 'STANDBY.'
 
@@ -65,13 +74,12 @@ export default function AdView({
           </div>
         ) : audioUrl ? (
           <div className="radio-tuner">
-            <div className="radio-nowplaying">{label}</div>
             <div className="radio-eq">
               {Array.from({ length: 7 }).map((_, i) => (
                 <span key={i} style={{ animationDelay: `${i * 0.12}s` }} />
               ))}
             </div>
-            <audio ref={audioRef} src={audioUrl} loop autoPlay controls />
+            <audio ref={audioRef} src={audioUrl} autoPlay controls onEnded={onEnded} />
           </div>
         ) : failed ? (
           <div className="machine-line" style={{ color: '#c6ff3d' }}>NO SIGNAL. SET THE DIALS AND TUNE IN AGAIN.</div>

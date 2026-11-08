@@ -264,7 +264,7 @@ async function produceStation(
     input: {
       prompt: musicPrompt(genre, dials),
       model_version: 'stereo-large',
-      duration: 10,
+      duration: 15,
       output_format: 'mp3',
       normalization_strategy: 'peak',
       temperature: 0.9,
