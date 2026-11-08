@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { getBackend } from '../lib/backend.ts'
 import { CONFIG } from '../shared/config.ts'
 import type { AdminAction, AdminStatus, AiTestRow } from '../shared/types.ts'
@@ -70,7 +71,7 @@ export default function Admin() {
 
   if (!pass) {
     return (
-      <div className="grid min-h-full place-items-center bg-[#0b0b10] p-6 text-white" style={{ fontFamily: 'Supreme, system-ui, sans-serif' }}>
+      <div className="theme-surveillance grid min-h-full place-items-center bg-[#0b0b10] p-6 text-white" style={{ fontFamily: 'Supreme, system-ui, sans-serif' }}>
         <form
           className="flex w-full max-w-xs flex-col gap-3"
           onSubmit={async (e) => {
@@ -92,7 +93,7 @@ export default function Admin() {
             className="rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-lg outline-none"
             placeholder="PASSCODE"
           />
-          <button className="rounded-lg bg-[#c6ff3d] py-3 font-bold tracking-[0.2em] text-black">ENTER</button>
+          <PixelButton type="submit" block>ENTER</PixelButton>
           {msg && <div className="text-sm text-[#ff2ea0]">{msg}</div>}
         </form>
       </div>
@@ -100,10 +101,9 @@ export default function Admin() {
   }
 
   const s = status
-  const btn = 'rounded-xl px-4 py-4 text-sm font-bold tracking-[0.15em] disabled:opacity-40'
 
   return (
-    <div className="min-h-full bg-[#0b0b10] p-5 text-white" style={{ fontFamily: 'Supreme, system-ui, sans-serif' }}>
+    <div className="theme-surveillance min-h-full bg-[#0b0b10] p-5 text-white" style={{ fontFamily: 'Supreme, system-ui, sans-serif' }}>
       <div className="mx-auto max-w-lg">
         <div className="mb-1 text-xs tracking-[0.3em] text-white/50">{CONFIG.TITLE}</div>
         <h1 className="mb-5 text-2xl font-extrabold tracking-[0.2em]">STAFF CONSOLE</h1>
@@ -166,39 +166,41 @@ export default function Admin() {
               className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm outline-none"
               autoComplete="off"
             />
-            <button type="submit" disabled={busy} className="rounded-lg bg-white/10 py-2 text-xs font-bold tracking-[0.15em]">
+            <PixelButton type="submit" block disabled={busy}>
               SAVE PROXY TOKEN
-            </button>
+            </PixelButton>
           </form>
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          <button disabled={busy} className={`${btn} bg-[#ff2ea0]`} onClick={() => act('reset', 'Reset every object to its original?')}>
+          <PixelButton block disabled={busy} onClick={() => act('reset', 'Reset every object to its original?')}>
             RESET EVERYTHING TO ORIGINALS
-          </button>
-          <button disabled={busy || !s?.hasActive} className={`${btn} bg-white/10`} onClick={() => act('skip', 'Skip the current visitor?')}>
+          </PixelButton>
+          <PixelButton block disabled={busy || !s?.hasActive} onClick={() => act('skip', 'Skip the current visitor?')}>
             SKIP CURRENT VISITOR
-          </button>
-          <button disabled={busy} className={`${btn} bg-white/10`} onClick={() => act('clear_queue', 'Remove everyone from the queue (including the current visitor)?')}>
+          </PixelButton>
+          <PixelButton block disabled={busy} onClick={() => act('clear_queue', 'Remove everyone from the queue (including the current visitor)?')}>
             CLEAR QUEUE
-          </button>
-          <button
+          </PixelButton>
+          <PixelButton
+            block
             disabled={busy || !s}
-            className={`${btn} ${s?.mockMode ? 'bg-[#c6ff3d] text-black' : 'bg-white/10'}`}
+            selected={!!s?.mockMode}
             onClick={() => act(s?.mockMode ? 'mock_off' : 'mock_on', s?.mockMode ? 'Turn mock mode OFF? Real AI calls will cost money.' : undefined)}
           >
             {s?.mockMode ? 'TURN MOCK MODE OFF (USE REAL AI)' : 'TURN MOCK MODE ON'}
-          </button>
-          <button
+          </PixelButton>
+          <PixelButton
+            block
             disabled={busy || !s}
-            className={`${btn} ${s?.replicateMode === 'proxy' ? 'bg-[#c6ff3d] text-black' : 'bg-white/10'}`}
+            selected={s?.replicateMode === 'proxy'}
             onClick={() => act(s?.replicateMode === 'proxy' ? 'replicate_direct' : 'replicate_proxy')}
           >
             {s?.replicateMode === 'proxy' ? 'SWITCH TO DIRECT REPLICATE' : 'SWITCH TO NYU PROXY'}
-          </button>
-          <button disabled={busy} className={`${btn} bg-white/10`} onClick={() => act('test_ai')}>
+          </PixelButton>
+          <PixelButton block disabled={busy} onClick={() => act('test_ai')}>
             RUN AI TEST (1 TEXT CALL IF TOKEN SAVED)
-          </button>
+          </PixelButton>
         </div>
 
         {msg && <div className="mt-4 text-sm text-[#c6ff3d]">{msg}</div>}
@@ -217,15 +219,14 @@ export default function Admin() {
         <div className="mt-8 flex gap-4 text-xs text-white/50">
           <a href="#/library" className="underline">LIBRARY</a>
           <a href="#/controller" className="underline">CONTROLLER</a>
-          <button
-            className="underline"
+          <PixelButton
             onClick={() => {
               sessionStorage.removeItem(KEY)
               setPass('')
             }}
           >
             LOCK
-          </button>
+          </PixelButton>
         </div>
       </div>
     </div>

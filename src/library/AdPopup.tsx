@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { adImageReady, adImageUrl, preloadAdImage } from '../lib/adReady.ts'
 import type { AdPlacement } from '../shared/ads.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
@@ -27,7 +28,7 @@ export default function AdPopup({
   if (!ready) return null
 
   return (
-    <div className="ad-popup">
+    <div className="ad-popup theme-win95">
       <XpWindow title="Message" menu={null} onClose={onClose}>
         <div className="ad-popup-body">
           <img src={src} alt="" />
@@ -35,7 +36,7 @@ export default function AdPopup({
             <div className="ad-kicker">Sponsored <WhyButton place={place} profile={profile} /></div>
             <div className="ad-headline">{place.headline}</div>
             <div className="ad-brand">{place.brand}</div>
-            <button type="button" className="xp-button" style={{ marginTop: 10 }} onClick={onClose}>OK</button>
+            <PixelButton type="button" className="xp-button" style={{ marginTop: 10 }} onClick={onClose}>OK</PixelButton>
           </div>
         </div>
       </XpWindow>

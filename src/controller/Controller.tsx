@@ -14,6 +14,7 @@ import ArticleControls from './ArticleControls.tsx'
 import CodeBackground, { codePulse, codeRelease, resetCodeBg } from './CodeBackground.tsx'
 import GameControls from './GameControls.tsx'
 import ReelControls from './ReelControls.tsx'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
 
@@ -72,9 +73,9 @@ function QueueScreen({ position }: { position: number }) {
 
 function DoneAllButton({ onDone }: { onDone: () => void }) {
   return (
-    <button className="done-all" onClick={onDone}>
+    <PixelButton className="done-all" onClick={onDone}>
       END SESSION
-    </button>
+    </PixelButton>
   )
 }
 
@@ -275,9 +276,9 @@ export default function Controller() {
           <em>CONTROL TRANSFERRED.</em>
         </div>
         <div className="ctl-label">INPUT RECORDED.</div>
-        <button className="big-btn ghost" onClick={() => { haptic('press'); rejoinQueue() }}>
+        <PixelButton block onClick={() => { haptic('press'); rejoinQueue() }}>
           REJOIN QUEUE
-        </button>
+        </PixelButton>
       </Centered>
     )
   } else if (snap.position > 0) {
@@ -331,7 +332,6 @@ export default function Controller() {
               { value: 'altered', label: 'ALTERED', disabled: !hasAltered },
             ]}
             value={hasAltered ? snap.display.view : 'original'}
-            pinkWhen="altered"
             disabled={!!busy}
             onChange={(v) => void sendCommand('view', v)}
           />
@@ -361,8 +361,9 @@ export default function Controller() {
             </div>
           )}
         </div>
-        <button
+        <PixelButton
           className="end-session"
+          block
           onClick={() => {
             haptic('press')
             setChoosingArticle(false)
@@ -370,7 +371,7 @@ export default function Controller() {
           }}
         >
           BACK TO ICONS
-        </button>
+        </PixelButton>
       </div>
     )
   }
@@ -381,7 +382,7 @@ export default function Controller() {
 
   return (
     <div
-      className={`ctl${codeOn ? ' ctl-code' : ''}`}
+      className={`ctl theme-surveillance${codeOn ? ' ctl-code' : ''}`}
       onPointerDownCapture={(e) => {
         markActivity()
         if (codeOn) onCodeDown(e)

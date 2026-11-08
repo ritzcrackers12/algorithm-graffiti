@@ -1,3 +1,4 @@
+import { PixelButton } from '../components/PixelButton.tsx'
 import { OBJECTS } from '../shared/config.ts'
 import type { Busy } from '../shared/types.ts'
 import { useNow } from '../lib/live.ts'
@@ -21,7 +22,7 @@ export default function ProgressDialog({ busy }: { busy: Busy }) {
 
   return (
     <div className="xp-dialog-shade">
-      <div className="xp-dialog">
+      <div className="xp-dialog theme-win95">
         <XpWindow title={`Processing ${label}`} menu={null} closeOnly>
           <div style={{ padding: '22px 22px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -37,7 +38,7 @@ export default function ProgressDialog({ busy }: { busy: Busy }) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#444' }}>Input received from remote operator.</span>
-              <button className="xp-button" disabled>Cancel</button>
+              <PixelButton className="xp-button" disabled>Cancel</PixelButton>
             </div>
           </div>
         </XpWindow>

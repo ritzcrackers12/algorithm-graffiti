@@ -1,4 +1,5 @@
 import { useRef, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 
 /** Compact vintage rotary. Drag around it (or tap a tick) to pick a step. */
@@ -120,21 +121,20 @@ export function DetentSlider({
 }
 
 export function Segmented<T extends string | number>({
-  options, value, onChange, disabled, pinkWhen,
+  options, value, onChange, disabled,
 }: {
   options: { value: T; label: string; disabled?: boolean }[]
   value: T
   onChange: (v: T) => void
   disabled?: boolean
-  pinkWhen?: T
 }) {
   return (
     <div className="seg">
       {options.map((o) => (
-        <button
+        <PixelButton
           key={String(o.value)}
           disabled={disabled || o.disabled}
-          className={`${o.value === value ? 'on' : ''} ${o.value === value && o.value === pinkWhen ? 'pink' : ''}`}
+          selected={o.value === value}
           onClick={() => {
             if (o.value === value) return
             haptic('tick')
@@ -142,7 +142,7 @@ export function Segmented<T extends string | number>({
           }}
         >
           {o.label}
-        </button>
+        </PixelButton>
       ))}
     </div>
   )

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 
 export function XpWindow({
   title, icon, children, className = '', style, menu = ['File', 'Edit', 'View', 'Help'], closeOnly = false, onClose,
@@ -24,9 +25,9 @@ export function XpWindow({
           </>
         )}
         {onClose ? (
-          <button type="button" className="xp-tbtn close" aria-label="Close" onClick={onClose}>
-            <svg viewBox="0 0 10 10"><path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" stroke="#fff" strokeWidth="1.8" /></svg>
-          </button>
+          <PixelButton type="button" className="xp-tbtn close" aria-label="Close" onClick={onClose}>
+            <svg viewBox="0 0 10 10"><path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" stroke="currentColor" strokeWidth="1.8" /></svg>
+          </PixelButton>
         ) : (
           <span className="xp-tbtn close"><svg viewBox="0 0 10 10"><path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" stroke="#fff" strokeWidth="1.8" /></svg></span>
         )}

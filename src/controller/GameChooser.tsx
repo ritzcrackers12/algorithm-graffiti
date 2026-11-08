@@ -1,3 +1,4 @@
+import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 import { pushGame } from '../lib/gamePush.ts'
 import { GAMES, playableGames, type GameId } from '../shared/games.ts'
@@ -23,10 +24,11 @@ export default function GameChooser({
           const played = seen.includes(g.id)
           const shut = played || !g.ready
           return (
-            <button
+            <PixelButton
               key={g.id}
-              className={`big-btn ${rec && !shut ? '' : 'ghost'}`}
               type="button"
+              block
+              selected={rec && !shut}
               disabled={shut}
               onClick={() => {
                 haptic('press')
@@ -48,7 +50,7 @@ export default function GameChooser({
               }}
             >
               {shut ? `${g.title} · LOCKED` : rec ? `${g.title} · RECOMMENDED FOR YOU` : g.title}
-            </button>
+            </PixelButton>
           )
         })}
       </div>

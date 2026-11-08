@@ -1,0 +1,118 @@
+/* =====================================================================
+   PX-BUTTONS  —  Windows 95 bevel chrome, recolored for the controller.
+   Wrap a root in  class="theme-surveillance"  (default) or  "theme-win95".
+   ===================================================================== */
+
+/* ---- THEME: surveillance (black + phosphor green) — the default ---- */
+.theme-surveillance {
+  --btn-face:        #101512;
+  --btn-face-hover:  #141b17;
+  --btn-face-active: #16201a;
+  --btn-face-sel:    #13311f;
+  --hl-outer:        #3f7d4e;
+  --hl-inner:        #2f5d3a;
+  --sh-inner:        #0a0f0b;
+  --sh-outer:        #050705;
+  --btn-text:        #5bff8f;
+  --btn-text-press:  #9dffbf;
+  --btn-text-dim:    #2f5d3a;
+  --btn-glow:        rgba(91,255,143,.40);
+  --btn-font: "W95FA","Pixelated MS Sans Serif",ui-monospace,monospace;
+}
+
+/* ---- THEME: classic Windows 95 (gray on teal) — alternate ---- */
+.theme-win95 {
+  --btn-face:        #c0c0c0;
+  --btn-face-hover:  #c8c8c8;
+  --btn-face-active: #c0c0c0;
+  --btn-face-sel:    #b0b0b0;
+  --hl-outer:        #ffffff;
+  --hl-inner:        #dfdfdf;
+  --sh-inner:        #808080;
+  --sh-outer:        #0a0a0a;
+  --btn-text:        #000000;
+  --btn-text-press:  #000000;
+  --btn-text-dim:    #808080;
+  --btn-glow:        transparent;
+  --btn-font: "W95FA","Pixelated MS Sans Serif",ui-monospace,monospace;
+}
+
+/* ---- the button ---- */
+.px-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--btn-face);
+  color: var(--btn-text);
+  font-family: var(--btn-font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  image-rendering: pixelated;
+  text-shadow: 0 0 3px var(--btn-glow);
+  box-shadow:
+    inset  1px  1px 0 0 var(--hl-outer),
+    inset -1px -1px 0 0 var(--sh-outer),
+    inset  2px  2px 0 0 var(--hl-inner),
+    inset -2px -2px 0 0 var(--sh-inner);
+}
+
+.px-btn:hover:not(:disabled):not(.px-btn--pressed) {
+  background: var(--btn-face-hover);
+}
+
+/* pressed: invert the bevel (SUNKEN) + nudge label down-right */
+.px-btn:active:not(:disabled),
+.px-btn--pressed {
+  background: var(--btn-face-active);
+  color: var(--btn-text-press);
+  box-shadow:
+    inset  1px  1px 0 0 var(--sh-inner),
+    inset -1px -1px 0 0 var(--hl-inner),
+    inset  2px  2px 0 0 var(--sh-outer),
+    inset -2px -2px 0 0 var(--hl-outer);
+}
+.px-btn:active:not(:disabled) > *,
+.px-btn--pressed > * { transform: translate(1px, 1px); }
+
+/* selected / toggled on */
+.px-btn--selected {
+  background: var(--btn-face-sel);
+  box-shadow:
+    inset  1px  1px 0 0 var(--sh-inner),
+    inset -1px -1px 0 0 var(--hl-inner),
+    inset  2px  2px 0 0 var(--sh-outer),
+    inset -2px -2px 0 0 var(--hl-outer);
+}
+
+/* focus: classic 1px dotted rectangle inset inside the button */
+.px-btn:focus-visible { outline: none; }
+.px-btn:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dotted var(--btn-text);
+  pointer-events: none;
+}
+
+/* disabled / locked (unaffordable): flat + engraved gray label */
+.px-btn:disabled,
+.px-btn--disabled {
+  cursor: default;
+  color: var(--btn-text-dim);
+  text-shadow: 1px 1px 0 var(--hl-inner);
+  box-shadow:
+    inset  1px  1px 0 0 var(--hl-inner),
+    inset -1px -1px 0 0 var(--sh-inner);
+}
+
+.px-btn--block { display: flex; width: 100%; }

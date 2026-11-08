@@ -43,12 +43,12 @@ export default function Library() {
   }, [])
 
   return (
-    <div className="stage-outer">
+    <div className="stage-outer theme-win95">
       <div className="stage" style={{ zoom: layout.scale, left: layout.left, top: layout.top }}>
         <Desktop live={live} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
-      <div id="ag-game-layer" className="game-layer" />
+      <div id="ag-game-layer" className="game-layer theme-win95" />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 import type { AdPlacement } from '../shared/ads.ts'
 import { fullReport, officialWhy } from '../shared/ads.ts'
@@ -29,13 +30,13 @@ export default function AdPhoneControls({
           ) : null}
         </div>
         {!full && (
-          <button className="big-btn" type="button" disabled={locked} onClick={() => { haptic('press'); setFull(true) }}>
+          <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); setFull(true) }}>
             FULL REPORT
-          </button>
+          </PixelButton>
         )}
-        <button className="big-btn ghost" type="button" disabled={locked} onClick={() => { haptic('press'); setPanel('main'); setFull(false) }}>
+        <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); setPanel('main'); setFull(false) }}>
           BACK
-        </button>
+        </PixelButton>
       </div>
     )
   }
@@ -46,8 +47,8 @@ export default function AdPhoneControls({
         <div className="ctl-display">DO YOU LIKE THIS PRODUCT?</div>
         <div className="ctl-label">{place.product.toUpperCase()}</div>
         <div className="reel-rates">
-          <button className="big-btn" type="button" disabled={locked} onClick={() => { haptic('press'); onLike(true) }}>YES</button>
-          <button className="big-btn ghost" type="button" disabled={locked} onClick={() => { haptic('press'); onLike(false) }}>NO</button>
+          <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); onLike(true) }}>YES</PixelButton>
+          <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); onLike(false) }}>NO</PixelButton>
         </div>
       </div>
     )
@@ -57,15 +58,15 @@ export default function AdPhoneControls({
     <div className="ctl-center">
       <div className="ctl-display">AN AD IS ON THE IPAD SCREEN.</div>
       <div className="reel-rates">
-        <button className="big-btn" type="button" disabled={locked} onClick={() => { haptic('press'); setPanel('why') }}>
+        <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); setPanel('why') }}>
           LEARN MORE
-        </button>
-        <button className="big-btn" type="button" disabled={locked} onClick={() => { haptic('press'); setPanel('like') }}>
+        </PixelButton>
+        <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); setPanel('like') }}>
           DO YOU LIKE THIS PRODUCT?
-        </button>
-        <button className="big-btn ghost" type="button" disabled={locked} onClick={() => { haptic('press'); onClose() }}>
+        </PixelButton>
+        <PixelButton type="button" block disabled={locked} onClick={() => { haptic('press'); onClose() }}>
           CLOSE
-        </button>
+        </PixelButton>
       </div>
     </div>
   )

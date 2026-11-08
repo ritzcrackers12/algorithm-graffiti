@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AssetImg } from '../components/AssetImg.tsx'
 import { ObjectIcon } from '../components/ObjectIcons.tsx'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 import { OBJECTS, type ObjectId } from '../shared/config.ts'
 import { gameIconLocked, type GameId } from '../shared/games.ts'
@@ -31,7 +32,7 @@ export default function Picker({
                       : locked ? 'INSUFFICIENT DATA.' : o.file}
               </div>
               {locked && o.id === 'game' && (
-                <button
+                <PixelButton
                   type="button"
                   className="why-btn"
                   aria-label="Why can't I open this?"
@@ -42,14 +43,14 @@ export default function Picker({
                   }}
                 >
                   i
-                </button>
+                </PixelButton>
               )}
             </>
           )
           return locked ? (
             <div key={o.id} className="tile locked">{inner}</div>
           ) : (
-            <button
+            <PixelButton
               key={o.id}
               type="button"
               className="tile"
@@ -59,13 +60,13 @@ export default function Picker({
               }}
             >
               {inner}
-            </button>
+            </PixelButton>
           )
         })}
       </div>
       {why && (
         <div className="xp-dialog-shade" onClick={() => setWhy(false)}>
-          <div className="xp-dialog" onClick={(e) => e.stopPropagation()} style={{ width: 400 }}>
+          <div className="xp-dialog theme-win95" onClick={(e) => e.stopPropagation()} style={{ width: 400 }}>
             <XpWindow title="Access notice" menu={null} closeOnly onClose={() => setWhy(false)}>
               <div style={{ padding: 16, font: '13px Tahoma, sans-serif', color: '#111', lineHeight: 1.45 }}>
                 <p>{gameLock === 'done' ? 'SESSION CLOSED. NO GAMES REMAINING.' : 'ACCESS RESTRICTED. INSUFFICIENT DATA.'}</p>
@@ -75,7 +76,7 @@ export default function Picker({
                     : `OBJECT UNLOCKS AFTER TWO OTHER OBJECTS ARE OPENED. CURRENT: ${used.filter((id) => id !== 'game').length}.`}
                 </p>
                 <div style={{ marginTop: 14, textAlign: 'right' }}>
-                  <button type="button" className="xp-button" onClick={() => setWhy(false)}>OK</button>
+                  <PixelButton type="button" className="xp-button" onClick={() => setWhy(false)}>OK</PixelButton>
                 </div>
               </div>
             </XpWindow>

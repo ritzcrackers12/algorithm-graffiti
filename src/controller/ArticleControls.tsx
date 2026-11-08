@@ -7,6 +7,7 @@ import { locationSuggestions, resolveLocation } from '../shared/locations.ts'
 import { isBlocked } from '../shared/text.ts'
 import type { ArticleParams, Snapshot } from '../shared/types.ts'
 import { loadArticleIndex, type ArticleInfo } from '../lib/content.ts'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 import { recordControl } from '../lib/profileClient.ts'
 import { DetentSlider, Knob, Section, Segmented } from './controls.tsx'
@@ -173,15 +174,16 @@ export default function ArticleControls({
             {locOpen && suggestions.length > 0 && (
               <div className="loc-suggest ctl-allow-scroll">
                 {suggestions.map((s) => (
-                  <button
+                  <PixelButton
                     key={s}
                     type="button"
+                    block
                     disabled={locked}
                     onPointerDown={(e) => e.preventDefault()}
                     onClick={() => commitLocation(s)}
                   >
                     {s.toUpperCase()}
-                  </button>
+                  </PixelButton>
                 ))}
               </div>
             )}
@@ -189,9 +191,9 @@ export default function ArticleControls({
         </>
       )}
 
-      <button className="big-btn" disabled={locked || !articleId} onClick={send}>
+      <PixelButton className="rewrite-btn" block disabled={locked || !articleId} onClick={send}>
         REWRITE ARTICLE
-      </button>
+      </PixelButton>
     </div>
   )
 }

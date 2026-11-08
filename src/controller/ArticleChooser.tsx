@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { loadArticleIndex, type ArticleInfo } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
 
@@ -32,9 +33,10 @@ export default function ArticleChooser({
       <div className="picker-label ctl-display">SELECT AN ORIGINAL.</div>
       <div className="story-list ctl-allow-scroll">
         {articles.map((a) => (
-          <button
+          <PixelButton
             key={a.id}
             className="story-card"
+            block
             onClick={() => {
               haptic('press')
               onPick(a.id)
@@ -45,10 +47,10 @@ export default function ArticleChooser({
               <div className="kicker">BALL STREET JOURNAL</div>
               <div className="name">{a.title}</div>
             </div>
-          </button>
+          </PixelButton>
         ))}
       </div>
-      <button className="end-session" onClick={onBack}>BACK TO ICONS</button>
+      <PixelButton className="end-session" block onClick={onBack}>BACK TO ICONS</PixelButton>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { haptic } from '../lib/haptics.ts'
 import { getLocalProfile, markAdShown, setLocalProfile } from '../lib/profileClient.ts'
 import { sendCommand } from '../lib/live.ts'
@@ -154,10 +155,10 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
     <div className="ctl-center">
       <div className={`game-pad ${many ? 'wide ctl-allow-scroll' : ''}`}>
         {wire.controls.map((b) => (
-          <button
+          <PixelButton
             key={b.id}
-            className="big-btn"
             type="button"
+            block
             disabled={locked || wire.locked || !!b.disabled}
             onClick={() => {
               if (b.disabled) return
@@ -166,7 +167,7 @@ export default function GameControls({ snap, locked }: { snap: Snapshot; locked:
             }}
           >
             {b.label}
-          </button>
+          </PixelButton>
         ))}
       </div>
     </div>

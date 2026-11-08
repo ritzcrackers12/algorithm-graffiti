@@ -55,6 +55,10 @@ Four icons, no turn timer, visitor profile, placeholder ads, sponsored paragraph
 3. Optional: `REPLICATE_API_TOKEN` if we switch to **direct** for the show.
 4. `ADMIN_PASSCODE` secret before the gallery.
 
+## Buttons
+
+Every tappable control is `PixelButton` (`src/components/PixelButton.tsx`). Phone: `.theme-surveillance` (black/green bevel). iPad XP chrome: `.theme-win95` (gray). Edit palettes in `src/components/px-buttons.css`.
+
 ## DigiPet (Tamagotchi economy)
 
 `public/games/pet.js`. Allowance from income. Every action costs credits (no free play). Death / empty wallet → ad-continue, max 2, then `out_of_ads`. Summary includes `itemsBought`, `topCategories`, `adContinues`, `choseToContinue`. Ad mapping: `PET_AD_RULES` in `src/shared/adTaxonomy.ts`. Phone: identical gold priced grid, disabled when unaffordable.

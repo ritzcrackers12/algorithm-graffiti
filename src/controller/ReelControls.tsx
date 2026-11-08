@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { PixelButton } from '../components/PixelButton.tsx'
 import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
@@ -117,9 +118,9 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
     return (
       <div className="ctl-center">
         <div className="ctl-display">WATCH THE VIDEO ON THE IPAD SCREEN.</div>
-        <button className="big-btn ghost" type="button" disabled={locked || !reel?.currentId} onClick={skip}>
+        <PixelButton type="button" block disabled={locked || !reel?.currentId} onClick={skip}>
           SKIP
-        </button>
+        </PixelButton>
       </div>
     )
   }
@@ -129,9 +130,9 @@ export default function ReelControls({ snap, locked, say }: { snap: Snapshot; lo
       <div className="ctl-label">RATE THIS ITEM.</div>
       <div className="reel-rates">
         {CHOICES.map((c) => (
-          <button key={c.rating} className="big-btn" disabled={locked} onClick={() => void sendRate(c.rating)}>
+          <PixelButton key={c.rating} block disabled={locked} onClick={() => void sendRate(c.rating)}>
             {c.label}
-          </button>
+          </PixelButton>
         ))}
       </div>
     </div>
