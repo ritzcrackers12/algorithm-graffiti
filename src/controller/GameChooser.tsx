@@ -47,7 +47,7 @@ export default function GameChooser({
                 })
               }}
             >
-              {!g.ready ? `${g.title} · NOT INSTALLED` : played ? `${g.title} · CLOSED` : rec ? `${g.title} · RECOMMENDED FOR YOU` : g.title}
+              {shut ? `${g.title} · LOCKED` : rec ? `${g.title} · RECOMMENDED FOR YOU` : g.title}
             </button>
           )
         })}

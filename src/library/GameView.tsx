@@ -8,11 +8,10 @@ import { loadGameModule, preloadP5, type GameHandle } from '../lib/gameHost.ts'
 import { pushGame } from '../lib/gamePush.ts'
 import { getGameWire, subscribeGameWire } from '../lib/gameSync.ts'
 import type { Live } from '../lib/live.ts'
+import { stageViewportBox, type Box } from './stageLayout.ts'
 
 const BASE = import.meta.env.BASE_URL
 const AD_MS = 10000
-
-type Box = { left: number; top: number; width: number; height: number }
 
 function waitSize(el: HTMLElement) {
   return new Promise<void>((resolve) => {
@@ -58,8 +57,8 @@ export default function GameView({ live }: { live: Live }) {
       return
     }
     const sync = () => {
-      const r = el.getBoundingClientRect()
-      const next = { left: r.left, top: r.top, width: r.width, height: r.height }
+      const next = stageViewportBox(el)
+      if (!next) return
       setBox((prev) => {
         if (
           prev
@@ -91,7 +90,7 @@ export default function GameView({ live }: { live: Live }) {
   }, [playing, box?.width, box?.height])
 
   useEffect(() => {
-    if (!gameId || !row?.ready) {
+    if (!gameId || !row?.ready || !playing) {
       handleRef.current?.destroy()
       handleRef.current = null
       inputFn.current = null
@@ -107,7 +106,7 @@ export default function GameView({ live }: { live: Live }) {
       inputFn.current?.(actionId)
     }
     void (async () => {
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 120; i++) {
         if (gone) return
         const hole = holeRef.current
         if (hole && hole.clientWidth > 40 && hole.clientHeight > 40) break
@@ -192,7 +191,7 @@ export default function GameView({ live }: { live: Live }) {
       handleRef.current?.destroy()
       handleRef.current = null
     }
-  }, [gameId])
+  }, [gameId, playing])
 
   useEffect(() => {
     if (wire.adStatus !== 'done' || !adWait.current) return
@@ -234,11 +233,12 @@ export default function GameView({ live }: { live: Live }) {
         <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>{row ? row.file : 'game.exe'}</span>
       </div>
       <div className="game-stage" ref={markRef}>
+        <div className="game-mark" aria-hidden />
         {surface}
         {!gameId ? (
           <div className="game-msg">SELECT A GAME ON THE PHONE.</div>
         ) : !row?.ready ? (
-          <div className="game-msg">GAME FILE NOT INSTALLED.</div>
+          <div className="game-msg">LOCKED.</div>
         ) : wire.ended ? (
           <div className="game-msg">{line || 'SESSION RECORDED.'}</div>
         ) : fail ? (

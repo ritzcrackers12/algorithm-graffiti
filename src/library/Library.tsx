@@ -2,28 +2,32 @@ import { useEffect, useState } from 'react'
 import { getLive, startLive, useLive } from '../lib/live.ts'
 import { startVersionCheck } from '../lib/versionCheck.ts'
 import Desktop from './Desktop.tsx'
+import { stageLayout } from './stageLayout.ts'
 import TapToBegin from './TapToBegin.tsx'
 
-function useStageScale() {
-  const calc = () => Math.min(window.innerWidth / 1366, window.innerHeight / 1024)
-  const [scale, setScale] = useState(calc)
+function useStageLayout() {
+  const [layout, setLayout] = useState(stageLayout)
   useEffect(() => {
-    const on = () => setScale(calc())
+    const on = () => setLayout(stageLayout())
     window.addEventListener('resize', on)
     window.addEventListener('orientationchange', on)
+    window.visualViewport?.addEventListener('resize', on)
+    window.visualViewport?.addEventListener('scroll', on)
     return () => {
       window.removeEventListener('resize', on)
       window.removeEventListener('orientationchange', on)
+      window.visualViewport?.removeEventListener('resize', on)
+      window.visualViewport?.removeEventListener('scroll', on)
     }
   }, [])
-  return scale
+  return layout
 }
 
 let versionCheckStarted = false
 
 export default function Library() {
   const live = useLive()
-  const scale = useStageScale()
+  const layout = useStageLayout()
   const [begun, setBegun] = useState(false)
 
   useEffect(() => {
@@ -40,7 +44,7 @@ export default function Library() {
 
   return (
     <div className="stage-outer">
-      <div className="stage" style={{ zoom: scale }}>
+      <div className="stage" style={{ zoom: layout.scale, left: layout.left, top: layout.top }}>
         <Desktop live={live} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
