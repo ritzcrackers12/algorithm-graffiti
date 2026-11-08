@@ -9,14 +9,15 @@ import type { VisitorProfile } from '../shared/profile.ts'
 import type { ReelResult } from '../shared/reel.ts'
 
 export default function ReelView({
-  result, profile,
+  profile,
 }: {
   result?: ReelResult
   openedAt?: number
   profile?: VisitorProfile | null
 }) {
   const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
-  const id = clip?.id || profile?.session.reel.currentId || result?.currentId || null
+  const sent = !!profile?.session.reel.send
+  const id = sent ? (clip?.id || profile?.session.reel.currentId || null) : null
   const urls = id ? reelUrls(id) : []
   const [srcIndex, setSrcIndex] = useState(0)
   const src = urls[srcIndex] ?? ''
@@ -104,16 +105,10 @@ export default function ReelView({
       <div className="xp-toolbar">
         <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>reel.mp4</span>
       </div>
-      <div className="reel-stage" ref={holeRef}>
-        {waiting ? (
-          <div className="machine-line" style={{ color: '#c6ff3d', textAlign: 'center' }}>
-            SELECT A BUCKET ON THE PHONE.
-          </div>
-        ) : null}
-      </div>
+      <div className="reel-stage" ref={holeRef} />
       <div className="xp-statusbar">
-        <span style={{ flex: 1 }}>{waiting ? 'STANDBY.' : src ? 'PLAYING.' : 'LOADING.'}</span>
-        <span style={{ width: 160 }}>{id ? `ITEM ${id}` : ''}</span>
+        <span style={{ flex: 1 }}>{waiting ? 'STANDBY.' : skipped ? 'SESSION RECORDED.' : src ? 'PLAYING.' : 'LOADING.'}</span>
+        <span style={{ width: 160 }}>{waiting ? '' : 'ONE ITEM'}</span>
       </div>
     </>
   )

@@ -39,6 +39,11 @@ function bus() {
 }
 bus()
 
+export function clearReelClip() {
+  clip = null
+  subs.forEach((cb) => cb())
+}
+
 export function emitReelClip(next: { id: string; ended?: boolean; duration?: number }) {
   noteReelClip(next)
   const payload = getReelClip()

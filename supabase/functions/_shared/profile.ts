@@ -28,11 +28,13 @@ export interface ReelSession {
   currentId: string | null
   currentSlot: string | null
   legitimacy: number | null
-  react: boolean
+  emoji: string | null
   send: boolean
   dwellMs: number
   twist: number
-  phase: 'pick' | 'tune' | 'done'
+  twistEach: [number, number, number]
+  moved: [boolean, boolean, boolean]
+  phase: 'pick' | 'tune' | 'play' | 'react' | 'done'
 }
 
 export interface AdSession {
@@ -64,7 +66,8 @@ export const emptySession = (): SessionLog => ({
   reel: {
     tried: [], skipped: [], bucket: null, dials: [50, 50, 50],
     currentId: null, currentSlot: null, legitimacy: null,
-    react: false, send: false, dwellMs: 0, twist: 0, phase: 'pick',
+    emoji: null, send: false, dwellMs: 0, twist: 0,
+    twistEach: [0, 0, 0], moved: [false, false, false], phase: 'pick',
   },
   ad: {
     dials: [50, 50, 50], brandId: null, brandName: null, legitimacy: null,
@@ -197,7 +200,14 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
     adClosedAt: r.adClosedAt ?? 0,
     device: r.device ?? null,
     session: {
-      reel: { ...e.session.reel, ...(r.session?.reel ?? {}) },
+      reel: {
+        ...e.session.reel,
+        ...(r.session?.reel ?? {}),
+        dials: r.session?.reel?.dials ?? e.session.reel.dials,
+        twistEach: r.session?.reel?.twistEach ?? e.session.reel.twistEach,
+        moved: r.session?.reel?.moved ?? e.session.reel.moved,
+        emoji: r.session?.reel?.emoji ?? e.session.reel.emoji,
+      },
       ad: { ...e.session.ad, ...(r.session?.ad ?? {}) },
       chat: {
         ...e.session.chat,

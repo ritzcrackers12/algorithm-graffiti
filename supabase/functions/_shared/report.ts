@@ -42,18 +42,21 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
   const reel = s.reel
   const bucket = reel.bucket as ReelBucket | null
   const poles = bucket ? bucketMeta(bucket).poles : null
+  const twistEach = reel.twistEach ?? [0, 0, 0]
   const reelLines: ReportLine[] = [
     { k: 'BUCKETS TRIED', v: reel.tried.length ? reel.tried.map((b) => b.toUpperCase()).join(', ') : 'NONE' },
     { k: 'BUCKETS SKIPPED', v: reel.skipped.length ? reel.skipped.map((b) => b.toUpperCase()).join(', ') : 'NONE' },
     { k: 'FINAL BUCKET', v: reel.bucket ? reel.bucket.toUpperCase() : 'UNSET' },
-    { k: 'DIALS', v: poles
+    { k: 'COORDINATE', v: `${reel.dials[0]} / ${reel.dials[1]} / ${reel.dials[2]}` },
+    { k: 'HIDDEN POLES', v: poles
       ? `${poles[0][0]}↔${poles[0][1]} ${reel.dials[0]} · ${poles[1][0]}↔${poles[1][1]} ${reel.dials[1]} · ${poles[2][0]}↔${poles[2][1]} ${reel.dials[2]}`
-      : reel.dials.join(' / ') },
+      : 'UNSET' },
     { k: 'CORNER REEL', v: reel.currentId ? `${reel.currentId}${reel.currentSlot ? ` · ${reel.currentSlot}` : ''}` : 'UNSET' },
     { k: 'HIDDEN LEGITIMACY', v: reel.legitimacy == null ? 'UNSET' : String(reel.legitimacy) },
-    { k: 'REACT', v: reel.react ? 'YES' : 'NO' },
+    { k: 'EMOJI', v: reel.emoji || 'NONE' },
     { k: 'SEND', v: reel.send ? 'YES' : 'NO' },
     { k: 'DWELL MS', v: String(reel.dwellMs) },
+    { k: 'TWIST EACH', v: `${twistEach[0]} / ${twistEach[1]} / ${twistEach[2]}` },
     { k: 'TWIST DISTANCE', v: String(reel.twist) },
   ]
 

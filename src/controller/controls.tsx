@@ -4,7 +4,7 @@ import { haptic } from '../lib/haptics.ts'
 
 /** Compact vintage rotary. Drag around it (or tap a tick) to pick a step. */
 export function Knob({
-  steps, value, onChange, size = 72, disabled, accent = '#d4af37',
+  steps, value, onChange, size = 72, disabled, accent = '#d4af37', label,
 }: {
   steps: string[]
   value: number
@@ -12,6 +12,7 @@ export function Knob({
   size?: number
   disabled?: boolean
   accent?: string
+  label?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const n = steps.length
@@ -35,6 +36,11 @@ export function Knob({
         ref={ref}
         className="knob-face"
         style={{ width: size, height: size }}
+        role="slider"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={Math.max(0, n - 1)}
+        aria-valuenow={value}
         onPointerDown={(e) => {
           if (disabled) return
           try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* synthetic events */ }
