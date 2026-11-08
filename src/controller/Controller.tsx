@@ -4,7 +4,7 @@ import { haptic } from '../lib/haptics.ts'
 import { getLive, rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
 import { startVersionCheck } from '../lib/versionCheck.ts'
 import { resetChatWire } from '../lib/chatSync.ts'
-import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile } from '../lib/profileClient.ts'
+import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import type { ObjectId } from '../shared/config.ts'
 import { objectsTouched, reportReady } from '../shared/gating.ts'
 import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
@@ -209,15 +209,30 @@ export default function Controller() {
     content = (
       <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
         {open === 'article' && (
-          <Segmented
-            options={[
-              { value: 'original', label: 'ORIGINAL' },
-              { value: 'altered', label: 'ALTERED', disabled: !hasAltered },
-            ]}
-            value={hasAltered ? snap.display.view : 'original'}
-            disabled={!!busy}
-            onChange={(v) => void sendCommand('view', v)}
-          />
+          <div className="article-view-row">
+            <Segmented
+              options={[
+                { value: 'original', label: 'ORIGINAL' },
+                { value: 'altered', label: 'ALTERED', disabled: !hasAltered },
+              ]}
+              value={hasAltered ? snap.display.view : 'original'}
+              disabled={!!busy || !!snap.profile?.session?.articleCompare}
+              onChange={(v) => void sendCommand('view', v)}
+            />
+            <PixelButton
+              type="button"
+              disabled={!!busy || !hasAltered}
+              selected={!!snap.profile?.session?.articleCompare}
+              onClick={() => {
+                const prof = getLocalProfile()
+                const session = { ...prof.session, articleCompare: !prof.session.articleCompare }
+                setLocalProfile({ ...prof, session })
+                void sendCommand('signal', JSON.stringify({ session }))
+              }}
+            >
+              {snap.profile?.session?.articleCompare ? 'HIDE ORIGINAL' : 'COMPARE'}
+            </PixelButton>
+          </div>
         )}
         <div className="ctl-object-body">
           {open === 'article' && storyId && (

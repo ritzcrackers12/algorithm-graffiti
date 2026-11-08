@@ -119,12 +119,23 @@ export default function Desktop({ live }: { live: Live }) {
           icon={<ObjectIcon id={obj.id} />}
         >
           {obj.id === 'article' ? (
-            <ArticleView
-              view={view}
-              result={snap?.altered.article}
-              selectedId={snap?.display.articleId}
-              profile={profile}
-            />
+            profile?.session?.articleCompare && snap?.altered.article ? (
+              <div className="article-compare">
+                <div className="article-compare-pane">
+                  <ArticleView view="original" result={snap?.altered.article} selectedId={snap?.display.articleId} profile={profile} />
+                </div>
+                <div className="article-compare-pane">
+                  <ArticleView view="altered" result={snap?.altered.article} selectedId={snap?.display.articleId} profile={profile} />
+                </div>
+              </div>
+            ) : (
+              <ArticleView
+                view={view}
+                result={snap?.altered.article}
+                selectedId={snap?.display.articleId}
+                profile={profile}
+              />
+            )
           ) : obj.id === 'reel' ? (
             <ReelView result={snap?.altered.reel} openedAt={openedAt} profile={profile} />
           ) : obj.id === 'ad' ? (
