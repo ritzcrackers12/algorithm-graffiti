@@ -20,6 +20,27 @@
   --btn-font: "W95FA","Pixelated MS Sans Serif",ui-monospace,monospace;
 }
 
+/* ---- THEME: retro — grey Windows chrome + mint accent (controller) ---- */
+.theme-retro {
+  --btn-face:        #c3c3c3;
+  --btn-face-hover:  #cccccc;
+  --btn-face-active: #bdbdbd;
+  --btn-face-sel:    #b7d9cc;   /* mint-tinted selected */
+  --hl-outer:        #ffffff;
+  --hl-inner:        #d9d9d9;
+  --sh-inner:        #878787;
+  --sh-outer:        #3a3a3a;
+  --btn-text:        #1a1a1a;
+  --btn-text-press:  #06281d;
+  --btn-text-dim:    #7a7a7a;
+  --btn-glow:        transparent;
+  --btn-font: Tahoma, Verdana, "Segoe UI", sans-serif;
+  /* shared accent for the whole controller */
+  --mint:            #36d79b;
+  --mint-deep:       #0f7a56;
+  --cryptic:         "VT323", "Share Tech Mono", ui-monospace, monospace;
+}
+
 /* ---- THEME: classic Windows 95 (gray on teal) — alternate ---- */
 .theme-win95 {
   --btn-face:        #c0c0c0;

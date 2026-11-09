@@ -6,6 +6,7 @@ import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { sendCommand } from '../lib/live.ts'
 import { clearReelClip, getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
 import { REEL_BUCKETS, bucketMeta, nearestSlot, type ReelBucket } from '../shared/reelLibrary.ts'
+import { poleWord } from '../shared/poles.ts'
 import type { ReelSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
@@ -160,11 +161,13 @@ export default function ReelControls({ snap, locked }: { snap: Snapshot; locked:
 
   if (!bucket) {
     return (
-      <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', paddingTop: 8 }}>
+      <div className="ctl-center reel-pick" style={{ paddingTop: 8 }}>
+        <div className="prompt"><span className="bobtext">WHAT WOULD YOU LIKE TO SEE?</span></div>
         <div className="bucket-grid">
           {REEL_BUCKETS.map((b) => (
             <PixelButton key={b.id} type="button" disabled={locked} onClick={() => pickBucket(b.id)}>
-              {b.label}
+              <span>{b.label}</span>
+              <span className="bucket-sub">{b.subtitle}</span>
             </PixelButton>
           ))}
         </div>
@@ -226,20 +229,24 @@ export default function ReelControls({ snap, locked }: { snap: Snapshot; locked:
   const poles = bucketMeta(bucket).poles
 
   return (
-    <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 8 }}>
-      <div className="knob-stack">
+    <div className="ctl-center reel-tune" style={{ gap: 8, paddingTop: 8 }}>
+      <div className="prompt"><span className="bobtext">ADJUST TO YOUR LIKING</span></div>
+      <div className="reel-units">
         {poles.map((pole, i) => (
-          <div key={pole[0]} className="knob-labeled">
-            <span className="knob-pole left">{pole[0]}</span>
-            <Knob
-              steps={KNOB_STEPS}
-              value={Math.round(dials[i] / 10)}
-              onChange={(step) => twist(i as 0 | 1 | 2, step)}
-              disabled={locked}
-              size={72}
-              label={`${pole[0]} TO ${pole[1]}`}
-            />
-            <span className="knob-pole right">{pole[1]}</span>
+          <div key={pole[0]} className="reel-unit">
+            <div className="unit-poles">
+              <span className="pole l">{pole[0]}</span>
+              <Knob
+                steps={KNOB_STEPS}
+                value={Math.round(dials[i] / 10)}
+                onChange={(step) => twist(i as 0 | 1 | 2, step)}
+                disabled={locked}
+                size={96}
+                label={`${pole[0]} TO ${pole[1]}`}
+              />
+              <span className="pole r">{pole[1]}</span>
+            </div>
+            <div className="explain">{moved[i] ? poleWord(pole[0], pole[1], dials[i]) : '— — —'}</div>
           </div>
         ))}
       </div>

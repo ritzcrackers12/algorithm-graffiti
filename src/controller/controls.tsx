@@ -4,7 +4,7 @@ import { haptic } from '../lib/haptics.ts'
 
 /** Compact vintage rotary. Drag around it (or tap a tick) to pick a step. */
 export function Knob({
-  steps, value, onChange, size = 72, disabled, accent = '#d4af37', label,
+  steps, value, onChange, size = 72, disabled, accent = '#0f7a56', label,
 }: {
   steps: string[]
   value: number
@@ -74,7 +74,7 @@ export function Knob({
 
 /** Horizontal metal fader that snaps to detents. */
 export function DetentSlider({
-  steps, value, onChange, disabled, track, left, right, unset,
+  steps, value, onChange, disabled, track, left, right, unset, readout,
 }: {
   steps: number
   value: number
@@ -85,6 +85,8 @@ export function DetentSlider({
   right?: string
   /** Grayed, no effect until the visitor touches it. */
   unset?: boolean
+  /** Blinking cryptic phrase shown centered between the pole labels. */
+  readout?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const fromPointer = (e: RPointerEvent) => {
@@ -111,15 +113,17 @@ export function DetentSlider({
         onPointerMove={(e) => !disabled && e.currentTarget.hasPointerCapture(e.pointerId) && fromPointer(e)}
       >
         <div className="fader-groove" style={!unset && track ? { background: track } : undefined} />
+        {!unset && <div className="fader-fill" style={{ width: `${pct}%` }} />}
         {Array.from({ length: steps }, (_, i) => (
           <i key={i} className="fader-notch" style={{ left: `${(i / (steps - 1)) * 100}%` }} />
         ))}
         <div className="fader-thumb" style={thumb} />
       </div>
-      {(left || right) && (
-        <div className="fader-ends">
-          <span>{left}</span>
-          <span>{right}</span>
+      {(left || right || readout) && (
+        <div className={`fader-ends${readout ? ' three' : ''}`}>
+          <span className="fe l">{left}</span>
+          {readout && <span className="fe m blink">{readout}</span>}
+          <span className="fe r">{right}</span>
         </div>
       )}
     </div>
