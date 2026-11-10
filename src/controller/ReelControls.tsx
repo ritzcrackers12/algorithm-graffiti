@@ -229,11 +229,7 @@ export default function ReelControls({ snap, locked }: { snap: Snapshot; locked:
   const poles = bucketMeta(bucket).poles
 
   return (
-    <div
-      className="ctl-center reel-tune"
-      style={{ gap: 8, paddingTop: 8 }}
-      onScroll={(e) => e.currentTarget.classList.toggle('scrolled', e.currentTarget.scrollTop > 8)}
-    >
+    <div className="ctl-center reel-tune" style={{ gap: 8, paddingTop: 8 }}>
       <div className="prompt"><span className="bobtext">ADJUST TO YOUR LIKING</span></div>
       <div className="reel-units">
         {poles.map((pole, i) => (

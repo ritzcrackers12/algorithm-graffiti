@@ -189,7 +189,7 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
   return (
     <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 8, paddingTop: 6 }}>
       <div className="ctl-display" style={{ fontSize: 14, lineHeight: 1.35 }}>
-        {waiting ? 'WAIT.' : done ? 'SESSION RECORDED.' : 'ANSWER ON THIS PHONE.'}
+        {waiting ? 'RESPONDING…' : done ? 'SESSION RECORDED.' : 'ANSWER ON THIS PHONE.'}
       </div>
       <div className="chat-chips">
         {chips.map((c) => (
@@ -198,7 +198,13 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
           </PixelButton>
         ))}
       </div>
-      {!done && (
+      {waiting && (
+        <div className="chat-responding">
+          <span className="chat-dots"><i /><i /><i /></span>
+          <span>responding…</span>
+        </div>
+      )}
+      {!done && !waiting && (
         <form
           className="chat-form"
           onSubmit={(e) => {

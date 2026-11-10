@@ -77,11 +77,7 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
   }
 
   return (
-    <div
-      className="ctl-center station-ctl"
-      style={{ gap: 8, paddingTop: 8 }}
-      onScroll={(e) => e.currentTarget.classList.toggle('scrolled', e.currentTarget.scrollTop > 8)}
-    >
+    <div className="ctl-center station-ctl" style={{ gap: 8, paddingTop: 8 }}>
       <div className="prompt"><span className="bobtext">FIND YOUR SOUND</span></div>
       <div className="fm">{fmFreq(dials)}</div>
       <div className="station-dials">

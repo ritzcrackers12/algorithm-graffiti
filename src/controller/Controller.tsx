@@ -234,7 +234,10 @@ export default function Controller() {
             </PixelButton>
           </div>
         )}
-        <div className="ctl-object-body">
+        <div
+          className="ctl-object-body"
+          onScroll={(e) => e.currentTarget.classList.toggle('scrolled', e.currentTarget.scrollTop > 8)}
+        >
           {open === 'article' && storyId && (
             <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} />
           )}
