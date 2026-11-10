@@ -71,7 +71,13 @@ export default function ArticleControls({
   const send = () => transmit({ object: 'article', params: { ...p, articleId } })
 
   return (
-    <div className="ctl-board ctl-allow-scroll">
+    <div
+      className="ctl-board ctl-allow-scroll"
+      onScroll={(e) => {
+        const on = e.currentTarget.scrollTop > 8
+        e.currentTarget.classList.toggle('scrolled', on)
+      }}
+    >
       <div className="prompt"><span className="bobtext">WHAT SHOULD THE STORY BECOME?</span></div>
 
       <Section stack label="STORY">

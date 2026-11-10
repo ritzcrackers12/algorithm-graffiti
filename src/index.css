@@ -915,8 +915,20 @@ span.xp-tbtn {
 .theme-retro .ctl-object-body:has(> .station-ctl)::before {
   content: 'SCROLL \25BC'; position: absolute; left: 50%; bottom: 52px;
   transform: translate(-50%, 0);
-  font: 700 11px/1 Tahoma, Verdana, 'Segoe UI', sans-serif; letter-spacing: 0.18em;
-  color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.45);
-  padding: 3px 9px; background: rgba(0,0,0,0.28); border-radius: 10px;
+  font: 700 11px/1 Tahoma, Verdana, 'Segoe UI', sans-serif; letter-spacing: 0.14em;
+  color: var(--mint-deep); text-transform: uppercase;
+  padding: 4px 11px; background: var(--r-face); border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh2),
+    inset 2px 2px 0 var(--r-face2), inset -2px -2px 0 var(--r-sh1);
   pointer-events: none; z-index: 3; animation: scroll-nudge 1.4s ease-in-out infinite;
+}
+/* once the visitor scrolls, the cue has done its job — hide it */
+.theme-retro .ctl-object-body:has(> .ctl-board.scrolled)::before,
+.theme-retro .ctl-object-body:has(> .reel-tune.scrolled)::before,
+.theme-retro .ctl-object-body:has(> .station-ctl.scrolled)::before,
+.theme-retro .ctl-object-body:has(> .ctl-board.scrolled)::after,
+.theme-retro .ctl-object-body:has(> .reel-tune.scrolled)::after,
+.theme-retro .ctl-object-body:has(> .station-ctl.scrolled)::after {
+  display: none;
 }
