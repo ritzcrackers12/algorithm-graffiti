@@ -77,7 +77,7 @@ export default function ArticleControls({
       <Section stack label="STORY">
         <div className="story-locked">{selected?.title ?? articleId}</div>
       </Section>
-      <Section stack label="POLITICAL LEAN">
+      <Section stack label={`POLITICAL LEAN · ${LEAN_LABELS[p.lean + 2]}`}>
         <DetentSlider
           steps={5}
           value={p.lean + 2}
@@ -85,10 +85,9 @@ export default function ArticleControls({
           disabled={locked}
           left="LEFT"
           right="RIGHT"
-          readout={LEAN_LABELS[p.lean + 2]}
         />
       </Section>
-      <Section stack label="CONNOTATION">
+      <Section stack label={`CONNOTATION · ${CONNOTATION_LABELS[p.connotation + 1]}`}>
         <DetentSlider
           steps={3}
           value={p.connotation + 1}
@@ -96,10 +95,9 @@ export default function ArticleControls({
           disabled={locked}
           left="NEG"
           right="POS"
-          readout={CONNOTATION_LABELS[p.connotation + 1]}
         />
       </Section>
-      <Section stack label="DRAMATIC">
+      <Section stack label={`DRAMATIC · ${SENSATION_LABELS[p.sensationalism]}`}>
         <DetentSlider
           steps={5}
           value={p.sensationalism}
@@ -107,10 +105,9 @@ export default function ArticleControls({
           disabled={locked}
           left="MILD"
           right="INTENSE"
-          readout={SENSATION_LABELS[p.sensationalism]}
         />
       </Section>
-      <Section stack label="READER PROFILE">
+      <Section stack label={`READER PROFILE · ${EDUCATION_LABELS[p.education]}`}>
         <Knob
           steps={EDUCATION_KNOB}
           value={p.education}
@@ -118,9 +115,8 @@ export default function ArticleControls({
           size={84}
           disabled={locked}
         />
-        <div className="explain">{EDUCATION_LABELS[p.education]}</div>
       </Section>
-      <Section stack label="INCOME BRACKET">
+      <Section stack label={`INCOME BRACKET · ${p.income === null ? 'UNSET' : INCOME_LABELS[p.income]}`}>
         <DetentSlider
           steps={6}
           value={p.income ?? 0}
@@ -129,7 +125,6 @@ export default function ArticleControls({
           disabled={locked}
           left="UNDER $30K"
           right="$500K+"
-          readout={p.income === null ? 'UNSET' : INCOME_LABELS[p.income]}
         />
       </Section>
       <Section stack label="WHERE ARE YOU READING FROM?" value={locStatus}>
@@ -176,7 +171,7 @@ export default function ArticleControls({
           </Section>
 
       <PixelButton className="rewrite-btn" block disabled={locked || !articleId} onClick={send}>
-        REWRITE ARTICLE
+        SUBMIT
       </PixelButton>
     </div>
   )
