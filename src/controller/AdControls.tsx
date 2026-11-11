@@ -91,7 +91,7 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
                 value={Math.round(dials[i] / 10)}
                 onChange={(step) => twist(i, step * 10)}
                 disabled={locked}
-                size={96}
+                size={64}
                 label={`${pole[0]} TO ${pole[1]}`}
               />
               <span className="pole r">{pole[1]}</span>

@@ -862,15 +862,12 @@ span.xp-tbtn {
   letter-spacing: 0.04em; margin-top: 3px; text-transform: none;
 }
 
-/* --- reel: dial units with explain bars + dashed dividers --- */
-.theme-retro .reel-tune {
-  flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start;
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
-.theme-retro .reel-units { flex: none; display: flex; flex-direction: column; }
+/* --- reel: dial units fit the screen, evenly distributed, no scroll --- */
+.theme-retro .reel-tune { display: flex; flex-direction: column; }
+.theme-retro .reel-units { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .theme-retro .reel-unit {
-  flex: none; min-height: 156px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 6px; padding: 8px 0;
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; padding: 2px 0;
 }
 .theme-retro .reel-unit + .reel-unit { border-top: 2px dashed #2f2f2f; }
 .theme-retro .unit-poles {
@@ -884,19 +881,17 @@ span.xp-tbtn {
 .theme-retro .unit-poles .pole.r { text-align: left; }
 .theme-retro .reel-unit .explain { width: 100%; }
 
-/* station window: whole screen scrolls, controls keep full size */
-.theme-retro .station-ctl {
-  flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start;
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
-.theme-retro .station-ctl .px-btn--block { margin-top: 8px; flex: none; }
+/* station window: fits the screen, no scroll */
+.theme-retro .station-ctl { display: flex; flex-direction: column; }
+.theme-retro .station-ctl .px-btn--block { margin-top: 6px; flex: none; }
 
-/* --- station: big dials at full size --- */
+/* --- station: dials evenly distributed to fit --- */
 .theme-retro .station-dials {
-  flex: none; display: flex; flex-direction: column; gap: 10px;
+  flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
 }
-.theme-retro .station-dial { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; }
+.theme-retro .station-dial { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 2px 0; }
 .theme-retro .station-dial .explain { width: min(300px, 90%); }
+.theme-retro .station-dial .ctitle { padding-top: 3px; margin-bottom: 2px; }
 
 /* ===== scroll affordance: fade + bouncing chevron on controller screens ===== */
 @keyframes scroll-nudge {
@@ -905,16 +900,12 @@ span.xp-tbtn {
 }
 /* soft fade + bouncing chevron, anchored on the non-scrolling .ctl-object so
    they stay pinned while the body scrolls; only on the scrolling screens */
-.theme-retro .ctl-object:has(.ctl-board)::after,
-.theme-retro .ctl-object:has(.reel-tune)::after,
-.theme-retro .ctl-object:has(.station-ctl)::after {
+.theme-retro .ctl-object:has(.ctl-board)::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40px;
   background: linear-gradient(to top, rgba(10,143,136,0.95), rgba(10,143,136,0));
   pointer-events: none; z-index: 2;
 }
-.theme-retro .ctl-object:has(.ctl-board)::before,
-.theme-retro .ctl-object:has(.reel-tune)::before,
-.theme-retro .ctl-object:has(.station-ctl)::before {
+.theme-retro .ctl-object:has(.ctl-board)::before {
   content: 'SCROLL \25BC'; position: absolute; left: 50%; bottom: 10px;
   transform: translate(-50%, 0);
   font: 700 11px/1 Tahoma, Verdana, 'Segoe UI', sans-serif; letter-spacing: 0.14em;
@@ -943,9 +934,12 @@ span.xp-tbtn {
 .theme-retro .ctl-main,
 .theme-retro .ctl-object { touch-action: pan-y; }
 .theme-retro .ctl-object-body { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
-.theme-retro .ctl-board,
+/* Article scrolls (too many controls to fit); its panels sit at full size. */
+.theme-retro .ctl-board { flex: none; overflow: visible; }
+/* Reel + Station are built to FIT the phone with no scroll — the big knobs
+   made touch-scroll unreliable, so everything is sized to fill, not overflow. */
 .theme-retro .reel-tune,
-.theme-retro .station-ctl { flex: none; overflow: visible; }
+.theme-retro .station-ctl { flex: 1; min-height: 0; overflow: hidden; }
 
 /* chatbot: "responding…" indicator shown after a choice while the group replies */
 .theme-retro .chat-responding {

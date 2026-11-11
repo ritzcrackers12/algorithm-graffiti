@@ -241,7 +241,7 @@ export default function ReelControls({ snap, locked }: { snap: Snapshot; locked:
                 value={Math.round(dials[i] / 10)}
                 onChange={(step) => twist(i as 0 | 1 | 2, step)}
                 disabled={locked}
-                size={96}
+                size={72}
                 label={`${pole[0]} TO ${pole[1]}`}
               />
               <span className="pole r">{pole[1]}</span>
