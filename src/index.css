@@ -934,9 +934,14 @@ span.xp-tbtn {
 }
 
 /* ===== unified scroll: the object body scrolls, inner panels sit at full size ===== */
-/* touch-action: pan-y re-enables native vertical scrolling here — the whole
-   controller sets touch-action:none for the knobs/sliders, which otherwise
-   blocks the body from scrolling by touch. */
+/* The controller root sets touch-action:none for the knobs/sliders. iOS only
+   allows a vertical pan if EVERY element from the touch point up to the
+   scroller permits it, so pan-y must be set along the whole chain (root ->
+   main -> object -> body). The knobs/sliders keep their own touch-action:none,
+   so they still capture their drags. */
+.ctl.theme-retro,
+.theme-retro .ctl-main,
+.theme-retro .ctl-object { touch-action: pan-y; }
 .theme-retro .ctl-object-body { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 .theme-retro .ctl-board,
 .theme-retro .reel-tune,
