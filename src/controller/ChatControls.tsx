@@ -73,6 +73,8 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
   const askedAt = useRef(Date.now())
   const openedAt = snap.display.openedAt
   const done = turns.some((t) => t.topic === 'done') || turns.filter(isYou).length >= CHAT_MAX_TURNS
+  // Before the group's first message exists, the wait is the initial load, not a reply.
+  const hasBotTurn = turns.some((t) => !isYou(t))
 
   useEffect(() => {
     const alive = { go: true }
@@ -189,7 +191,7 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
   return (
     <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 8, paddingTop: 6 }}>
       <div className="ctl-display" style={{ fontSize: 14, lineHeight: 1.35 }}>
-        {waiting ? 'RESPONDING…' : done ? 'SESSION RECORDED.' : 'ANSWER ON THIS PHONE.'}
+        {waiting ? (hasBotTurn ? 'RESPONDING…' : 'LOADING…') : done ? 'SESSION RECORDED.' : 'ANSWER ON THIS PHONE.'}
       </div>
       <div className="chat-chips">
         {chips.map((c) => (
@@ -201,7 +203,7 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
       {waiting && (
         <div className="chat-responding">
           <span className="chat-dots"><i /><i /><i /></span>
-          <span>responding…</span>
+          <span>{hasBotTurn ? 'responding…' : 'loading…'}</span>
         </div>
       )}
       {!done && !waiting && (
