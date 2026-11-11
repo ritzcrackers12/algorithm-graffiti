@@ -763,10 +763,11 @@ span.xp-tbtn {
 .theme-retro .ctl-label { color: #2a2a2a; }
 .theme-retro .ctl-value { color: var(--mint-deep); }
 .theme-retro .story-locked {
-  color: var(--mint-deep); background: var(--r-face);
+  color: #39ff8c; background: #050b08;
   font: 700 14px/1.4 Tahoma, Verdana, 'Segoe UI', sans-serif;
   letter-spacing: 0; text-transform: none; text-align: center;
-  box-shadow: inset 1px 1px 0 var(--r-sh1), inset -1px -1px 0 var(--r-hl);
+  text-shadow: 0 0 7px rgba(57,255,140,0.5);
+  box-shadow: inset 0 0 0 2px #0b5a40, inset 1px 1px 0 var(--r-sh2), inset -1px -1px 0 #000;
 }
 
 /* --- faders: grey well + mint fill --- */
@@ -820,10 +821,11 @@ span.xp-tbtn {
 /* prompts / titles: readable grey Windows style (no green) */
 .theme-retro .prompt {
   font-family: Tahoma, Verdana, 'Segoe UI', sans-serif; font-weight: 700;
-  font-size: 15px; line-height: 1.2; color: var(--mint-deep); text-transform: uppercase;
-  background: var(--r-face); text-align: center; padding: 8px;
+  font-size: 15px; line-height: 1.2; color: #39ff8c; text-transform: uppercase;
+  background: #050b08; text-align: center; padding: 9px;
   letter-spacing: 0.06em; overflow: hidden; flex: none;
-  box-shadow: inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh1);
+  text-shadow: 0 0 7px rgba(57,255,140,0.55);
+  box-shadow: inset 0 0 0 2px #0b5a40, inset 1px 1px 0 var(--r-sh2), inset -1px -1px 0 #000;
 }
 .theme-retro .bobtext { display: inline-block; animation: ctl-bob 8s ease-in-out infinite; will-change: transform; }
 .theme-retro .blink {
@@ -932,7 +934,10 @@ span.xp-tbtn {
 }
 
 /* ===== unified scroll: the object body scrolls, inner panels sit at full size ===== */
-.theme-retro .ctl-object-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* touch-action: pan-y re-enables native vertical scrolling here — the whole
+   controller sets touch-action:none for the knobs/sliders, which otherwise
+   blocks the body from scrolling by touch. */
+.theme-retro .ctl-object-body { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 .theme-retro .ctl-board,
 .theme-retro .reel-tune,
 .theme-retro .station-ctl { flex: none; overflow: visible; }
