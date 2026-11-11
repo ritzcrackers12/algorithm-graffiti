@@ -5,9 +5,9 @@ import type { VisitorProfile } from './profile.ts'
 
 /** Phone dials. Blind poles are fine; these labels drive the report + prompt. */
 export const STATION_POLES: [[string, string], [string, string], [string, string]] = [
-  ['LAID-BACK', 'DRIVING'], // Energy
-  ['DARK', 'BRIGHT'], // Mood
-  ['CLEAN', 'GRITTY'], // Texture
+  ['LOW', 'HIGH'], // Energy
+  ['BAD', 'GOOD'], // Mood
+  ['SMOOTH', 'ROUGH'], // Texture
 ]
 
 export type GenreId = 'ambient' | 'trap' | 'house' | 'idm' | 'phonk' | 'hyperpop' | 'neoclassical'
