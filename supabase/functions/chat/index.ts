@@ -1,6 +1,7 @@
 import { chatSystemPrompt, isPersona, isYou, scriptedNext, type ChatTurn, type PersonaId } from '../_shared/chatScript.ts'
 import { emptyProfile, hydrateProfile, type VisitorProfile } from '../_shared/profile.ts'
 import { isBlocked } from '../_shared/text.ts'
+import { predict } from '../_shared/replicateClient.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -86,6 +87,19 @@ async function gemini(system: string, history: ChatTurn[], key: string, model: s
   return parseModelJson(text)
 }
 
+// Reuses the Replicate text model (Llama) + REPLICATE_API_TOKEN already set for
+// the Station/Article, so the chatbot needs no separate API key.
+async function replicateLlama(system: string, history: ChatTurn[]) {
+  const prompt = `${system}\n\nTRANSCRIPT\n${transcript(history)}\n\nContinue as the group. Reply with JSON only, no preamble.`
+  const pred = await predict({
+    job: 'text',
+    timeoutSeconds: 20,
+    input: { prompt, max_tokens: 420, temperature: 0.85 },
+  })
+  if (!pred.ok) return null
+  return parseModelJson(String(pred.output ?? ''))
+}
+
 async function anthropic(system: string, history: ChatTurn[], key: string, model: string) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -132,6 +146,20 @@ Deno.serve(async (req) => {
   const key = Deno.env.get('CHAT_API_KEY') || ''
   const provider = (Deno.env.get('CHAT_PROVIDER') || (key ? 'gemini' : 'scripted')).toLowerCase()
   const model = Deno.env.get('CHAT_MODEL') || (provider === 'anthropic' ? 'claude-haiku-4-5' : 'gemini-2.0-flash-lite')
+
+  // Replicate/Llama: uses REPLICATE_API_TOKEN (no CHAT_API_KEY needed). Any
+  // model error or unparseable reply falls back to the scripted bank.
+  if (provider === 'replicate' || provider === 'llama') {
+    try {
+      const parsed = await replicateLlama(chatSystemPrompt(profile), history)
+      if (!parsed) return json(fallback(history, profile))
+      return json({ ok: true, ...parsed, source: 'ai' })
+    } catch (e) {
+      console.error('chat llama failed', e)
+      return json(fallback(history, profile))
+    }
+  }
+
   // No key → predetermined bank. Key present → custom LLM on that same flow map.
   if (!key || provider === 'scripted') return json(fallback(history, profile))
   try {
