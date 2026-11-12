@@ -26,9 +26,12 @@ export default function ReportView({
           </section>
         ))}
         <section>
-          <h2>ASSUMPTIONS</h2>
-          {assumptions.map((a) => (
-            <div key={a} className="report-row"><span>{a}</span></div>
+          <h2>WHAT WE THINK WE KNOW ABOUT YOU</h2>
+          {assumptions.map((l) => (
+            <div key={l.k} className="report-row">
+              <b>{l.k}</b>
+              <span>{l.v}</span>
+            </div>
           ))}
         </section>
       </div>

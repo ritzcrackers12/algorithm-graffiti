@@ -23,7 +23,86 @@ function locLine(raw: string) {
   return raw ? raw.toUpperCase() : 'UNSET'
 }
 
-export function buildDossier(p: VisitorProfile, article?: ArticleResult | null): { blocks: ReportBlock[]; assumptions: string[] } {
+/** The payoff: a flat character read assembled from everything the visitor did.
+ *  Stated as conclusions about who they are, each pinned to a choice. No ad/
+ *  purchase framing, and it never calls itself "your usual". The chat answers
+ *  feed in through p.inferred (interests) + behavior; deeper wiring lands next. */
+function personalityPortrait(p: VisitorProfile): ReportLine[] {
+  const a = p.article
+  const inf = p.inferred
+  const reel = p.session.reel
+  const ad = p.session.ad
+  const bucket = reel.bucket as ReelBucket | null
+  const poles = bucket ? bucketMeta(bucket).poles : null
+  const impulsive = p.behavior.extremes >= 2 || (a.sensationalism ?? 0) >= 3
+  const lines: ReportLine[] = []
+
+  // WHO YOU ARE — one-line synthesis
+  const ageHint = inf.ageRange !== 'unknown' ? inf.ageRange : ''
+  lines.push({
+    k: 'WHO YOU ARE',
+    v: [ageHint, bucket ? `${bucket}-leaning` : '', impulsive ? 'quick to react' : 'deliberate']
+      .filter(Boolean).join(', ').toUpperCase() || 'A WORK IN PROGRESS',
+  })
+
+  // WHAT YOU'RE INTO
+  const worlds: string[] = []
+  if (bucket) worlds.push(bucket)
+  if (ad.genreLabel || ad.genre) worlds.push(String(ad.genreLabel || ad.genre))
+  for (const it of inf.interests.slice(0, 5)) if (!worlds.includes(it)) worlds.push(it)
+  lines.push({ k: "WHAT YOU'RE INTO", v: (worlds.length ? worlds.join(', ') : 'a little of everything').toUpperCase() })
+
+  // HOW YOU THINK
+  const traits: string[] = [impulsive ? 'impulsive, reacts fast' : 'measured, holds back']
+  if (poles) {
+    const d2 = reel.dials[1]
+    traits.push(d2 >= 60 ? 'drawn to the obscure' : d2 <= 40 ? 'mainstream taste' : 'middle-of-the-road taste')
+    const right3 = poles[2][1].toLowerCase()
+    if (right3.includes('ironic') || right3.includes('performative')) {
+      traits.push(reel.dials[2] >= 60 ? "ironic, keeps it at arm's length" : 'earnest, means it')
+    }
+  }
+  lines.push({ k: 'HOW YOU THINK', v: traits.join('; ').toUpperCase() })
+
+  // WHAT YOU VALUE
+  let values = 'pragmatic, hard to pin down'
+  if (a.lean != null && a.lean <= -1) values = 'fairness, collective good, change'
+  else if (a.lean != null && a.lean >= 1) values = 'order, self-reliance, tradition'
+  else if (a.lean === 0) values = 'balance, both-sides pragmatism'
+  if ((a.sensationalism ?? 0) >= 3) values += '; pulled in by stakes and outrage'
+  lines.push({ k: 'WHAT YOU VALUE', v: values.toUpperCase() })
+
+  // HOW YOU WANT TO BE SEEN
+  let image = 'low-key, unbothered'
+  if (a.education != null && a.education >= 4) image = 'as informed and credentialed'
+  else if (a.education != null && a.education <= 1) image = 'as down-to-earth, no pretense'
+  if (a.income != null && a.income >= 4) image += '; a little above it'
+  else if (a.income != null && a.income <= 1) image += '; scrappy, getting by'
+  lines.push({ k: 'HOW YOU WANT TO BE SEEN', v: image.toUpperCase() })
+
+  // WHAT MOVES YOU
+  let moves = 'you mostly make up your own mind'
+  if (inf.susceptibility >= 0.55 || (reel.legitimacy != null && reel.legitimacy <= 40)) {
+    moves = 'you move with what gets put in front of you — trends, social proof, the next thing in the feed'
+  } else if (inf.susceptibility >= 0.4) {
+    moves = "you'll follow a strong pull, but you notice the pitch"
+  }
+  lines.push({ k: 'WHAT MOVES YOU', v: moves.toUpperCase() })
+
+  // WHAT YOU'RE REACHING FOR
+  let need = 'something to hold your attention'
+  if (inf.mood === 'anxious' || inf.mood === 'restless') need = 'comfort, relief, something to settle the noise'
+  else if (inf.mood === 'upbeat') need = 'stimulation, status, more of the high'
+  else if (inf.mood === 'concerned') need = "control, a sense that it'll be okay"
+  const energy = ad.dials?.[0]
+  if (energy != null && energy >= 65) need += '; you reach for intensity'
+  else if (energy != null && energy <= 35) need += '; you reach for calm'
+  lines.push({ k: "WHAT YOU'RE REACHING FOR", v: need.toUpperCase() })
+
+  return lines
+}
+
+export function buildDossier(p: VisitorProfile, article?: ArticleResult | null): { blocks: ReportBlock[]; assumptions: ReportLine[] } {
   const a = p.article
   const s = p.session
   const articleLines: ReportLine[] = [
@@ -95,17 +174,7 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
     { k: 'HESITATION SAMPLES', v: String(p.behavior.hesitationMs.length) },
   ]
 
-  const inf = p.inferred
-  const assumptions = [
-    `INCOME BRACKET: ${inf.incomeBracket ?? 'UNKNOWN'}`,
-    `REGION: ${inf.region ?? 'UNKNOWN'}`,
-    `LEAN: ${inf.lean ?? 'UNKNOWN'}`,
-    `MOOD: ${inf.mood.toUpperCase()}`,
-    `AGE RANGE: ${inf.ageRange.toUpperCase()}`,
-    `INTERESTS: ${inf.interests.length ? inf.interests.map((x) => x.toUpperCase()).join(', ') : 'NONE'}`,
-    `SUSCEPTIBILITY: ${inf.susceptibility}`,
-    ...p.categories.slice(0, 6).map((c) => `${c.category.toUpperCase()} ${Math.round(c.confidence * 100)}% · ${c.reasons[0] ?? ''}`),
-  ]
+  const assumptions = personalityPortrait(p)
 
   return {
     blocks: [
