@@ -92,9 +92,9 @@ async function gemini(system: string, history: ChatTurn[], key: string, model: s
 async function replicateLlama(system: string, history: ChatTurn[]) {
   const prompt = `${system}\n\nTRANSCRIPT\n${transcript(history)}\n\nContinue as the group. Reply with JSON only, no preamble.`
   const pred = await predict({
-    job: 'text',
-    timeoutSeconds: 20,
-    input: { prompt, max_tokens: 420, temperature: 0.85 },
+    job: 'chat',
+    timeoutSeconds: 25,
+    input: { prompt, max_tokens: 500, temperature: 0.9 },
   })
   if (!pred.ok) return null
   return parseModelJson(String(pred.output ?? ''))

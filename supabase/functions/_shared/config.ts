@@ -78,6 +78,15 @@ export const CONFIG = {
       kind: 'cheap' as const,
       note: '~$0.05/1M in + $0.25/1M out on Replicate; long article ≈ a few cents',
     },
+    // Group chat runs on the bigger model for persona voice + reliable JSON.
+    // version '' → DIRECT mode uses the /v1/models/<model>/predictions endpoint
+    // (no version pin needed). On the proxy this would 404, so keep REPLICATE_MODE=direct.
+    chat: {
+      model: 'meta/meta-llama-3-70b-instruct',
+      version: '',
+      kind: 'cheap' as const,
+      note: '~$0.65/1M in + $2.75/1M out on Replicate; a chat turn ≈ a fraction of a cent',
+    },
     vision: {
       model: 'lucataco/moondream2',
       version: 'fe364e0c95b9142eef216ee8bf227b345097fee629b26bac3f4aed19f7b30a4d',

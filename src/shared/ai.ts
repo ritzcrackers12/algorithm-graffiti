@@ -1,7 +1,7 @@
 import { CONFIG } from './config.ts'
 import type { ProxyStatus } from './types.ts'
 
-export type AiJob = 'text' | 'vision' | 'stt' | 'image' | 'tts' | 'embed' | 'music'
+export type AiJob = 'text' | 'chat' | 'vision' | 'stt' | 'image' | 'tts' | 'embed' | 'music'
 
 export function modelFor(job: AiJob) {
   return CONFIG.MODELS[job]

@@ -229,7 +229,7 @@ export async function predict(opts: PredictOpts): Promise<PredictResult> {
       return { ok: false, output: null, source: 'error', ms: Date.now() - started, error: String(pred.error ?? pred.status), status: 'unknown', preview: '' }
     }
 
-    const output = opts.job === 'text' ? outputText(extractOutput(pred)) : extractOutput(pred)
+    const output = opts.job === 'text' || opts.job === 'chat' ? outputText(extractOutput(pred)) : extractOutput(pred)
     await storeCache(key, opts.job, opts.input, output)
     await logRequest(opts.job, true, null, Date.now() - started)
     await setStatus('ok')
