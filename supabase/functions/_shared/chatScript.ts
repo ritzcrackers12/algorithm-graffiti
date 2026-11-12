@@ -399,39 +399,29 @@ export function chatFlowOutline() {
   ).join('\n')
 }
 
-/** Crowd vibe derived from the visitor's reel bucket + station genre + inferred
- *  taste, so the three "friends" read like the visitor's own friend group. */
-const BUCKET_CROWD: Record<string, string> = {
-  comedy: 'chaotic meme humor, bits, and group-chat shitposting',
-  lifestyle: 'taste, aesthetics, going out, and soft-launching everything',
-  body: 'the gym, skincare, routines, and optimizing how they look',
-  mind: 'wellness, therapy-speak, astrology, and self-work',
-  money: 'side-hustles, money talk, crypto/stocks, and "securing the bag"',
-  culture: 'online discourse, hot takes, and art-school irony',
-}
-const GENRE_FLAVOR: Record<string, string> = {
-  ambient: 'soft, late-night, introspective',
-  neoclassical: 'soft, late-night, introspective',
-  trap: 'hyped, hard, a little flexy',
-  phonk: 'hyped, hard, a little flexy',
-  house: 'party energy, up for anything',
-  hyperpop: 'chaotic, ironic, terminally online',
-  idm: 'nerdy, detail-obsessed, arty',
-}
-
+/** Hands the model the visitor's raw signals plus a guide for reading them
+ *  TOGETHER — genre sets the aesthetic, income sets the class, and those set the
+ *  connotation (money+trap+low income = street/fast-money, NOT corporate finance).
+ *  The model infers the specific crowd and voices the three friends from it. */
 function crowdVibe(p: VisitorProfile | null | undefined): string {
-  const bucket = p?.session?.reel?.bucket ?? ''
-  const genre = (p?.session?.ad?.genre ?? '').toLowerCase()
-  const crowd = BUCKET_CROWD[bucket] ?? 'a bit of everything — memes, music, and whatever is going on this week'
-  const flavor = GENRE_FLAVOR[genre] ?? ''
-  const interests = (p?.inferred?.interests ?? []).slice(0, 4).join(', ')
+  const bucket = p?.session?.reel?.bucket || 'unset'
+  const genre = p?.session?.ad?.genreLabel || p?.session?.ad?.genre || 'unset'
+  const income = p?.inferred?.incomeBracket || 'unknown'
+  const lean = p?.inferred?.lean || 'unknown'
+  const mood = p?.inferred?.mood || 'neutral'
+  const interests = (p?.inferred?.interests ?? []).slice(0, 5).join(', ') || 'unset'
   return [
-    `The group is the visitor's actual crowd: people into ${crowd}.`,
-    flavor ? `Their energy right now reads ${flavor}.` : '',
-    interests ? `Shared interests to pull from: ${interests}.` : '',
-    `Mood in the room: ${p?.inferred?.mood ?? 'neutral'}.`,
-    'Flavor the slang, references, and the scenarios to THIS crowd so it feels like their real friends.',
-  ].filter(Boolean).join(' ')
+    'BUILD THE FRIEND GROUP FROM THE VISITOR\'S OWN SIGNALS — read them together, do not just name the topic:',
+    `  reel taste: ${bucket} | music/station: ${genre} | income read: ${income} | politics read: ${lean} | mood: ${mood} | interests: ${interests}`,
+    'The MUSIC genre sets the aesthetic and the INCOME sets the class; together they set the connotation — the topic word alone does not. Read them together, e.g.:',
+    '- money + trap/phonk + lower income → street / fast-money / flexing culture (NOT corporate finance)',
+    '- money + house or finance-coded + higher income → markets, startups, long-game wealth',
+    '- money + ambient/neoclassical + high income → quiet / old-money, wealth management, real estate',
+    '- mind + ambient + higher income → quiet wellness, therapy-speak, astrology, self-work',
+    '- body + phonk/trap → hard gym, looksmaxxing, discipline; body + lifestyle → skincare, aesthetics',
+    '- culture + idm/hyperpop → art-school irony, online discourse, terminally-online takes',
+    'Infer the ONE specific crowd these signals point to and voice jules, mina, and rik as people from exactly that world — their slang, their references, and the scenarios they bring up all come from it. If signals are unset, keep them a neutral chaotic-group-chat crowd.',
+  ].join('\n')
 }
 
 export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
