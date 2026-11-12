@@ -395,5 +395,8 @@ export function createLocalBackend(): Backend {
         done: next.done,
       }
     },
+    async portrait() {
+      return null // local mode falls back to the deterministic portrait
+    },
   }
 }

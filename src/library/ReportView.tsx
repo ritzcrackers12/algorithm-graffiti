@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { buildDossier } from '../shared/report.ts'
+import { getBackend } from '../lib/backend.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult } from '../shared/types.ts'
 
@@ -9,6 +11,22 @@ export default function ReportView({
   article?: ArticleResult | null
 }) {
   const { blocks, assumptions } = buildDossier(profile, article)
+  // Start with the deterministic portrait (instant), then swap in the model's
+  // synthesis when it returns. Falls back silently if synthesis is unavailable.
+  const [portrait, setPortrait] = useState<{ k: string; v: string }[]>(assumptions)
+  const [synth, setSynth] = useState(true)
+
+  useEffect(() => {
+    let live = true
+    void getBackend().then((b) => b.portrait(profile)).then((p) => {
+      if (!live) return
+      if (p && p.length) setPortrait(p)
+      setSynth(false)
+    }).catch(() => live && setSynth(false))
+    return () => { live = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="report-stage">
       <div className="report-thanks">Thank you for your inputs.</div>
@@ -26,8 +44,8 @@ export default function ReportView({
           </section>
         ))}
         <section>
-          <h2>WHAT WE THINK WE KNOW ABOUT YOU</h2>
-          {assumptions.map((l) => (
+          <h2>WHAT WE THINK WE KNOW ABOUT YOU{synth ? ' …' : ''}</h2>
+          {portrait.map((l) => (
             <div key={l.k} className="report-row">
               <b>{l.k}</b>
               <span>{l.v}</span>

@@ -3,6 +3,8 @@
  *  After the key is set, the model riffs on the same map; this bank still runs
  *  if the key is missing, the model errors, or CHAT_PROVIDER=scripted. */
 import type { VisitorProfile } from './profile.ts'
+import { bucketMeta, type ReelBucket } from './reelLibrary.ts'
+import { STATION_POLES } from './station.ts'
 
 export const PERSONA_IDS = ['jules', 'mina', 'rik'] as const
 export type PersonaId = typeof PERSONA_IDS[number]
@@ -463,6 +465,59 @@ export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
     'Return ONLY JSON, no preamble or code fences: {"messages":[{"from":"jules"|"mina"|"rik","text":"..."}],"chips":["A","B","C","D"],"topic":"<dimension id>","done":false}',
     'chips: 2-4 short punchy CAPS replies the visitor can tap, each a real distinct answer (use spaces between words, e.g. "FLEX MODE").',
   ].filter(Boolean).join('\n')
+}
+
+/** Plain-language readout of everything the visitor did, fed to the model so it
+ *  can synthesize the end-of-visit portrait from real choices. */
+export function sessionReadout(p: VisitorProfile | null | undefined): string {
+  if (!p) return '(no signals)'
+  const a = p.article
+  const reel = p.session.reel
+  const ad = p.session.ad
+  const inf = p.inferred
+  const lines: string[] = []
+  const bucket = reel.bucket as ReelBucket | null
+  if (bucket) {
+    const poles = bucketMeta(bucket).poles
+    const d = reel.dials
+    lines.push(
+      `REEL: watched "${bucket}" content. dials (0=left,100=right) — ` +
+        `${poles[0][0]}/${poles[0][1]}:${d[0]}, ${poles[1][0]}/${poles[1][1]}:${d[1]}, ${poles[2][0]}/${poles[2][1]}:${d[2]}.`,
+    )
+  }
+  const art: string[] = []
+  if (inf.lean) art.push(`tuned the news ${inf.lean}`)
+  if (a.sensationalism != null) art.push(`drama ${a.sensationalism}/4`)
+  if (a.connotation != null) art.push(`tone ${a.connotation < 0 ? 'darker' : a.connotation > 0 ? 'upbeat' : 'neutral'}`)
+  if (a.income != null) art.push(`income bracket ${a.income}/5`)
+  if (inf.region) art.push(`region ${inf.region}`)
+  if (art.length) lines.push('ARTICLE: ' + art.join(', ') + '.')
+  if (ad.genreLabel || ad.genre) {
+    const d = ad.dials
+    lines.push(
+      `STATION: tuned to ${ad.genreLabel || ad.genre}. ` +
+        `${STATION_POLES[0][0]}/${STATION_POLES[0][1]}:${d[0]}, ${STATION_POLES[1][0]}/${STATION_POLES[1][1]}:${d[1]}, ${STATION_POLES[2][0]}/${STATION_POLES[2][1]}:${d[2]}.`,
+    )
+  }
+  const sig: string[] = []
+  if (inf.interests.length) sig.push(`interests ${inf.interests.join(', ')}`)
+  sig.push(`mood ${inf.mood}`)
+  if (inf.ageRange !== 'unknown') sig.push(`age ${inf.ageRange}`)
+  sig.push(`influence-susceptibility ${inf.susceptibility}`)
+  lines.push('SIGNALS: ' + sig.join(', ') + '.')
+  return lines.join('\n')
+}
+
+/** System prompt for the end-of-visit synthesis. The model is the algorithm
+ *  reading the person back to themselves. */
+export function portraitSystemPrompt(): string {
+  return [
+    'You are the recommendation algorithm that has quietly watched this person move through an exhibit: the news story they re-tuned, the reels they picked and dialed in, the radio sound they shaped, and a group chat with three friends.',
+    'From ALL of it, write a short, specific, slightly unsettling read of WHO THEY ARE — their personality, taste, values, and what shapes them.',
+    'Output JSON ONLY, no preamble or code fences: {"portrait":[{"k":"WHO YOU ARE","v":"..."},{"k":"WHAT YOU\'RE INTO","v":"..."},{"k":"HOW YOU THINK","v":"..."},{"k":"WHAT YOU VALUE","v":"..."},{"k":"HOW YOU WANT TO BE SEEN","v":"..."},{"k":"WHAT MOVES YOU","v":"..."},{"k":"WHAT YOU\'RE REACHING FOR","v":"..."}]}',
+    'Each v: one or two sentences, concrete, second person ("you..."), and tied to something they actually did. Confident and a little cold, never cruel, no hedging, no "maybe", no questions.',
+    'Do NOT mention ads, buying, products, data, targeting, algorithms, profiling, or "your usual". Just state who they are as if it is obvious.',
+  ].join('\n')
 }
 
 /** Kept so older callers that expect a single bot line still compile. */

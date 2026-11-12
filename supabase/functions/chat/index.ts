@@ -1,4 +1,4 @@
-import { chatSystemPrompt, isPersona, isYou, scriptedNext, type ChatTurn, type PersonaId } from '../_shared/chatScript.ts'
+import { chatSystemPrompt, isPersona, isYou, portraitSystemPrompt, scriptedNext, sessionReadout, type ChatTurn, type PersonaId } from '../_shared/chatScript.ts'
 import { emptyProfile, hydrateProfile, type VisitorProfile } from '../_shared/profile.ts'
 import { isBlocked } from '../_shared/text.ts'
 import { predict } from '../_shared/replicateClient.ts'
@@ -61,6 +61,38 @@ function parseModelJson(text: string) {
   } catch {
     return null
   }
+}
+
+function parsePortrait(text: string): { k: string; v: string }[] | null {
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start < 0 || end <= start) return null
+  try {
+    const raw = JSON.parse(text.slice(start, end + 1)) as { portrait?: unknown }
+    if (!Array.isArray(raw.portrait)) return null
+    const out: { k: string; v: string }[] = []
+    for (const row of raw.portrait) {
+      if (!row || typeof row !== 'object') continue
+      const k = String((row as { k?: unknown }).k ?? '').trim()
+      const v = String((row as { v?: unknown }).v ?? '').trim()
+      if (k && v) out.push({ k: k.toUpperCase(), v })
+    }
+    return out.length ? out : null
+  } catch {
+    return null
+  }
+}
+
+// End-of-visit synthesis: always runs on the Replicate chat model (independent
+// of CHAT_PROVIDER) so the portrait is model-written whenever Replicate works.
+async function synthesizePortrait(profile: VisitorProfile) {
+  const prompt = portraitSystemPrompt() +
+    '\n\nSIGNALS\n' + sessionReadout(profile) +
+    '\n\nGROUP CHAT\n' + transcript(profile.session?.chat?.turns ?? []) +
+    '\n\nWrite the portrait as JSON only.'
+  const pred = await predict({ job: 'chat', timeoutSeconds: 25, input: { prompt, max_tokens: 600, temperature: 0.8 } })
+  if (!pred.ok) return null
+  return parsePortrait(String(pred.output ?? ''))
 }
 
 function transcript(history: ChatTurn[]) {
@@ -132,6 +164,18 @@ Deno.serve(async (req) => {
   }
   const history = Array.isArray(body.history) ? body.history as ChatTurn[] : []
   const profile = hydrateProfile(body.profile ?? emptyProfile())
+
+  // End-of-visit portrait synthesis.
+  if (body.mode === 'portrait') {
+    try {
+      const portrait = await synthesizePortrait(profile)
+      if (portrait) return json({ ok: true, portrait, source: 'ai' })
+    } catch (e) {
+      console.error('portrait synth failed', e)
+    }
+    return json({ ok: true, portrait: null, source: 'fallback' })
+  }
+
   const lastUser = [...history].reverse().find(isYou)
   if (lastUser && isBlocked(lastUser.text)) {
     return json({

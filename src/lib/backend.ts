@@ -35,6 +35,9 @@ export interface Backend {
   /** Phone ⇄ iPad chatbot lines. */
   reportChat(state: import('./chatSync.ts').ChatWire): void
   chat(req: ChatAsk): Promise<ChatReply>
+  /** End-of-visit: the model reads the whole session and writes the portrait.
+   *  Returns null on any failure so the caller falls back to the local read. */
+  portrait(profile: VisitorProfile): Promise<{ k: string; v: string }[] | null>
 }
 
 let instance: Backend | null = null
