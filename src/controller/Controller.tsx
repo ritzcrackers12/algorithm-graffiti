@@ -16,7 +16,14 @@ import ReelControls from './ReelControls.tsx'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
-import Onboarding from './Onboarding.tsx'
+import Onboarding, { Coachmark } from './Onboarding.tsx'
+
+const APP_HINTS: Record<string, string> = {
+  article: 'Drag the sliders to reshape the story, then tap SUBMIT.',
+  reel: 'Pick a vibe, fine-tune the dials, then tap SEND.',
+  ad: 'Turn the three dials to find a sound, then tap TUNE IN.',
+  chat: 'Pick a chat, then just type back like you normally would.',
+}
 
 export type Transmit = (req: { object: 'article'; params: ArticleParams }) => void
 
@@ -91,6 +98,16 @@ export default function Controller() {
   const dismissOnboard = () => {
     try { sessionStorage.setItem('ag-onboarded', '1') } catch { /* private mode */ }
     setShowOnboard(false)
+  }
+  const [seenHints, setSeenHints] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(sessionStorage.getItem('ag-seen-hints') || '{}') } catch { return {} }
+  })
+  const dismissHint = (app: string) => {
+    setSeenHints((prev) => {
+      const next = { ...prev, [app]: true }
+      try { sessionStorage.setItem('ag-seen-hints', JSON.stringify(next)) } catch { /* private mode */ }
+      return next
+    })
   }
   const lastTouch = useRef(0)
 
@@ -216,6 +233,9 @@ export default function Controller() {
       : open === 'ad' ? !!snap.altered.ad : false
     content = (
       <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
+        {open && APP_HINTS[open] && !seenHints[open] && (
+          <Coachmark text={APP_HINTS[open]} onClose={() => dismissHint(open)} />
+        )}
         {open === 'article' && (
           <div className="article-view-row">
             <Segmented
@@ -315,7 +335,7 @@ export default function Controller() {
           </div>
           <div className="ctl-timer">
             <button
-              className="onboard-help"
+              className="ob-help"
               type="button"
               aria-label="How it works"
               onClick={() => { haptic('press'); setShowOnboard(true) }}

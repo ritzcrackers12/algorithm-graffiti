@@ -681,39 +681,56 @@ button { font: inherit; }
   width: min(320px, 92vw);
 }
 .chat-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(320px, 92vw); }
-/* Onboarding overlay (controller first-run explainer) */
-.onboard {
+/* Onboarding — deliberately neutral/unthemed, like a normal product tour.
+ * Own font + reset so none of the retro theme leaks in. */
+.ob-scrim {
   position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
-  background: rgba(5, 11, 8, 0.92); padding: 20px;
+  background: rgba(10, 12, 16, 0.6); backdrop-filter: blur(3px); padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
-.onboard-card {
-  width: min(360px, 92vw); position: relative; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  background: var(--r-face, #0b0f0c); border: 2px solid #000; box-shadow: 4px 4px 0 #000;
-  padding: 24px 20px 18px;
+.ob-card {
+  width: min(340px, 90vw); position: relative; text-align: center; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  background: #ffffff; color: #1a1a1f; border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35); padding: 30px 24px 22px;
 }
-.theme-retro .onboard-card {
-  border: 0; box-shadow: inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh1), 4px 4px 0 rgba(0, 0, 0, 0.5);
+.ob-skip {
+  position: absolute; top: 14px; right: 16px; background: none; border: 0; cursor: pointer;
+  color: #8a8a93; font: 500 13px/1 inherit; padding: 4px; letter-spacing: 0;
+  text-transform: none;
 }
-.onboard-skip {
-  position: absolute; top: 10px; right: 12px; background: none; border: 0; cursor: pointer;
-  color: var(--mint-deep, #39ff8c); opacity: 0.7; letter-spacing: 0.12em;
-  font: 700 11px/1 Tahoma, Verdana, 'Segoe UI', sans-serif;
+.ob-icon { color: #2a2a31; margin-top: 2px; }
+.ob-title { font: 650 19px/1.25 inherit; letter-spacing: -0.01em; }
+.ob-body { font: 400 15px/1.5 inherit; color: #55555f; max-width: 282px; }
+.ob-dots { display: flex; gap: 7px; margin-top: 2px; }
+.ob-dot { width: 7px; height: 7px; border-radius: 50%; background: #d8d8de; transition: background 0.15s ease; }
+.ob-dot.on { background: #1a1a1f; }
+.ob-nav { display: flex; gap: 10px; width: 100%; margin-top: 10px; }
+.ob-btn {
+  flex: 1; cursor: pointer; border-radius: 10px; padding: 13px 16px; border: 1px solid transparent;
+  font: 600 15px/1 inherit; letter-spacing: 0; text-transform: none; transition: opacity 0.12s ease;
 }
-.onboard-glyph { font-size: 46px; line-height: 1; margin-top: 4px; }
-.onboard-title { font-size: 20px; }
-.onboard-body {
-  font: 500 14px/1.45 Tahoma, Verdana, 'Segoe UI', sans-serif; color: #d8d2c4; max-width: 300px;
-}
-.onboard-dots { display: flex; gap: 7px; margin-top: 2px; }
-.onboard-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); }
-.onboard-dot.on { background: var(--mint-deep, #39ff8c); }
-.onboard-nav { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
-.onboard-help {
+.ob-btn.solid { background: #1a1a1f; color: #fff; }
+.ob-btn.solid:active { opacity: 0.82; }
+.ob-btn.ghost { flex: 0 0 auto; background: #fff; color: #55555f; border-color: #dcdce2; }
+.ob-help {
   width: 26px; height: 26px; border: 0; cursor: pointer; border-radius: 0;
   background: var(--r-face, #141412); color: var(--mint-deep, #39ff8c);
   box-shadow: inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh1);
   font: 800 13px/1 Tahoma, Verdana, 'Segoe UI', sans-serif;
+}
+/* In-context hint when an app first opens — neutral, sits above the controls. */
+.ob-hint {
+  display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
+  background: #ffffff; color: #1a1a1f; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.ob-hint-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #2f6df0; }
+.ob-hint-text { flex: 1; font: 500 13px/1.35 inherit; text-align: left; letter-spacing: 0; text-transform: none; }
+.ob-hint-x {
+  flex: 0 0 auto; background: none; border: 0; cursor: pointer; color: #9a9aa2;
+  font: 400 20px/1 inherit; padding: 0 2px;
 }
 .chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
 .chat-pick {
