@@ -16,7 +16,9 @@ import ReelControls from './ReelControls.tsx'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
-import Onboarding, { Coachmark, type GuideRow } from './Onboarding.tsx'
+import Onboarding, { Tour, AppIcon, type Slide } from './Onboarding.tsx'
+
+type GuideRow = { name: string; meaning: string }
 
 const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] }> = {
   article: {
@@ -50,6 +52,14 @@ const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] 
     title: 'Messages',
     how: 'Pick a chat, then just type back like you normally would.',
   },
+}
+
+function appSlides(app: string): Slide[] {
+  const g = APP_GUIDE[app]
+  if (!g) return []
+  const slides: Slide[] = [{ icon: <AppIcon id={app} />, title: g.title, body: g.how }]
+  for (const r of g.rows ?? []) slides.push({ icon: <AppIcon id={app} />, title: r.name, body: r.meaning })
+  return slides
 }
 
 export type Transmit = (req: { object: 'article'; params: ArticleParams }) => void
@@ -129,7 +139,9 @@ export default function Controller() {
   const [seenHints, setSeenHints] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(sessionStorage.getItem('ag-seen-hints') || '{}') } catch { return {} }
   })
-  const dismissHint = (app: string) => {
+  // Manually reopened tour (via the info button), independent of first-open auto-show.
+  const [tourApp, setTourApp] = useState<string | null>(null)
+  const markSeen = (app: string) => {
     setSeenHints((prev) => {
       const next = { ...prev, [app]: true }
       try { sessionStorage.setItem('ag-seen-hints', JSON.stringify(next)) } catch { /* private mode */ }
@@ -155,6 +167,10 @@ export default function Controller() {
   const busy = active ? snap.display.busy : null
   const used = objectsTouched(snap)
   const showingReport = !!(active && !open && !choosingArticle && reportReady(used))
+  // Per-app walkthrough: auto-shows the first time an app opens, and reopens
+  // whenever the info button is tapped.
+  const activeTour = open && APP_GUIDE[open] && (!seenHints[open] || tourApp === open) ? open : null
+  const closeTour = () => { if (open) markSeen(open); setTourApp(null) }
 
   const wasBusy = useRef(false)
   useEffect(() => {
@@ -260,14 +276,6 @@ export default function Controller() {
       : open === 'ad' ? !!snap.altered.ad : false
     content = (
       <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
-        {open && APP_GUIDE[open] && !seenHints[open] && (
-          <Coachmark
-            title={APP_GUIDE[open].title}
-            how={APP_GUIDE[open].how}
-            rows={APP_GUIDE[open].rows}
-            onClose={() => dismissHint(open)}
-          />
-        )}
         {open === 'article' && (
           <div className="article-view-row">
             <Segmented
@@ -362,21 +370,23 @@ export default function Controller() {
       <div className="ctl-main">
         <div className="ctl-top">
           <div className="ctl-top-meta">
+            {open && APP_GUIDE[open] && (
+              <button
+                className="ob-info"
+                type="button"
+                aria-label="How this works"
+                onClick={() => { haptic('press'); setTourApp(open) }}
+              >i</button>
+            )}
             <span className="chip">{active && (open || choosingArticle) ? (open ?? 'article').toUpperCase() : 'CONTROLLER'}</span>
             <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
           </div>
-          <div className="ctl-timer">
-            <button
-              className="ob-help"
-              type="button"
-              aria-label="How it works"
-              onClick={() => { haptic('press'); setShowOnboard(true) }}
-            >?</button>
-          </div>
+          <div className="ctl-timer" />
         </div>
         {content}
       </div>
       {showOnboard && <Onboarding onDone={dismissOnboard} />}
+      {!showOnboard && activeTour && <Tour slides={appSlides(activeTour)} onDone={closeTour} />}
       {toast && <div key={toast.key} className="toast" onAnimationEnd={() => setToast(null)}>{toast.text}</div>}
     </div>
   )
