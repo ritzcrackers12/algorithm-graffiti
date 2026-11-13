@@ -1,13 +1,22 @@
 import { CONFIG } from '../shared/config.ts'
 import { unlockAudio } from '../lib/audio.ts'
 
+function armAndPlay(v: HTMLVideoElement) {
+  v.muted = true
+  v.defaultMuted = true
+  v.playsInline = true
+  v.loop = true
+  v.autoplay = true
+  v.setAttribute('muted', '')
+  v.setAttribute('playsinline', 'true')
+  v.setAttribute('webkit-playsinline', 'true')
+  void v.play().catch(() => {})
+}
+
 export default function TapToBegin({ onBegin }: { onBegin: () => void }) {
   const begin = () => {
     unlockAudio()
-    document.querySelectorAll<HTMLVideoElement>('video.wallpaper-video').forEach((v) => {
-      v.muted = true
-      void v.play().catch(() => {})
-    })
+    document.querySelectorAll<HTMLVideoElement>('video.wallpaper-video').forEach(armAndPlay)
     onBegin()
     window.setTimeout(() => {
       void document.documentElement.requestFullscreen?.().catch(() => {})

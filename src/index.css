@@ -74,12 +74,12 @@ button { font: inherit; }
 }
 .desk-icon .art img, .desk-icon .art svg { width: 100%; height: 100%; object-fit: contain; display: block; }
 .desk-icon .label {
-  color: #fff; font: 27px/1.15 var(--font-xp); letter-spacing: 0; text-align: center;
-  padding: 9px 17px 8px; border-radius: 2px;
+  color: #fff; font: 19px/1.15 var(--font-xp); letter-spacing: 0; text-align: center;
+  padding: 6px 12px 5px; border-radius: 2px;
   background: rgba(0, 0, 0, 0.86); border: 1px solid rgba(255,255,255,0.28);
   box-shadow: 0 4px 14px rgba(0,0,0,0.55);
 }
-.desk-icon .file { display: block; margin-top: 4px; font-size: 20px; letter-spacing: 0; color: rgba(255,255,255,0.78); }
+.desk-icon .file { display: block; margin-top: 3px; font-size: 14px; letter-spacing: 0; color: rgba(255,255,255,0.78); }
 .desk-icon.is-open .label { background: var(--color-xp-select); border-color: #fff; }
 .desk-icon.is-open .art::after { content: ''; position: absolute; inset: 0; background: rgba(49, 106, 197, 0.35); mix-blend-mode: multiply; border-radius: 12px; }
 .desk-icon.clicking .art { animation: icon-click 0.75s cubic-bezier(.2,.9,.3,1.4) both; }
@@ -203,12 +203,12 @@ button { font: inherit; }
 @keyframes blink { 50% { opacity: 0.2; } }
 
 .click-hint {
-  position: absolute; z-index: 32; max-width: 480px;
+  position: absolute; z-index: 32; max-width: 336px;
   display: grid;
-  padding: 20px;
+  padding: 14px;
   background: #0831d9; color: #fff;
   border: 2px solid #fff; border-radius: 8px;
-  font: 26px/1.25 var(--font-xp); letter-spacing: 0; text-align: left;
+  font: 18px/1.25 var(--font-xp); letter-spacing: 0; text-align: left;
   box-shadow: 3px 3px 0 #000, 0 10px 22px rgba(0,0,0,0.45);
   pointer-events: none;
   box-sizing: border-box;
@@ -225,19 +225,19 @@ button { font: inherit; }
   animation: blink 0.7s steps(1) infinite;
 }
 .click-hint.side-right::after {
-  content: ''; position: absolute; left: -12px; top: calc(20px + 0.5lh - 12px);
+  content: ''; position: absolute; left: -12px; top: calc(14px + 0.5lh - 12px);
   border: 12px solid transparent; border-right-color: #fff;
 }
 .click-hint.side-right::before {
-  content: ''; position: absolute; left: -8px; top: calc(20px + 0.5lh - 8px);
+  content: ''; position: absolute; left: -8px; top: calc(14px + 0.5lh - 8px);
   border: 8px solid transparent; border-right-color: #0831d9;
 }
 .click-hint.side-left::after {
-  content: ''; position: absolute; right: -12px; left: auto; top: calc(20px + 0.5lh - 12px);
+  content: ''; position: absolute; right: -12px; left: auto; top: calc(14px + 0.5lh - 12px);
   border: 12px solid transparent; border-left-color: #fff;
 }
 .click-hint.side-left::before {
-  content: ''; position: absolute; right: -8px; left: auto; top: calc(20px + 0.5lh - 8px);
+  content: ''; position: absolute; right: -8px; left: auto; top: calc(14px + 0.5lh - 8px);
   border: 8px solid transparent; border-left-color: #0831d9;
 }
 

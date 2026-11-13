@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { AssetImg } from '../components/AssetImg.tsx'
 import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
@@ -87,8 +87,8 @@ const ICON_W = 228
 const ICON_H = 280
 const QR_W = 252
 const QR_H = 300
-const HINT_W = 480
-const HINT_H = 210
+const HINT_W = 336
+const HINT_H = 158
 
 type Rect = { x: number; y: number; w: number; h: number }
 
@@ -136,28 +136,76 @@ function scatterLayout() {
   return { qr: { x: qr.x, y: qr.y }, hint: { x: hint.x, y: hint.y, side: hint.side }, icons }
 }
 
+const IOS_VIDEO_ATTRS = {
+  'webkit-playsinline': 'true',
+  playsinline: 'true',
+} as Record<string, string>
+
+function armWallpaper(el: HTMLVideoElement) {
+  el.muted = true
+  el.defaultMuted = true
+  el.playsInline = true
+  el.loop = true
+  el.autoplay = true
+  el.setAttribute('muted', '')
+  el.setAttribute('playsinline', 'true')
+  el.setAttribute('webkit-playsinline', 'true')
+}
+
+function WallpaperVideo({ src, className }: { src: string; className: string }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const play = () => {
+      armWallpaper(el)
+      void el.play().catch(() => {})
+    }
+    const onEnded = () => {
+      try { el.currentTime = 0.001 } catch { /* iOS loop fallback */ }
+      play()
+    }
+    const onTime = () => {
+      if (el.duration > 0 && !el.paused && el.currentTime >= el.duration - 0.12) {
+        try { el.currentTime = 0.001 } catch { /* iOS loop fallback */ }
+      }
+    }
+    const ipad = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    armWallpaper(el)
+    play()
+    el.addEventListener('ended', onEnded)
+    if (ipad) el.addEventListener('timeupdate', onTime)
+    window.addEventListener('ag-media-unlock', play)
+    return () => {
+      el.removeEventListener('ended', onEnded)
+      el.removeEventListener('timeupdate', onTime)
+      window.removeEventListener('ag-media-unlock', play)
+    }
+  }, [src])
+  return (
+    <video
+      ref={ref}
+      className={className}
+      src={src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      controls={false}
+      disablePictureInPicture
+      {...IOS_VIDEO_ATTRS}
+    />
+  )
+}
+
 function Wallpaper() {
   return (
     <div className="wallpaper">
-      <video
-        className="wallpaper-video"
-        src={asset('wallpaper.mp4')}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      />
+      <WallpaperVideo className="wallpaper-video" src={asset('wallpaper.mp4')} />
       <div className="wallpaper-dim" />
-      <video
-        className="wallpaper-video wallpaper-overlay"
-        src={asset('wallpaper-overlay.mp4')}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-      />
+      <WallpaperVideo className="wallpaper-video wallpaper-overlay" src={asset('wallpaper-overlay.mp4')} />
     </div>
   )
 }
