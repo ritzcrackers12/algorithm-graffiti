@@ -6,6 +6,8 @@ import { startVersionCheck } from '../lib/versionCheck.ts'
 import { resetChatWire } from '../lib/chatSync.ts'
 import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import type { ObjectId } from '../shared/config.ts'
+import { REEL_BUCKETS, bucketMeta, type ReelBucket } from '../shared/reelLibrary.ts'
+import { poleMeaning } from '../shared/poleMeta.ts'
 import { objectsTouched, reportReady } from '../shared/gating.ts'
 import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
 import ArticleChooser from './ArticleChooser.tsx'
@@ -54,11 +56,23 @@ const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] 
   },
 }
 
-function appSlides(app: string): Slide[] {
+function isReelBucket(x: string): x is ReelBucket {
+  return REEL_BUCKETS.some((b) => b.id === x)
+}
+
+function appSlides(app: string, reelBucket?: string | null): Slide[] {
   const g = APP_GUIDE[app]
   if (!g) return []
-  const slides: Slide[] = [{ icon: <AppIcon id={app} />, title: g.title, body: g.how }]
-  for (const r of g.rows ?? []) slides.push({ icon: <AppIcon id={app} />, title: r.name, body: r.meaning })
+  const icon = <AppIcon id={app} />
+  const slides: Slide[] = [{ icon, title: g.title, body: g.how }]
+  // Videos: once a vibe is picked, explain THAT bucket's three poles in context.
+  if (app === 'reel' && reelBucket && isReelBucket(reelBucket)) {
+    for (const [l, r] of bucketMeta(reelBucket).poles) {
+      slides.push({ icon, title: `${l} ↔ ${r}`, body: poleMeaning(l, r) })
+    }
+    return slides
+  }
+  for (const row of g.rows ?? []) slides.push({ icon, title: row.name, body: row.meaning })
   return slides
 }
 
@@ -381,7 +395,12 @@ export default function Controller() {
       </div>
       {showOnboard && <Onboarding onDone={dismissOnboard} />}
       {!showOnboard && activeTour && (
-        <Tour key={`${activeTour}-${tourStart}`} slides={appSlides(activeTour)} start={tourStart} onDone={closeTour} />
+        <Tour
+          key={`${activeTour}-${tourStart}`}
+          slides={appSlides(activeTour, activeTour === 'reel' ? getLocalProfile().session.reel.bucket : null)}
+          start={tourStart}
+          onDone={closeTour}
+        />
       )}
       {toast && <div key={toast.key} className="toast" onAnimationEnd={() => setToast(null)}>{toast.text}</div>}
     </div>

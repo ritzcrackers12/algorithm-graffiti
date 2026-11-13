@@ -3,7 +3,7 @@ import { PixelButton } from '../components/PixelButton.tsx'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { sendCommand, sendControl, sendGenerate, sessionId } from '../lib/live.ts'
 import { deriveGenre, genreMeta, STATION_POLES, stationCacheKey, stationLegitimacy } from '../shared/station.ts'
-import { poleWord } from '../shared/poles.ts'
+import { poleFeel } from '../shared/poleMeta.ts'
 import type { AdSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
@@ -110,7 +110,7 @@ export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; l
               />
               <span className="pole r">{pole[1]}</span>
             </div>
-            <div className="explain">{poleWord(pole[0], pole[1], dials[i])}</div>
+            <div className="explain">{poleFeel(pole[0], pole[1], dials[i])}</div>
           </div>
         ))}
       </div>

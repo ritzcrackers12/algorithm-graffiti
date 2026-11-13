@@ -6,7 +6,7 @@ import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { sendCommand } from '../lib/live.ts'
 import { clearReelClip, getReelClip, subscribeReelClip } from '../lib/reelSync.ts'
 import { REEL_BUCKETS, bucketMeta, nearestSlot, type ReelBucket } from '../shared/reelLibrary.ts'
-import { poleWord } from '../shared/poles.ts'
+import { poleFeel } from '../shared/poleMeta.ts'
 import type { ReelSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
@@ -238,7 +238,7 @@ export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot;
       <div className="reel-units">
         {poles.map((pole, i) => (
           <div key={pole[0]} className="reel-unit">
-            {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(1)} title="What the dials do" /></span>}
+            {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(i + 1)} title={`What ${pole[0]} ↔ ${pole[1]} means`} /></span>}
             <div className="unit-poles">
               <span className="pole l">{pole[0]}</span>
               <Knob
@@ -251,7 +251,7 @@ export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot;
               />
               <span className="pole r">{pole[1]}</span>
             </div>
-            <div className="explain">{moved[i] ? poleWord(pole[0], pole[1], dials[i]) : '— — —'}</div>
+            <div className="explain">{moved[i] ? poleFeel(pole[0], pole[1], dials[i]) : '— — —'}</div>
           </div>
         ))}
       </div>
