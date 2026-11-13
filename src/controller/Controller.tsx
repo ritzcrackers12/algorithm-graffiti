@@ -334,7 +334,7 @@ export default function Controller() {
             <AdControls snap={snap} locked={!!busy} onInfo={(s) => openTour('ad', s)} />
           )}
           {open === 'chat' && (
-            <ChatControls snap={snap} locked={!!busy} />
+            <ChatControls snap={snap} locked={!!busy} onInfo={(s) => openTour('chat', s)} />
           )}
           {busy && open !== 'reel' && open !== 'chat' && open !== 'ad' && (
             <div className="lock-shade">

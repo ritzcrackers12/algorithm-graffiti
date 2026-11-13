@@ -724,8 +724,8 @@ button { font: inherit; }
 }
 .ob-info:active { opacity: 0.5; }
 .box-info { position: absolute; top: 6px; right: 6px; z-index: 3; line-height: 0; }
-.panel, .station-dial { position: relative; }
-.reel-tune .prompt { display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+.panel, .station-dial, .reel-unit { position: relative; }
+.reel-pick .prompt { display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
 .chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
 .chat-pick {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;

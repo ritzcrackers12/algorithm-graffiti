@@ -163,7 +163,10 @@ export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot;
   if (!bucket) {
     return (
       <div className="ctl-center reel-pick" style={{ paddingTop: 8 }}>
-        <div className="prompt"><span className="bobtext">WHAT WOULD YOU LIKE TO SEE?</span></div>
+        <div className="prompt">
+          <span className="bobtext">WHAT WOULD YOU LIKE TO SEE?</span>
+          {onInfo && <InfoDot onClick={() => onInfo(0)} title="How Videos works" />}
+        </div>
         <div className="bucket-grid">
           {REEL_BUCKETS.map((b) => (
             <PixelButton key={b.id} type="button" disabled={locked} onClick={() => pickBucket(b.id)}>
@@ -231,13 +234,11 @@ export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot;
 
   return (
     <div className="ctl-center reel-tune" style={{ gap: 8, paddingTop: 8 }}>
-      <div className="prompt">
-        <span className="bobtext">ADJUST TO YOUR LIKING</span>
-        {onInfo && <InfoDot onClick={() => onInfo(1)} title="What the dials do" />}
-      </div>
+      <div className="prompt"><span className="bobtext">ADJUST TO YOUR LIKING</span></div>
       <div className="reel-units">
         {poles.map((pole, i) => (
           <div key={pole[0]} className="reel-unit">
+            {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(1)} title="What the dials do" /></span>}
             <div className="unit-poles">
               <span className="pole l">{pole[0]}</span>
               <Knob

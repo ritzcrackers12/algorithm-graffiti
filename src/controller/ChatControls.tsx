@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { PixelButton } from '../components/PixelButton.tsx'
+import { InfoDot } from './Onboarding.tsx'
 import { emitChatWire } from '../lib/chatSync.ts'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
 import { getBackend } from '../lib/backend.ts'
@@ -61,7 +62,7 @@ function persist(turns: ChatTurn[], topic: string, n: number, source: string, lo
   void sendCommand('signal', JSON.stringify({ session, events }))
 }
 
-export default function ChatControls({ snap, locked }: { snap: Snapshot; locked: boolean }) {
+export default function ChatControls({ snap, locked, onInfo }: { snap: Snapshot; locked: boolean; onInfo?: (slide: number) => void }) {
   const chat0 = getLocalProfile().session.chat
   const [scenario, setScenario] = useState<ScenarioId | null>(chat0.scenario ?? null)
   const [turns, setTurns] = useState<ChatTurn[]>(chat0.turns)
@@ -216,7 +217,8 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
   // ---- Picker ----
   if (!scenario) {
     return (
-      <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 6 }}>
+      <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 6, position: 'relative' }}>
+        {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(0)} title="How Messages works" /></span>}
         <div className="ctl-display" style={{ fontSize: 14, lineHeight: 1.35 }}>PICK A CHAT.</div>
         <div className="ctl-done-sub" style={{ opacity: 0.65 }}>you’re dropped mid-conversation. reply however you want.</div>
         <div className="chat-picker">
@@ -238,7 +240,8 @@ export default function ChatControls({ snap, locked }: { snap: Snapshot; locked:
   }
 
   return (
-    <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 8, paddingTop: 6 }}>
+    <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 8, paddingTop: 6, position: 'relative' }}>
+      {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(0)} title="How Messages works" /></span>}
       <div className="ctl-display" style={{ fontSize: 14, lineHeight: 1.35 }}>
         {waiting ? (hasBotTurn ? 'RESPONDING…' : 'LOADING…') : done ? 'SESSION RECORDED.' : 'TEXT BACK ON THIS PHONE.'}
       </div>
