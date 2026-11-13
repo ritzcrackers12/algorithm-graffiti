@@ -719,19 +719,25 @@ button { font: inherit; }
   box-shadow: inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh1);
   font: 800 13px/1 Tahoma, Verdana, 'Segoe UI', sans-serif;
 }
-/* In-context hint when an app first opens — neutral, sits above the controls. */
+/* In-context explainer when an app first opens — neutral, sits above controls. */
 .ob-hint {
-  display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
-  background: #ffffff; color: #1a1a1f; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+  width: 100%; box-sizing: border-box; text-align: left;
+  background: #ffffff; color: #1a1a1f; border-radius: 12px; padding: 12px 14px 14px; margin-bottom: 10px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
-.ob-hint-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #2f6df0; }
-.ob-hint-text { flex: 1; font: 500 13px/1.35 inherit; text-align: left; letter-spacing: 0; text-transform: none; }
+.ob-hint-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ob-hint-title { font: 650 15px/1.2 inherit; letter-spacing: -0.01em; text-transform: none; }
 .ob-hint-x {
   flex: 0 0 auto; background: none; border: 0; cursor: pointer; color: #9a9aa2;
-  font: 400 20px/1 inherit; padding: 0 2px;
+  font: 400 20px/1 inherit; padding: 0 2px; margin: -4px -2px 0 0;
 }
+.ob-hint-how { font: 400 13px/1.4 inherit; color: #55555f; margin-top: 3px; text-transform: none; letter-spacing: 0; }
+.ob-hint-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+.ob-hint-row { display: flex; flex-direction: column; gap: 1px; }
+.ob-hint-name { font: 600 12px/1.3 inherit; color: #1a1a1f; text-transform: none; letter-spacing: 0; }
+.ob-hint-mean { font: 400 12px/1.35 inherit; color: #6b6b75; text-transform: none; letter-spacing: 0; }
+.ob-hint-done { width: 100%; margin-top: 14px; padding: 10px 16px; }
 .chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
 .chat-pick {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;

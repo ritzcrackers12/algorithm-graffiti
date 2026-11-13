@@ -90,13 +90,32 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   )
 }
 
-/** One-line, in-context hint shown the first time each app opens. */
-export function Coachmark({ text, onClose }: { text: string; onClose: () => void }) {
+export type GuideRow = { name: string; meaning: string }
+
+/** In-context explainer shown the first time each app opens. Glosses what the
+ *  controls actually mean (e.g. for Radio, smooth vs rough), not just how to
+ *  drag them. Shown once per app per session. */
+export function Coachmark({
+  title, how, rows = [], onClose,
+}: { title: string; how: string; rows?: GuideRow[]; onClose: () => void }) {
   return (
     <div className="ob-hint">
-      <span className="ob-hint-dot" aria-hidden />
-      <span className="ob-hint-text">{text}</span>
-      <button className="ob-hint-x" type="button" aria-label="Dismiss" onClick={() => { haptic('press'); onClose() }}>×</button>
+      <div className="ob-hint-head">
+        <span className="ob-hint-title">{title}</span>
+        <button className="ob-hint-x" type="button" aria-label="Dismiss" onClick={() => { haptic('press'); onClose() }}>×</button>
+      </div>
+      <div className="ob-hint-how">{how}</div>
+      {rows.length > 0 && (
+        <div className="ob-hint-rows">
+          {rows.map((r) => (
+            <div key={r.name} className="ob-hint-row">
+              <span className="ob-hint-name">{r.name}</span>
+              <span className="ob-hint-mean">{r.meaning}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <button className="ob-btn solid ob-hint-done" type="button" onClick={() => { haptic('press'); onClose() }}>Got it</button>
     </div>
   )
 }

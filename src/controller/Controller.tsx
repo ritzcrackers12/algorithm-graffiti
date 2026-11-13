@@ -16,13 +16,40 @@ import ReelControls from './ReelControls.tsx'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
-import Onboarding, { Coachmark } from './Onboarding.tsx'
+import Onboarding, { Coachmark, type GuideRow } from './Onboarding.tsx'
 
-const APP_HINTS: Record<string, string> = {
-  article: 'Drag the sliders to reshape the story, then tap SUBMIT.',
-  reel: 'Pick a vibe, fine-tune the dials, then tap SEND.',
-  ad: 'Turn the three dials to find a sound, then tap TUNE IN.',
-  chat: 'Pick a chat, then just type back like you normally would.',
+const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] }> = {
+  article: {
+    title: 'Articles',
+    how: 'Drag the sliders to reshape the story, then tap SUBMIT.',
+    rows: [
+      { name: 'Political lean', meaning: 'Left  ↔  right' },
+      { name: 'Connotation', meaning: 'Darker tone  ↔  upbeat tone' },
+      { name: 'Dramatic', meaning: 'Measured  ↔  sensational' },
+      { name: 'Reader profile', meaning: 'The education level it’s written for' },
+      { name: 'Income bracket', meaning: 'The audience’s income it assumes' },
+    ],
+  },
+  reel: {
+    title: 'Videos',
+    how: 'Pick a vibe, fine-tune the dials, then tap SEND.',
+    rows: [
+      { name: 'The dials', meaning: 'Each pushes the feed between the two words shown on it' },
+    ],
+  },
+  ad: {
+    title: 'Radio',
+    how: 'Turn the three dials to find a sound, then tap TUNE IN.',
+    rows: [
+      { name: 'Energy', meaning: 'Low & calm  ↔  high & driving' },
+      { name: 'Mood', meaning: 'Dark & heavy  ↔  bright & upbeat' },
+      { name: 'Texture', meaning: 'Smooth & clean  ↔  rough & gritty' },
+    ],
+  },
+  chat: {
+    title: 'Messages',
+    how: 'Pick a chat, then just type back like you normally would.',
+  },
 }
 
 export type Transmit = (req: { object: 'article'; params: ArticleParams }) => void
@@ -233,8 +260,13 @@ export default function Controller() {
       : open === 'ad' ? !!snap.altered.ad : false
     content = (
       <div className="ctl-object" key={`${open}:${storyId ?? ''}`}>
-        {open && APP_HINTS[open] && !seenHints[open] && (
-          <Coachmark text={APP_HINTS[open]} onClose={() => dismissHint(open)} />
+        {open && APP_GUIDE[open] && !seenHints[open] && (
+          <Coachmark
+            title={APP_GUIDE[open].title}
+            how={APP_GUIDE[open].how}
+            rows={APP_GUIDE[open].rows}
+            onClose={() => dismissHint(open)}
+          />
         )}
         {open === 'article' && (
           <div className="article-view-row">
