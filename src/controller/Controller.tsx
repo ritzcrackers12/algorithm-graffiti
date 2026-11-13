@@ -23,27 +23,27 @@ const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] 
     title: 'Articles',
     how: 'Drag the sliders to reshape the story, then tap SUBMIT.',
     rows: [
-      { name: 'Political lean', meaning: 'Left  ↔  right' },
-      { name: 'Connotation', meaning: 'Darker tone  ↔  upbeat tone' },
-      { name: 'Dramatic', meaning: 'Measured  ↔  sensational' },
-      { name: 'Reader profile', meaning: 'The education level it’s written for' },
-      { name: 'Income bracket', meaning: 'The audience’s income it assumes' },
+      { name: 'Political lean', meaning: 'Which way the story’s framing tilts — the further you slide, the more left- or right-leaning it reads.' },
+      { name: 'Connotation', meaning: 'The overall feeling of the writing, from a dark, negative tone to a positive, hopeful one.' },
+      { name: 'Dramatic', meaning: 'How sensational it gets — from calm and matter-of-fact to exaggerated and attention-grabbing.' },
+      { name: 'Reader profile', meaning: 'The education level the article is pitched at, from plain and simple to dense and academic.' },
+      { name: 'Income bracket', meaning: 'The income level of the audience the story assumes it’s written for.' },
     ],
   },
   reel: {
     title: 'Videos',
     how: 'Pick a vibe, fine-tune the dials, then tap SEND.',
     rows: [
-      { name: 'The dials', meaning: 'Each pushes the feed between the two words shown on it' },
+      { name: 'The dials', meaning: 'Each dial has two traits labeled on its ends. Drag toward whichever one you want the feed to lean into.' },
     ],
   },
   ad: {
     title: 'Radio',
     how: 'Turn the three dials to find a sound, then tap TUNE IN.',
     rows: [
-      { name: 'Energy', meaning: 'Low & calm  ↔  high & driving' },
-      { name: 'Mood', meaning: 'Dark & heavy  ↔  bright & upbeat' },
-      { name: 'Texture', meaning: 'Smooth & clean  ↔  rough & gritty' },
+      { name: 'Energy', meaning: 'How intense the track feels — slow and relaxed at one end, fast and driving at the other.' },
+      { name: 'Mood', meaning: 'The emotional tone of the music, from dark and heavy to bright and upbeat.' },
+      { name: 'Texture', meaning: 'How the sound is produced — smooth and polished at one end, raw and distorted (gritty, lo-fi) at the other.' },
     ],
   },
   chat: {
