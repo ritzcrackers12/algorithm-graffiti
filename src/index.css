@@ -111,7 +111,7 @@ button { font: inherit; }
 
 /* ---- XP window chrome ---- */
 .xp-window {
-  position: absolute; display: flex; flex-direction: column; background: var(--color-xp-face);
+  position: absolute; z-index: 35; display: flex; flex-direction: column; background: var(--color-xp-face);
   border: 3px solid #0831d9; border-top: 0; border-radius: 9px 9px 0 0; box-shadow: 4px 6px 24px rgba(0,0,0,0.55);
 }
 .xp-window.opening { animation: win-open 0.38s cubic-bezier(.2,.8,.2,1) both; }
