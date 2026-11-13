@@ -1,6 +1,5 @@
 // Builds every AI prompt from fixed templates. The phone only sends an object id and control values.
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../_shared/ads.ts'
 import { CONFIG } from '../_shared/config.ts'
 import { deriveGenre, genreMeta, musicPrompt, stationLegitimacy, type GenreId } from '../_shared/station.ts'
 import type { ArticleParams, ReelParams } from '../_shared/types.ts'
@@ -51,11 +50,9 @@ async function fetchSite(path: string): Promise<string> {
   throw new Error(`could not load ${path}`)
 }
 
-function attachSponsored(body: string, profile: VisitorProfile, rounds?: { rating?: string | null; audience?: string; topic?: string; subtopic?: string; mood?: string; vibe?: string; keywords?: string }[]) {
-  const match = pickAd({ ...profile, adsShown: reservedAdIds(profile) }, undefined, rounds)
-  if (!match) return { body, sponsored: undefined }
-  const sponsored = personalizeAd(match, profile)
-  return { body: weaveSponsored(body, sponsored.paragraph), sponsored }
+function attachSponsored(body: string, _profile: VisitorProfile, _rounds?: { rating?: string | null; audience?: string; topic?: string; subtopic?: string; mood?: string; vibe?: string; keywords?: string }[]) {
+  // Ads removed from generated articles: return the body untouched, no sponsored line.
+  return { body, sponsored: undefined }
 }
 
 function asProfile(raw: unknown, params: ArticleParams): VisitorProfile {
