@@ -93,7 +93,7 @@ export default function ArticleView({
     if (pane !== 'both' && pane !== view) return
     const el = scrollRef.current
     if (!el) return
-    const step = Math.max(220, el.clientHeight * 0.8)
+    const step = Math.max(180, el.clientHeight * 0.5)
     el.scrollBy({ top: control.dir === 'down' ? step : -step, behavior: 'smooth' })
   }, [control, view])
 

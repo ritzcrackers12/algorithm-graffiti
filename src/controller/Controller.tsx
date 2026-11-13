@@ -248,8 +248,14 @@ export default function Controller() {
           className="ctl-object-body"
           onScroll={(e) => e.currentTarget.classList.toggle('scrolled', e.currentTarget.scrollTop > 8)}
         >
-          {open === 'article' && storyId && (
+          {open === 'article' && storyId && !hasAltered && (
             <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} />
+          )}
+          {open === 'article' && hasAltered && (
+            <div className="ctl-done">
+              <div className="ctl-display">REWRITTEN.</div>
+              <div className="ctl-done-sub">Read it on the screen. Use COMPARE and the scroll buttons above.</div>
+            </div>
           )}
           {open === 'reel' && (
             <ReelControls snap={snap} locked={!!busy} say={say} />
