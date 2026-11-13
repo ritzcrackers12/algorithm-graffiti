@@ -1,7 +1,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { getChatWire, subscribeChatWire } from '../lib/chatSync.ts'
 import {
-  PERSONAS, SCENARIOS, isPersona, personaInitial, personaLabel, scenarioCast, who,
+  PERSONAS, isPersona, personaInitial, personaLabel, scenarioCast, who,
   type ChatTurn, type PersonaId, type ScenarioId,
 } from '../shared/chatScript.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
@@ -59,7 +59,7 @@ export default function ChatView({ profile }: { profile?: VisitorProfile | null 
     <>
       <div className="xp-toolbar">
         <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>
-          {SCENARIOS[scenario].emoji} {header}
+          {header}
         </span>
       </div>
       <div className="chat-stage">

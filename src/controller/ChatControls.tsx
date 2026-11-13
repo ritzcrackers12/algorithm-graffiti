@@ -226,7 +226,6 @@ export default function ChatControls({ snap, locked, onInfo }: { snap: Snapshot;
             const sc = SCENARIOS[id]
             return (
               <button key={id} type="button" className="chat-pick" disabled={locked} onClick={() => pick(id)}>
-                <span className="chat-pick-emoji">{sc.emoji}</span>
                 <span className="chat-pick-text">
                   <span className="chat-pick-label">{sc.label}</span>
                   <span className="chat-pick-blurb">{sc.blurb}</span>

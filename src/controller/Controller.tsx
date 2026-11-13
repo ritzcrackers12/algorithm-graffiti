@@ -25,7 +25,7 @@ type GuideRow = { name: string; meaning: string }
 const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] }> = {
   article: {
     title: 'Articles',
-    how: 'Drag the sliders to reshape the story, then tap SUBMIT.',
+    how: 'This takes a real news story and rewrites it to fit who it thinks you are. Set your background and leanings with the sliders, then tap SUBMIT — and compare the rewrite to the original.',
     rows: [
       { name: 'Political lean', meaning: 'Which way the story’s framing tilts — the further you slide, the more left- or right-leaning it reads.' },
       { name: 'Connotation', meaning: 'The overall feeling of the writing, from a dark, negative tone to a positive, hopeful one.' },
@@ -36,14 +36,14 @@ const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] 
   },
   reel: {
     title: 'Videos',
-    how: 'Pick a vibe, fine-tune the dials, then tap SEND.',
+    how: 'This is a feed that bends to your taste. Pick a vibe, then use the dials to tune your algorithm to the kind of content you want to see, and tap SEND.',
     rows: [
       { name: 'The dials', meaning: 'Each dial has two traits labeled on its ends. Drag toward whichever one you want the feed to lean into.' },
     ],
   },
   ad: {
     title: 'Radio',
-    how: 'Turn the three dials to find a sound, then tap TUNE IN.',
+    how: 'This builds a track from scratch to match your mood. Turn the three dials to shape its energy, mood and texture, then tap TUNE IN.',
     rows: [
       { name: 'Energy', meaning: 'How intense the track feels — slow and relaxed at one end, fast and driving at the other.' },
       { name: 'Mood', meaning: 'The emotional tone of the music, from dark and heavy to bright and upbeat.' },
@@ -52,7 +52,7 @@ const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] 
   },
   chat: {
     title: 'Messages',
-    how: 'Pick a chat, then just type back like you normally would.',
+    how: 'This drops you into a text conversation. Pick who you’re talking to, then just reply with whatever feels right.',
   },
 }
 
