@@ -16,6 +16,7 @@ import ReelControls from './ReelControls.tsx'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
+import Onboarding from './Onboarding.tsx'
 
 export type Transmit = (req: { object: 'article'; params: ArticleParams }) => void
 
@@ -84,6 +85,13 @@ export default function Controller() {
   const snap = live.snap
   const [toast, setToast] = useState<{ text: string; key: number } | null>(null)
   const [choosingArticle, setChoosingArticle] = useState(false)
+  const [showOnboard, setShowOnboard] = useState(() => {
+    try { return sessionStorage.getItem('ag-onboarded') !== '1' } catch { return true }
+  })
+  const dismissOnboard = () => {
+    try { sessionStorage.setItem('ag-onboarded', '1') } catch { /* private mode */ }
+    setShowOnboard(false)
+  }
   const lastTouch = useRef(0)
 
   useEffect(() => {
@@ -305,10 +313,18 @@ export default function Controller() {
             <span className="chip">{active && (open || choosingArticle) ? (open ?? 'article').toUpperCase() : 'CONTROLLER'}</span>
             <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
           </div>
-          <div className="ctl-timer" />
+          <div className="ctl-timer">
+            <button
+              className="onboard-help"
+              type="button"
+              aria-label="How it works"
+              onClick={() => { haptic('press'); setShowOnboard(true) }}
+            >?</button>
+          </div>
         </div>
         {content}
       </div>
+      {showOnboard && <Onboarding onDone={dismissOnboard} />}
       {toast && <div key={toast.key} className="toast" onAnimationEnd={() => setToast(null)}>{toast.text}</div>}
     </div>
   )
