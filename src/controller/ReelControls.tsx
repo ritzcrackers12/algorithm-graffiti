@@ -12,7 +12,7 @@ import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
 import { InfoDot } from './Onboarding.tsx'
 
-const KNOB_STEPS = ['', '', '', '', '', '', '', '', '', '', '']
+const KNOB_STEPS = ['', '', '', '', '']
 
 function persistReel(next: ReelSession) {
   const p = getLocalProfile()
@@ -99,7 +99,7 @@ export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot;
 
   const twist = (i: number, step: number) => {
     if (locked || !bucket || sent) return
-    const v = step * 10
+    const v = step * 25
     const nextDials: [number, number, number] = [...dials]
     nextDials[i] = v
     const delta = Math.abs(v - lastDials.current[i])
@@ -243,7 +243,7 @@ export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot;
               <span className="pole l">{pole[0]}</span>
               <Knob
                 steps={KNOB_STEPS}
-                value={Math.round(dials[i] / 10)}
+                value={Math.round(dials[i] / 25)}
                 onChange={(step) => twist(i as 0 | 1 | 2, step)}
                 disabled={locked}
                 size={72}

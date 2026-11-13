@@ -9,7 +9,7 @@ import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
 import { InfoDot } from './Onboarding.tsx'
 
-const DIAL_STEPS = ['', '', '', '', '', '', '', '', '', '', '']
+const DIAL_STEPS = ['', '', '', '', '']
 const DIAL_TITLES = ['ENERGY', 'MOOD', 'TEXTURE']
 
 /** Cosmetic FM readout: dials nudge a fake frequency so the band feels live. */
@@ -102,8 +102,8 @@ export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; l
               <span className="pole l">{pole[0]}</span>
               <Knob
                 steps={DIAL_STEPS}
-                value={Math.round(dials[i] / 10)}
-                onChange={(step) => twist(i, step * 10)}
+                value={Math.round(dials[i] / 25)}
+                onChange={(step) => twist(i, step * 25)}
                 disabled={locked}
                 size={64}
                 label={`${pole[0]} TO ${pole[1]}`}
