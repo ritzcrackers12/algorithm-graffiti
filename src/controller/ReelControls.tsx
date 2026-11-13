@@ -10,6 +10,7 @@ import { poleWord } from '../shared/poles.ts'
 import type { ReelSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
+import { InfoDot } from './Onboarding.tsx'
 
 const KNOB_STEPS = ['', '', '', '', '', '', '', '', '', '', '']
 
@@ -24,7 +25,7 @@ function playSlot(id: string) {
   void getBackend().then((b) => b.reportReel({ id, ended: false, duration: 0 }))
 }
 
-export default function ReelControls({ snap, locked }: { snap: Snapshot; locked: boolean; say?: (t: string) => void }) {
+export default function ReelControls({ snap, locked, onInfo }: { snap: Snapshot; locked: boolean; say?: (t: string) => void; onInfo?: (slide: number) => void }) {
   const started = useRef(Date.now())
   const lastDials = useRef<[number, number, number]>([50, 50, 50])
   const clip = useSyncExternalStore(subscribeReelClip, getReelClip)
@@ -230,7 +231,10 @@ export default function ReelControls({ snap, locked }: { snap: Snapshot; locked:
 
   return (
     <div className="ctl-center reel-tune" style={{ gap: 8, paddingTop: 8 }}>
-      <div className="prompt"><span className="bobtext">ADJUST TO YOUR LIKING</span></div>
+      <div className="prompt">
+        <span className="bobtext">ADJUST TO YOUR LIKING</span>
+        {onInfo && <InfoDot onClick={() => onInfo(1)} title="What the dials do" />}
+      </div>
       <div className="reel-units">
         {poles.map((pole, i) => (
           <div key={pole[0]} className="reel-unit">

@@ -7,6 +7,7 @@ import { poleWord } from '../shared/poles.ts'
 import type { AdSession } from '../shared/profile.ts'
 import type { Snapshot } from '../shared/types.ts'
 import { Knob } from './controls.tsx'
+import { InfoDot } from './Onboarding.tsx'
 
 const DIAL_STEPS = ['', '', '', '', '', '', '', '', '', '', '']
 const DIAL_TITLES = ['ENERGY', 'MOOD', 'TEXTURE']
@@ -26,7 +27,7 @@ function persistAd(patch: Partial<AdSession>) {
   void sendCommand('signal', JSON.stringify({ session }))
 }
 
-export default function AdControls({ snap, locked }: { snap: Snapshot; locked: boolean }) {
+export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; locked: boolean; onInfo?: (slide: number) => void }) {
   const ad0 = getLocalProfile().session.ad
   const [dials, setDials] = useState<[number, number, number]>(ad0.dials ?? [50, 50, 50])
   const [tuned, setTuned] = useState((ad0.submittedAt ?? 0) > 0)
@@ -95,6 +96,7 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
       <div className="station-dials">
         {STATION_POLES.map((pole, i) => (
           <div key={pole[0]} className="station-dial">
+            {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(i + 1)} title={`What ${DIAL_TITLES[i]} means`} /></span>}
             <div className="ctitle">{DIAL_TITLES[i]}</div>
             <div className="unit-poles">
               <span className="pole l">{pole[0]}</span>

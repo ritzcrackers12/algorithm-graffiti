@@ -1,5 +1,6 @@
 import { useRef, type CSSProperties, type PointerEvent as RPointerEvent, type ReactNode } from 'react'
 import { PixelButton } from '../components/PixelButton.tsx'
+import { InfoDot } from './Onboarding.tsx'
 import { haptic } from '../lib/haptics.ts'
 
 /** Compact vintage rotary. Drag around it (or tap a tick) to pick a step. */
@@ -181,10 +182,11 @@ export function PercentDial({
 }
 
 export function Section({
-  label, value, children, style, stack,
-}: { label: string; value?: string; children: ReactNode; style?: CSSProperties; stack?: boolean }) {
+  label, value, children, style, stack, onInfo,
+}: { label: string; value?: string; children: ReactNode; style?: CSSProperties; stack?: boolean; onInfo?: () => void }) {
   return (
     <div className={`panel ${stack ? 'stack' : ''}`} style={style}>
+      {onInfo && <span className="box-info"><InfoDot onClick={onInfo} /></span>}
       <div className="panel-head">
         <span className="ctl-label">{label}</span>
         {value && <span className="ctl-value">{value}</span>}

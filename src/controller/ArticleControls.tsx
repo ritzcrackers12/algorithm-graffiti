@@ -15,8 +15,8 @@ import type { Transmit } from './Controller.tsx'
 import { useControls } from './useControls.ts'
 
 export default function ArticleControls({
-  snap, articleId, locked, transmit, say,
-}: { snap: Snapshot; articleId: string; locked: boolean; transmit: Transmit; say: (t: string) => void }) {
+  snap, articleId, locked, transmit, say, onInfo,
+}: { snap: Snapshot; articleId: string; locked: boolean; transmit: Transmit; say: (t: string) => void; onInfo?: (slide: number) => void }) {
   const [articles, setArticles] = useState<ArticleInfo[]>([])
   const [p, setRaw] = useControls<ArticleParams>('article', snap.turnStartedAt, () => ({
     articleId,
@@ -77,7 +77,7 @@ export default function ArticleControls({
       <Section stack label="STORY">
         <div className="story-locked">{selected?.title ?? articleId}</div>
       </Section>
-      <Section stack label={`POLITICAL LEAN · ${LEAN_LABELS[p.lean + 2]}`}>
+      <Section stack label={`POLITICAL LEAN · ${LEAN_LABELS[p.lean + 2]}`} onInfo={onInfo && (() => onInfo(1))}>
         <DetentSlider
           steps={5}
           value={p.lean + 2}
@@ -87,7 +87,7 @@ export default function ArticleControls({
           right="RIGHT"
         />
       </Section>
-      <Section stack label={`CONNOTATION · ${CONNOTATION_LABELS[p.connotation + 1]}`}>
+      <Section stack label={`CONNOTATION · ${CONNOTATION_LABELS[p.connotation + 1]}`} onInfo={onInfo && (() => onInfo(2))}>
         <DetentSlider
           steps={3}
           value={p.connotation + 1}
@@ -97,7 +97,7 @@ export default function ArticleControls({
           right="POS"
         />
       </Section>
-      <Section stack label={`DRAMATIC · ${SENSATION_LABELS[p.sensationalism]}`}>
+      <Section stack label={`DRAMATIC · ${SENSATION_LABELS[p.sensationalism]}`} onInfo={onInfo && (() => onInfo(3))}>
         <DetentSlider
           steps={5}
           value={p.sensationalism}
@@ -107,7 +107,7 @@ export default function ArticleControls({
           right="INTENSE"
         />
       </Section>
-      <Section stack label={`READER PROFILE · ${EDUCATION_LABELS[p.education]}`}>
+      <Section stack label={`READER PROFILE · ${EDUCATION_LABELS[p.education]}`} onInfo={onInfo && (() => onInfo(4))}>
         <Knob
           steps={EDUCATION_KNOB}
           value={p.education}
@@ -116,7 +116,7 @@ export default function ArticleControls({
           disabled={locked}
         />
       </Section>
-      <Section stack label={`INCOME BRACKET · ${p.income === null ? 'UNSET' : INCOME_LABELS[p.income]}`}>
+      <Section stack label={`INCOME BRACKET · ${p.income === null ? 'UNSET' : INCOME_LABELS[p.income]}`} onInfo={onInfo && (() => onInfo(5))}>
         <DetentSlider
           steps={6}
           value={p.income ?? 0}

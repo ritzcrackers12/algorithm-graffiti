@@ -58,8 +58,21 @@ export function AppIcon({ id }: { id: string }) {
 
 export type Slide = { icon?: ReactNode; title: string; body: string }
 
-export function Tour({ slides, onDone }: { slides: Slide[]; onDone: () => void }) {
-  const [i, setI] = useState(0)
+/** Small italic "i" button placed on each control box to open its walkthrough. */
+export function InfoDot({ onClick, title = 'How this works' }: { onClick: () => void; title?: string }) {
+  return (
+    <button
+      className="ob-info"
+      type="button"
+      aria-label={title}
+      title={title}
+      onClick={(e) => { e.stopPropagation(); haptic('press'); onClick() }}
+    >i</button>
+  )
+}
+
+export function Tour({ slides, start = 0, onDone }: { slides: Slide[]; start?: number; onDone: () => void }) {
+  const [i, setI] = useState(Math.min(Math.max(0, start), Math.max(0, slides.length - 1)))
   const last = i === slides.length - 1
   const s = slides[i]
   const go = (n: number) => { haptic('press'); setI(n) }

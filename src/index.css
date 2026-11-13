@@ -715,14 +715,17 @@ button { font: inherit; }
 .ob-btn.ghost { flex: 0 0 auto; background: #fff; color: #55555f; border-color: #dcdce2; }
 .ob-slide { display: flex; flex-direction: column; align-items: center; gap: 14px; animation: ob-slide-in 0.22s ease; }
 @keyframes ob-slide-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
-/* Info button in the box header — opens that controller's walkthrough. */
+/* Info button placed on a control box — opens that controller's walkthrough. */
 .ob-info {
-  width: 22px; height: 22px; flex: 0 0 auto; cursor: pointer; border-radius: 50%;
+  width: 19px; height: 19px; flex: 0 0 auto; cursor: pointer; border-radius: 50%;
   background: transparent; color: var(--mint-deep, #39ff8c); border: 1.5px solid currentColor;
-  font: 700 12px/1 Georgia, 'Times New Roman', serif; font-style: italic;
-  display: inline-flex; align-items: center; justify-content: center; opacity: 0.85;
+  font: 700 11px/1 Georgia, 'Times New Roman', serif; font-style: italic;
+  display: inline-flex; align-items: center; justify-content: center; opacity: 0.8;
 }
-.ob-info:active { opacity: 0.55; }
+.ob-info:active { opacity: 0.5; }
+.box-info { position: absolute; top: 6px; right: 6px; z-index: 3; line-height: 0; }
+.panel, .station-dial { position: relative; }
+.reel-tune .prompt { display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
 .chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
 .chat-pick {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;

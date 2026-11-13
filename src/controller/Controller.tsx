@@ -139,8 +139,10 @@ export default function Controller() {
   const [seenHints, setSeenHints] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(sessionStorage.getItem('ag-seen-hints') || '{}') } catch { return {} }
   })
-  // Manually reopened tour (via the info button), independent of first-open auto-show.
+  // Manually reopened tour (via a box's info button), independent of first-open auto-show.
   const [tourApp, setTourApp] = useState<string | null>(null)
+  const [tourStart, setTourStart] = useState(0)
+  const openTour = (app: string, slide: number) => { haptic('press'); setTourStart(slide); setTourApp(app) }
   const markSeen = (app: string) => {
     setSeenHints((prev) => {
       const next = { ...prev, [app]: true }
@@ -170,7 +172,7 @@ export default function Controller() {
   // Per-app walkthrough: auto-shows the first time an app opens, and reopens
   // whenever the info button is tapped.
   const activeTour = open && APP_GUIDE[open] && (!seenHints[open] || tourApp === open) ? open : null
-  const closeTour = () => { if (open) markSeen(open); setTourApp(null) }
+  const closeTour = () => { if (open) markSeen(open); setTourApp(null); setTourStart(0) }
 
   const wasBusy = useRef(false)
   useEffect(() => {
@@ -317,7 +319,7 @@ export default function Controller() {
           onScroll={(e) => e.currentTarget.classList.toggle('scrolled', e.currentTarget.scrollTop > 8)}
         >
           {open === 'article' && storyId && !hasAltered && (
-            <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} />
+            <ArticleControls snap={snap} articleId={storyId} locked={!!busy} transmit={transmit} say={say} onInfo={(s) => openTour('article', s)} />
           )}
           {open === 'article' && hasAltered && (
             <div className="ctl-done">
@@ -326,10 +328,10 @@ export default function Controller() {
             </div>
           )}
           {open === 'reel' && (
-            <ReelControls snap={snap} locked={!!busy} say={say} />
+            <ReelControls snap={snap} locked={!!busy} say={say} onInfo={(s) => openTour('reel', s)} />
           )}
           {open === 'ad' && (
-            <AdControls snap={snap} locked={!!busy} />
+            <AdControls snap={snap} locked={!!busy} onInfo={(s) => openTour('ad', s)} />
           )}
           {open === 'chat' && (
             <ChatControls snap={snap} locked={!!busy} />
@@ -370,14 +372,6 @@ export default function Controller() {
       <div className="ctl-main">
         <div className="ctl-top">
           <div className="ctl-top-meta">
-            {open && APP_GUIDE[open] && (
-              <button
-                className="ob-info"
-                type="button"
-                aria-label="How this works"
-                onClick={() => { haptic('press'); setTourApp(open) }}
-              >i</button>
-            )}
             <span className="chip">{active && (open || choosingArticle) ? (open ?? 'article').toUpperCase() : 'CONTROLLER'}</span>
             <StatusChip connected={live.connected} local={live.backendKind === 'local'} />
           </div>
@@ -386,7 +380,9 @@ export default function Controller() {
         {content}
       </div>
       {showOnboard && <Onboarding onDone={dismissOnboard} />}
-      {!showOnboard && activeTour && <Tour slides={appSlides(activeTour)} onDone={closeTour} />}
+      {!showOnboard && activeTour && (
+        <Tour key={`${activeTour}-${tourStart}`} slides={appSlides(activeTour)} start={tourStart} onDone={closeTour} />
+      )}
       {toast && <div key={toast.key} className="toast" onAnimationEnd={() => setToast(null)}>{toast.text}</div>}
     </div>
   )
