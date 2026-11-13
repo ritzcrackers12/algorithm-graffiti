@@ -4,6 +4,10 @@ import { unlockAudio } from '../lib/audio.ts'
 export default function TapToBegin({ onBegin }: { onBegin: () => void }) {
   const begin = () => {
     unlockAudio()
+    document.querySelectorAll<HTMLVideoElement>('video.wallpaper-video').forEach((v) => {
+      v.muted = true
+      void v.play().catch(() => {})
+    })
     onBegin()
     window.setTimeout(() => {
       void document.documentElement.requestFullscreen?.().catch(() => {})

@@ -45,7 +45,7 @@ export default function Library() {
   return (
     <div className="stage-outer theme-win95">
       <div className="stage" style={{ zoom: layout.scale, left: layout.left, top: layout.top }}>
-        <Desktop live={live} />
+        <Desktop live={live} begun={begun} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
     </div>

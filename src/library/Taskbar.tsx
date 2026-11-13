@@ -23,7 +23,9 @@ export default function Taskbar({ live, openId }: { live: Live; openId: ObjectId
       </div>
       {obj && (
         <div className="task-btn">
-          <span style={{ width: 22, height: 22 }}><ObjectIcon id={obj.id} /></span>
+          <span style={{ width: 22, height: 22 }}>
+            <AssetImg names={[`icon-${obj.id}.png`]} fallback={<ObjectIcon id={obj.id} />} />
+          </span>
           {obj.file}
         </div>
       )}
