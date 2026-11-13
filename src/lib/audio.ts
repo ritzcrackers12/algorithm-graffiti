@@ -253,6 +253,58 @@ export function syncKioskAudio(seconds: number) {
   }
 }
 
+// --- STATION: play the generated clip through the SAME unlocked element, so it
+// starts with no tap on the iPad (iOS autoplay is satisfied by TAP TO BEGIN). ---
+let stationEnded: (() => void) | null = null
+
+export function playStation(src: string, loops = 4) {
+  const a = kioskAudio()
+  setPlaybackSession()
+  void graph().resume()
+  stopClip()
+  if (stationEnded) { a.removeEventListener('ended', stationEnded); stationEnded = null }
+  let count = 0
+  const handler = () => {
+    count += 1
+    if (count < loops) {
+      try { a.currentTime = 0 } catch { /* ignore */ }
+      void a.play().catch(() => {})
+    } else {
+      a.removeEventListener('ended', handler)
+      stationEnded = null
+      if (unlocked) holdSilence()
+    }
+  }
+  stationEnded = handler
+  a.loop = false
+  a.muted = false
+  a.volume = 1
+  a.addEventListener('ended', handler)
+  if (a.src !== absUrl(src)) { a.src = src; a.load() }
+  try { a.currentTime = 0 } catch { /* ignore */ }
+  usingElement = true
+  return a.play()
+}
+
+export function pauseStation() {
+  try { kioskAudio().pause() } catch { /* ignore */ }
+}
+
+export function resumeStation() {
+  const a = kioskAudio()
+  void graph().resume()
+  usingElement = true
+  void a.play().catch(() => {})
+}
+
+export function stopStation() {
+  const a = kioskAudio()
+  if (stationEnded) { a.removeEventListener('ended', stationEnded); stationEnded = null }
+  try { a.pause() } catch { /* ignore */ }
+  usingElement = false
+  if (unlocked) holdSilence()
+}
+
 export function pauseKioskReel() {
   video?.pause()
   stopClip()

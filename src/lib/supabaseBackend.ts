@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { CONFIG } from '../shared/config.ts'
 import type { Backend } from './backend.ts'
 import { applyRemoteChat, type ChatWire } from './chatSync.ts'
+import { noteControl } from './controlSync.ts'
 import { emitReelClip, noteReelClip } from './reelSync.ts'
 import type { Snapshot } from '../shared/types.ts'
 
@@ -23,6 +24,11 @@ export function createSupabaseBackend(url: string, key: string): Backend {
   channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
     if (payload && typeof payload === 'object') applyRemoteChat(payload as ChatWire)
     fire()
+  })
+  channel.on('broadcast', { event: 'control' }, ({ payload }) => {
+    if (payload && typeof payload === 'object' && 'kind' in payload) {
+      noteControl(payload as import('./controlSync.ts').ControlMsg)
+    }
   })
   channel.subscribe((status) => {
     if (status === 'SUBSCRIBED') fire()
@@ -72,6 +78,9 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     },
     reportChat(state) {
       void channel.send({ type: 'broadcast', event: 'chat', payload: state })
+    },
+    control(msg) {
+      void channel.send({ type: 'broadcast', event: 'control', payload: msg })
     },
     async chat(req) {
       const { data, error } = await sb.functions.invoke('chat', { body: req })

@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { pauseStation, playStation, resumeStation, stopStation } from '../lib/audio.ts'
+import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { AdResult } from '../shared/types.ts'
 
@@ -17,8 +19,7 @@ export default function AdView({
   const audioUrl = result?.audioUrl ?? session?.audioUrl ?? null
   const submittedAt = session?.submittedAt ?? 0
   const resultAt = result?.at ?? 0
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const playsRef = useRef(0)
+  const lastSeqRef = useRef(0)
   const [band, setBand] = useState(12)
   const [now, setNow] = useState(() => Date.now())
 
@@ -39,22 +40,23 @@ export default function AdView({
     return () => window.clearInterval(t)
   }, [showTuning])
 
-  // Auto-start when the track arrives; loop a fixed number of times (~1 min).
+  // Auto-start through the element unlocked at TAP TO BEGIN, so no tap on the
+  // iPad is needed; loops a fixed number of times (~1 min).
   useEffect(() => {
-    playsRef.current = 0
-    if (audioUrl && audioRef.current) {
-      audioRef.current.load()
-      audioRef.current.play().catch(() => { /* autoplay may need a gesture */ })
-    }
+    if (!audioUrl) return
+    void playStation(audioUrl, STATION_LOOPS)
+    return () => stopStation()
   }, [audioUrl])
 
-  const onEnded = () => {
-    playsRef.current += 1
-    if (playsRef.current < STATION_LOOPS && audioRef.current) {
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch(() => {})
-    }
-  }
+  // Phone PLAY / PAUSE, delivered over the control channel.
+  const control = useSyncExternalStore(subscribeControl, getControl)
+  useEffect(() => {
+    if (!control || control.kind !== 'audio' || control.seq === lastSeqRef.current) return
+    lastSeqRef.current = control.seq
+    if (control.action === 'pause') pauseStation()
+    else if (control.action === 'play') resumeStation()
+    else if (control.action === 'replay' && audioUrl) void playStation(audioUrl, STATION_LOOPS)
+  }, [control, audioUrl])
 
   const status = showTuning ? 'TUNING IN…' : audioUrl ? 'ON AIR.' : failed ? 'NO SIGNAL.' : 'STANDBY.'
 
@@ -79,7 +81,6 @@ export default function AdView({
                 <span key={i} style={{ animationDelay: `${i * 0.12}s` }} />
               ))}
             </div>
-            <audio ref={audioRef} src={audioUrl} autoPlay controls onEnded={onEnded} />
           </div>
         ) : failed ? (
           <div className="machine-line" style={{ color: '#c6ff3d' }}>NO SIGNAL. SET THE DIALS AND TUNE IN AGAIN.</div>

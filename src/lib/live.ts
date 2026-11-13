@@ -125,6 +125,15 @@ export async function sendCommand(cmd: Command, arg: string | null = null) {
   }
 }
 
+export async function sendControl(msg: import('./controlSync.ts').ControlMsg) {
+  const b = await getBackend()
+  try {
+    b.control(msg)
+  } catch (e) {
+    console.warn('control failed', e)
+  }
+}
+
 export async function sendGenerate(req: GenerateRequest): Promise<GenerateResponse> {
   const b = await getBackend()
   try {

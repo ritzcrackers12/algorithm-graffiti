@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { getLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
-import { sendCommand, sendGenerate, sessionId } from '../lib/live.ts'
+import { sendCommand, sendControl, sendGenerate, sessionId } from '../lib/live.ts'
 import { deriveGenre, genreMeta, STATION_POLES, stationCacheKey, stationLegitimacy } from '../shared/station.ts'
 import { poleWord } from '../shared/poles.ts'
 import type { AdSession } from '../shared/profile.ts'
@@ -29,6 +29,8 @@ function persistAd(patch: Partial<AdSession>) {
 export default function AdControls({ snap, locked }: { snap: Snapshot; locked: boolean }) {
   const ad0 = getLocalProfile().session.ad
   const [dials, setDials] = useState<[number, number, number]>(ad0.dials ?? [50, 50, 50])
+  const [tuned, setTuned] = useState((ad0.submittedAt ?? 0) > 0)
+  const [playing, setPlaying] = useState(true)
   const linger = useRef(false)
   const openedAt = snap.display.openedAt
 
@@ -37,9 +39,17 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
     const t = window.setTimeout(() => { linger.current = true }, 2500)
     const cur = getLocalProfile().session.ad
     setDials(cur.dials ?? [50, 50, 50])
+    setTuned((cur.submittedAt ?? 0) > 0)
+    setPlaying(true)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openedAt])
+
+  const togglePlay = () => {
+    const next = !playing
+    setPlaying(next)
+    void sendControl({ kind: 'audio', action: next ? 'play' : 'pause' })
+  }
 
   // Genre is derived from the profile the visitor already built — not chosen here.
   const genre = deriveGenre(getLocalProfile())
@@ -68,6 +78,8 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
       audioUrl: null,
       source: 'template',
     })
+    setTuned(true)
+    setPlaying(true)
     void sendGenerate({
       session: sessionId(),
       object: 'ad',
@@ -103,6 +115,11 @@ export default function AdControls({ snap, locked }: { snap: Snapshot; locked: b
       <PixelButton type="button" block disabled={locked} onClick={tuneIn}>
         {locked ? 'TUNING IN…' : 'TUNE IN'}
       </PixelButton>
+      {tuned && (
+        <PixelButton type="button" block disabled={locked} onClick={togglePlay}>
+          {playing ? '❚❚ PAUSE' : '▶ PLAY'}
+        </PixelButton>
+      )}
     </div>
   )
 }

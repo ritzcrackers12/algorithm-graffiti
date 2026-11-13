@@ -34,6 +34,8 @@ export interface Backend {
   reportReel(clip: { id: string; ended?: boolean; duration?: number }): void
   /** Phone ⇄ iPad chatbot lines. */
   reportChat(state: import('./chatSync.ts').ChatWire): void
+  /** Phone->iPad transient action (station play/pause, article scroll). */
+  control(msg: import('./controlSync.ts').ControlMsg): void
   chat(req: ChatAsk): Promise<ChatReply>
   /** End-of-visit: the model reads the whole session and writes the portrait.
    *  Returns null on any failure so the caller falls back to the local read. */

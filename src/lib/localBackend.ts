@@ -5,6 +5,7 @@ import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../shared/
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
 import { deriveGenre, genreMeta, stationLegitimacy } from '../shared/station.ts'
 import { scriptedNext } from '../shared/chatScript.ts'
+import { emitControlLocal } from './controlSync.ts'
 import { CONFIG, OBJECTS, type ObjectId } from '../shared/config.ts'
 import { objectLocked } from '../shared/gating.ts'
 import { resolveLocation } from '../shared/locations.ts'
@@ -382,6 +383,9 @@ export function createLocalBackend(): Backend {
     reportChat(state) {
       localStorage.setItem(CHAT_KEY, JSON.stringify(state))
       fire()
+    },
+    control(msg) {
+      emitControlLocal(msg)
     },
     async chat(req) {
       const next = scriptedNext(req.history ?? [], req.profile)
