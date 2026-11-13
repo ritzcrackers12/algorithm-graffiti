@@ -61,6 +61,8 @@ export interface ChatSession {
   n: number
   source: string
   log: import('./chatScript.ts').ChatCovert[]
+  /** Which thread the visitor picked to be dropped into. null until chosen. */
+  scenario?: import('./chatScript.ts').ScenarioId | null
 }
 
 export interface SessionLog {
@@ -83,7 +85,7 @@ export const emptySession = (): SessionLog => ({
     dials: [50, 50, 50], brandId: null, brandName: null, legitimacy: null,
     lingered: false, matchedProfile: null, imageUrl: null, overlay: null, source: null,
   },
-  chat: { turns: [], topic: '', n: 0, source: '', log: [] },
+  chat: { turns: [], topic: '', n: 0, source: '', log: [], scenario: null },
 })
 
 export interface InferredProfile {

@@ -681,6 +681,18 @@ button { font: inherit; }
   width: min(320px, 92vw);
 }
 .chat-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: min(320px, 92vw); }
+.chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
+.chat-pick {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  background: #141412; color: #e8e2d4; border: 2px solid #000; box-shadow: 3px 3px 0 #000;
+  padding: 12px 14px; transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+.chat-pick:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #000; }
+.chat-pick:disabled { opacity: 0.45; cursor: default; }
+.chat-pick-emoji { font-size: 26px; line-height: 1; flex: 0 0 auto; }
+.chat-pick-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chat-pick-label { font: 800 14px/1.1 var(--font-supreme); letter-spacing: 0.1em; }
+.chat-pick-blurb { font: 500 12px/1.25 var(--font-supreme); letter-spacing: 0.03em; opacity: 0.6; text-transform: lowercase; }
 .chat-form { display: flex; gap: 8px; width: min(320px, 92vw); }
 .chat-input {
   flex: 1; min-width: 0; background: #141412; color: #e8e2d4; border: 1px solid #000;
@@ -1026,3 +1038,11 @@ span.xp-tbtn {
 }
 .theme-retro .chat-dots i:nth-child(2) { animation-delay: 0.18s; }
 .theme-retro .chat-dots i:nth-child(3) { animation-delay: 0.36s; }
+.theme-retro .chat-pick {
+  background: var(--r-face); color: var(--mint-deep); border: 0;
+  box-shadow: inset 1px 1px 0 var(--r-hl), inset -1px -1px 0 var(--r-sh1), 2px 2px 0 rgba(0,0,0,0.4);
+  font-family: Tahoma, Verdana, 'Segoe UI', sans-serif;
+}
+.theme-retro .chat-pick:active { box-shadow: inset 1px 1px 0 var(--r-sh1), inset -1px -1px 0 var(--r-hl); }
+.theme-retro .chat-pick-label { font-family: Tahoma, Verdana, 'Segoe UI', sans-serif; }
+.theme-retro .chat-pick-blurb { font-family: Tahoma, Verdana, 'Segoe UI', sans-serif; opacity: 0.72; }

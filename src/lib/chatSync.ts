@@ -1,4 +1,4 @@
-import type { ChatFrom, PersonaId } from '../shared/chatScript.ts'
+import type { ChatFrom, PersonaId, ScenarioId } from '../shared/chatScript.ts'
 
 export interface ChatWire {
   session: string
@@ -10,6 +10,7 @@ export interface ChatWire {
   n: number
   waiting: boolean
   typingFrom: PersonaId | ''
+  scenario: ScenarioId | null
 }
 
 const empty: ChatWire = {
@@ -22,6 +23,7 @@ const empty: ChatWire = {
   n: 0,
   waiting: false,
   typingFrom: '',
+  scenario: null,
 }
 
 let wire: ChatWire = { ...empty }

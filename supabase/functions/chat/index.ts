@@ -108,7 +108,7 @@ async function gemini(system: string, history: ChatTurn[], key: string, model: s
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT\n${transcript(history)}\n\nContinue as the group. JSON only.` }] }],
+        contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT\n${transcript(history)}\n\nContinue the thread in character. JSON only.` }] }],
         generationConfig: { temperature: 0.85, maxOutputTokens: 420 },
       }),
       signal: AbortSignal.timeout(12_000),
@@ -122,7 +122,7 @@ async function gemini(system: string, history: ChatTurn[], key: string, model: s
 // Reuses the Replicate text model (Llama) + REPLICATE_API_TOKEN already set for
 // the Station/Article, so the chatbot needs no separate API key.
 async function replicateLlama(system: string, history: ChatTurn[]) {
-  const prompt = `${system}\n\nTRANSCRIPT\n${transcript(history)}\n\nContinue as the group. Reply with JSON only, no preamble.`
+  const prompt = `${system}\n\nTRANSCRIPT\n${transcript(history)}\n\nContinue the thread in character. Reply with JSON only, no preamble.`
   const pred = await predict({
     job: 'chat',
     timeoutSeconds: 25,
@@ -144,7 +144,7 @@ async function anthropic(system: string, history: ChatTurn[], key: string, model
       model,
       max_tokens: 420,
       system,
-      messages: [{ role: 'user', content: `TRANSCRIPT\n${transcript(history)}\n\nContinue as the group. JSON only.` }],
+      messages: [{ role: 'user', content: `TRANSCRIPT\n${transcript(history)}\n\nContinue the thread in character. JSON only.` }],
     }),
     signal: AbortSignal.timeout(12_000),
   })
