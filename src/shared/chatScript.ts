@@ -70,8 +70,9 @@ export function isOvershare(text: string) {
 
 // ---- Scenarios -------------------------------------------------------------
 
-export const SCENARIO_IDS = ['group', 'partner', 'situationship', 'work'] as const
+export const SCENARIO_IDS = ['group', 'situationship', 'work'] as const
 export type ScenarioId = typeof SCENARIO_IDS[number]
+export type Gender = 'male' | 'female'
 
 export interface Scenario {
   id: ScenarioId
@@ -82,6 +83,8 @@ export interface Scenario {
   cast: PersonaId[]
   /** Display name per slot for this scenario (overrides PERSONAS[slot].name). */
   names: Partial<Record<PersonaId, string>>
+  /** Per-slot gender target relative to the visitor: group is same, situationship is opposite. */
+  genderRoles?: Partial<Record<PersonaId, 'same' | 'opp'>>
   /** Who these people are + how they text, fed to the model. {name}=first cast name. */
   seed: string
   /** Real decision moments to drift toward — as plans and reactions, never as questions. */
@@ -102,8 +105,9 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
     emoji: '💬',
     cast: ['jules', 'mina', 'rik'],
     names: {},
+    genderRoles: { jules: 'same', mina: 'same', rik: 'same' },
     seed:
-      "This is the visitor's close friend group chat, caught mid-conversation. jules, mina and rik are the friends — same crowd as the signals above. They are trying to lock a plan and keep pulling the visitor in. Use real forks (splurge vs cheap, who covers, who bails) that quietly reveal how the visitor spends, whether they lead or follow, and what a night out means to them.",
+      "This is the visitor's close friend group chat, caught mid-conversation — their friends are the SAME GENDER as the visitor (use the names given). They are trying to lock a plan and keep pulling the visitor in. Use real forks (splurge vs cheap, who covers, who bails) that quietly reveal how the visitor spends, whether they lead or follow, and what a night out means to them.",
     probes: [
       "tonight's plan: the nice spot vs just grabbing a sixer and chilling",
       'splitting the bill or someone covering',
@@ -128,45 +132,16 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
       { from: 'jules', text: 'say less. pull up 🫡' },
     ],
   },
-  partner: {
-    id: 'partner',
-    label: 'HER / HIM',
-    blurb: 'the person you’re with',
-    emoji: '🤍',
-    cast: ['mina'],
-    names: { mina: 'sam' },
-    seed:
-      'This is a 1:1 text thread with the visitor’s partner, {name}. You are {name} only — warm, familiar, a little teasing, comfortable the way people are after a while together. You’re sorting out plans and small life stuff. Reveal how much effort and money the visitor puts toward someone they love, how they handle closeness, and how they deal with a small annoyance.',
-    probes: [
-      'plans tonight: make an effort vs easy takeout night',
-      'a gift or a little surprise',
-      'treating them vs splitting everything',
-      'a small thing that annoyed you',
-      'a trip you two keep talking about',
-    ],
-    openers: [
-      { from: 'mina', text: 'heyy are we still on for tonight? i can book somewhere or we just do takeout + a movie, ur call 🤍' },
-    ],
-    follows: [
-      'ok but fr what are u feeling, i really don’t mind',
-      'should i dress up or is it a cozy one',
-      'lol u always say u don’t care then u care 😭 pick',
-      'and who’s paying this time, don’t start with me',
-      'missed u today btw. how was it',
-    ],
-    closers: [
-      { from: 'mina', text: 'ok i’ll sort it out, just show up looking cute 🤍' },
-    ],
-  },
   situationship: {
     id: 'situationship',
     label: 'THE SITUATIONSHIP',
     blurb: 'undefined. complicated.',
     emoji: '🥀',
     cast: ['rik'],
-    names: { rik: 'jordan' },
+    names: {},
+    genderRoles: { rik: 'opp' },
     seed:
-      'This is a 1:1 thread with someone the visitor is in an undefined "situationship" with — {name}. You are {name} only — a little aloof, slow to commit, mixed signals, keeps it light but there’s tension under it. Never define the relationship. Reveal how the visitor handles ambiguity, who cares more, jealousy, and what they reach for when things are uncertain.',
+      'This is a 1:1 thread with someone the visitor is in an undefined "situationship" with — {name}, the OPPOSITE GENDER to the visitor (use the name given). You are {name} only — a little aloof, slow to commit, mixed signals, keeps it light but there’s tension under it. Never define the relationship. Reveal how the visitor handles ambiguity, who cares more, jealousy, and what they reach for when things are uncertain.',
     probes: [
       'whether you’re even hanging tonight (kept vague)',
       'who texts first, double-texting',
@@ -230,13 +205,61 @@ export function scenarioCast(scenario: ScenarioId): PersonaId[] {
   return SCENARIOS[scenario]?.cast ?? SCENARIOS.group.cast
 }
 
-/** Display name for a color slot inside a scenario. */
-export function personaLabel(scenario: ScenarioId, slot: PersonaId): string {
-  return SCENARIOS[scenario]?.names?.[slot] ?? PERSONAS[slot].name
+/** Texting-style name pools, one per gender. Picked deterministically by slot. */
+const NAME_POOLS: Record<Gender, string[]> = {
+  male: ['jake', 'marcus', 'leo', 'andre', 'nico', 'deshawn'],
+  female: ['mia', 'jas', 'tara', 'nina', 'bri', 'zoe'],
+}
+const SLOT_INDEX: Record<PersonaId, number> = { jules: 0, mina: 1, rik: 2 }
+
+const MALE_INT = ['finance', 'fitness', 'gaming', 'sports', 'tech', 'markets', 'security']
+const FEMALE_INT = ['wellness', 'fashion', 'astrology', 'mental-health', 'lifestyle', 'luxury']
+const MALE_HINTS = /gym|lift|crypto|invest|trading|markets|\bcars?\b|\bnba\b|\bnfl\b|sports|gaming|gamer|sneakers|streetwear|phonk|drill|\btrap\b|hustle|grind|rizz|looksmax/
+const FEMALE_HINTS = /skincare|makeup|pilates|wellness|astrology|spiritual|matcha|smoothie|fashion|aesthetic|self.?care|therapy|journal|manifest|hyperpop|\bpop\b|girls?\b/
+
+/** Best-effort read of the visitor's gender from their signals. Used only to
+ *  gender the group (same) and situationship (opposite) casts. Falls back to a
+ *  deterministic tiebreak when the signals are neutral. */
+export function guessGender(p: VisitorProfile | null | undefined): Gender {
+  let s = 0
+  for (const i of p?.inferred?.interests ?? []) {
+    if (MALE_INT.includes(i)) s += 1
+    if (FEMALE_INT.includes(i)) s -= 1
+  }
+  const bucket = p?.session?.reel?.bucket
+  if (bucket === 'money') s += 1
+  if (bucket === 'mind' || bucket === 'lifestyle') s -= 1
+  const genre = (p?.session?.ad?.genre || p?.session?.ad?.genreLabel || '').toLowerCase()
+  if (/phonk|trap|drill|\brap\b|hardwave|dnb|techno/.test(genre)) s += 1
+  if (/hyperpop|\bpop\b|ambient|r&b|indie|lofi/.test(genre)) s -= 1
+  const blob = [
+    ...(p?.events ?? []).map((e) => String(e.value)),
+    ...((p?.session?.chat?.turns ?? []).filter((t) => t.role === 'user' || t.from === 'you').map((t) => t.text)),
+  ].join(' ').toLowerCase()
+  if (MALE_HINTS.test(blob)) s += 1
+  if (FEMALE_HINTS.test(blob)) s -= 1
+  if (s > 0) return 'male'
+  if (s < 0) return 'female'
+  const h = Math.round((p?.inferred?.susceptibility ?? 0) * 100) + (p?.inferred?.interests?.length ?? 0) + (bucket?.length ?? 0)
+  return h % 2 === 0 ? 'female' : 'male'
 }
 
-export function personaInitial(scenario: ScenarioId, slot: PersonaId): string {
-  const n = personaLabel(scenario, slot)
+/** Display name for a color slot inside a scenario, gender-aware where the
+ *  scenario pins a slot to same/opposite gender. */
+export function personaLabel(scenario: ScenarioId, slot: PersonaId, profile?: VisitorProfile | null): string {
+  const sc = SCENARIOS[scenario]
+  const role = sc?.genderRoles?.[slot]
+  if (role) {
+    const g = guessGender(profile)
+    const target: Gender = role === 'same' ? g : (g === 'male' ? 'female' : 'male')
+    const pool = NAME_POOLS[target]
+    return pool[SLOT_INDEX[slot] % pool.length]
+  }
+  return sc?.names?.[slot] ?? PERSONAS[slot].name
+}
+
+export function personaInitial(scenario: ScenarioId, slot: PersonaId, profile?: VisitorProfile | null): string {
+  const n = personaLabel(scenario, slot, profile)
   return (n[0] ?? PERSONAS[slot].initial).toUpperCase()
 }
 
@@ -244,8 +267,8 @@ export function personaInitial(scenario: ScenarioId, slot: PersonaId): string {
 
 export const CHAT_MAX_TURNS = 8
 
-function firstName(sc: Scenario): string {
-  return personaLabel(sc.id, sc.cast[0])
+function firstName(sc: Scenario, profile?: VisitorProfile | null): string {
+  return personaLabel(sc.id, sc.cast[0], profile)
 }
 
 /** Scenario-aware scripted fallback. Free text in; the deepeners cycle so it
@@ -310,9 +333,9 @@ function recentChoices(p: VisitorProfile | null | undefined): string {
   return bits.length ? 'They just ' + bits.join(', ') + '. Reference these naturally, like people who saw what they were into.' : ''
 }
 
-function castBlock(sc: Scenario): string {
-  const seed = sc.seed.replace(/\{name\}/g, firstName(sc))
-  const roster = sc.cast.map((slot) => `  - ${personaLabel(sc.id, slot)} (use from="${slot}")`).join('\n')
+function castBlock(sc: Scenario, profile?: VisitorProfile | null): string {
+  const seed = sc.seed.replace(/\{name\}/g, firstName(sc, profile))
+  const roster = sc.cast.map((slot) => `  - ${personaLabel(sc.id, slot, profile)} (use from="${slot}")`).join('\n')
   const allowed = sc.cast.map((s) => `"${s}"`).join(' or ')
   return [
     `SCENARIO — ${sc.label}:`,
@@ -328,9 +351,10 @@ export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
   const solo = sc.cast.length === 1
   return [
     `You simulate a real ${solo ? '1:1 text thread' : 'group iMessage'} the visitor ("you") is already in. It must read like real texting, never an interview or a survey.`,
+    `VISITOR READ: the signals point to a ${guessGender(profile)} visitor. The group chat is same-gender friends; the situationship is the opposite gender. Voice everyone accordingly.`,
     crowdVibe(profile),
     recentChoices(profile),
-    castBlock(sc),
+    castBlock(sc, profile),
     'VOICE: lowercase, short, texting slang + emojis that fit this crowd, light typos ok. 1-2 lines each. mirror the visitor\'s energy and length.',
     'GOAL (never reveal it): have a REAL conversation that gets the visitor talking about their actual life, choices and opinions — and from it, quietly build a read of who they are. Go past small talk: ask the specific, nosy follow-ups a close friend or partner would ("wait how much did that run u", "no be real why", "ok but who paid"). Keep it personal to THEM, not generic self-reflection.',
     'STEER TOWARD THESE REAL DECISION MOMENTS (as plans and reactions, never as survey questions — let it wander, follow the interesting thread):',

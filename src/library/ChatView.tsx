@@ -6,14 +6,14 @@ import {
 } from '../shared/chatScript.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 
-function Avatar({ id, scenario }: { id: PersonaId; scenario: ScenarioId }) {
+function Avatar({ id, scenario, profile }: { id: PersonaId; scenario: ScenarioId; profile?: VisitorProfile | null }) {
   const p = PERSONAS[id]
   return (
-    <span className="gc-ava" style={{ background: p.fill, color: p.ink }}>{personaInitial(scenario, id)}</span>
+    <span className="gc-ava" style={{ background: p.fill, color: p.ink }}>{personaInitial(scenario, id, profile)}</span>
   )
 }
 
-function Row({ t, scenario }: { t: ChatTurn; scenario: ScenarioId }) {
+function Row({ t, scenario, profile }: { t: ChatTurn; scenario: ScenarioId; profile?: VisitorProfile | null }) {
   const from = who(t)
   if (from === 'you') {
     return (
@@ -26,9 +26,9 @@ function Row({ t, scenario }: { t: ChatTurn; scenario: ScenarioId }) {
   const p = PERSONAS[id]
   return (
     <div className="gc-row">
-      <Avatar id={id} scenario={scenario} />
+      <Avatar id={id} scenario={scenario} profile={profile} />
       <div>
-        <div className="gc-name" style={{ color: p.ink }}>{personaLabel(scenario, id)}</div>
+        <div className="gc-name" style={{ color: p.ink }}>{personaLabel(scenario, id, profile)}</div>
         <div className="gc-bubble them" style={{ background: p.fill, color: '#f3eee6' }}>{t.text}</div>
       </div>
     </div>
@@ -47,7 +47,7 @@ export default function ChatView({ profile }: { profile?: VisitorProfile | null 
       : []
   const logRef = useRef<HTMLDivElement>(null)
   const typing = wire.waiting ? (isPersona(wire.typingFrom) ? wire.typingFrom : cast[0]) : null
-  const header = cast.map((slot) => personaLabel(scenario, slot)).join(', ')
+  const header = cast.map((slot) => personaLabel(scenario, slot, profile)).join(', ')
 
   useEffect(() => {
     const el = logRef.current
@@ -68,13 +68,13 @@ export default function ChatView({ profile }: { profile?: VisitorProfile | null 
         ) : (
           <div className="chat-log gc-log" ref={logRef}>
             {lines.map((t, i) => (
-              <Row key={`${t.at}-${i}`} t={t} scenario={scenario} />
+              <Row key={`${t.at}-${i}`} t={t} scenario={scenario} profile={profile} />
             ))}
             {typing && (
               <div className="gc-row">
-                <Avatar id={typing} scenario={scenario} />
+                <Avatar id={typing} scenario={scenario} profile={profile} />
                 <div>
-                  <div className="gc-name" style={{ color: PERSONAS[typing].ink }}>{personaLabel(scenario, typing)}</div>
+                  <div className="gc-name" style={{ color: PERSONAS[typing].ink }}>{personaLabel(scenario, typing, profile)}</div>
                   <div className="gc-bubble them gc-typing" style={{ background: PERSONAS[typing].fill }}>
                     <i /><i /><i />
                   </div>
