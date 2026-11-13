@@ -63,21 +63,41 @@ function parseModelJson(text: string) {
   }
 }
 
-function parsePortrait(text: string): { k: string; v: string }[] | null {
+type PortraitLine = { k: string; v: string }
+type PortraitBlock = { title: string; lines: PortraitLine[] }
+
+function parseLines(rows: unknown): PortraitLine[] {
+  const out: PortraitLine[] = []
+  if (!Array.isArray(rows)) return out
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue
+    const k = String((row as { k?: unknown }).k ?? '').trim()
+    const v = String((row as { v?: unknown }).v ?? '').trim()
+    if (k && v) out.push({ k: k.toUpperCase(), v })
+  }
+  return out
+}
+
+function parsePortrait(text: string): PortraitBlock[] | null {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const raw = JSON.parse(text.slice(start, end + 1)) as { portrait?: unknown }
-    if (!Array.isArray(raw.portrait)) return null
-    const out: { k: string; v: string }[] = []
-    for (const row of raw.portrait) {
-      if (!row || typeof row !== 'object') continue
-      const k = String((row as { k?: unknown }).k ?? '').trim()
-      const v = String((row as { v?: unknown }).v ?? '').trim()
-      if (k && v) out.push({ k: k.toUpperCase(), v })
+    const raw = JSON.parse(text.slice(start, end + 1)) as { sections?: unknown; portrait?: unknown }
+    // Preferred grouped shape: {sections:[{title,lines:[{k,v}]}]}
+    if (Array.isArray(raw.sections)) {
+      const blocks: PortraitBlock[] = []
+      for (const sec of raw.sections) {
+        if (!sec || typeof sec !== 'object') continue
+        const title = String((sec as { title?: unknown }).title ?? '').trim().toUpperCase()
+        const lines = parseLines((sec as { lines?: unknown }).lines)
+        if (title && lines.length) blocks.push({ title, lines })
+      }
+      return blocks.length ? blocks : null
     }
-    return out.length ? out : null
+    // Legacy flat shape: {portrait:[{k,v}]} → one untitled block.
+    const flat = parseLines(raw.portrait)
+    return flat.length ? [{ title: '', lines: flat }] : null
   } catch {
     return null
   }

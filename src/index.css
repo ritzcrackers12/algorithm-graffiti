@@ -834,6 +834,13 @@ button { font: inherit; }
 .report-scroll h2 { font: 800 13px/1 var(--font-supreme); letter-spacing: 0.22em; color: #c6ff3d; margin: 18px 0 8px; }
 .report-row { display: flex; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 6px 0; font: 13px/1.4 var(--font-mono); }
 .report-row b { width: 220px; flex: none; color: #9aa; }
+.report-assumptions { margin-top: 22px; border-top: 2px solid #c6ff3d; padding-top: 6px; }
+.report-assumptions-title { color: #c6ff3d; }
+.report-lens {
+  font: 800 12px/1 var(--font-supreme); letter-spacing: 0.26em; color: #f3eee6;
+  margin: 16px 0 6px; padding: 4px 8px; background: rgba(198, 255, 61, 0.12);
+  border-left: 3px solid #c6ff3d; display: inline-block;
+}
 
 span.xp-tbtn {
   background: var(--btn-face, #c0c0c0);

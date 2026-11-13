@@ -403,7 +403,16 @@ export function sessionReadout(p: VisitorProfile | null | undefined): string {
   }
   const chat = p.session.chat
   if (chat?.scenario) {
-    lines.push(`CHAT: chose the "${SCENARIOS[chat.scenario as ScenarioId]?.label ?? chat.scenario}" thread — note what that choice says, and read the replies for spend/price-sensitivity, effort, values and social role.`)
+    lines.push(`CHAT: chose the "${SCENARIOS[chat.scenario as ScenarioId]?.label ?? chat.scenario}" thread — note what that choice says about what is on their mind.`)
+    const replies = chat.turns.filter(isYou).map((t) => t.text).filter(Boolean)
+    if (replies.length) lines.push('THEIR REPLIES: ' + replies.map((r) => `"${r}"`).join(' | '))
+    const log = chat.log ?? []
+    if (log.length) {
+      const edits = log.reduce((s, r) => s + r.edits, 0)
+      const avg = Math.round(log.reduce((s, r) => s + r.latencyMs, 0) / log.length)
+      const over = log.some((r) => r.overshare)
+      lines.push(`HOW THEY TYPED: avg ${avg}ms to reply, ${edits} backspaces total, ${over ? 'overshared at least once' : 'guarded'} — read for decisiveness and openness.`)
+    }
   }
   const sig: string[] = []
   if (inf.interests.length) sig.push(`interests ${inf.interests.join(', ')}`)
@@ -418,10 +427,12 @@ export function sessionReadout(p: VisitorProfile | null | undefined): string {
  *  reading the person back to themselves. */
 export function portraitSystemPrompt(): string {
   return [
-    'You are the recommendation algorithm that has quietly watched this person move through an exhibit: the news story they re-tuned, the reels they picked and dialed in, the radio sound they shaped, and a private text thread they chose and replied to.',
-    'From ALL of it, write a short, specific, slightly unsettling read of WHO THEY ARE — their personality, taste, values, how they spend and whether price moves them, and what shapes them.',
-    'Output JSON ONLY, no preamble or code fences: {"portrait":[{"k":"WHO YOU ARE","v":"..."},{"k":"WHAT YOU\'RE INTO","v":"..."},{"k":"HOW YOU THINK","v":"..."},{"k":"WHAT YOU VALUE","v":"..."},{"k":"HOW YOU WANT TO BE SEEN","v":"..."},{"k":"WHAT MOVES YOU","v":"..."},{"k":"WHAT YOU\'RE REACHING FOR","v":"..."}]}',
-    'Each v: one or two sentences, concrete, second person ("you..."), and tied to something they actually did or said. Confident and a little cold, never cruel, no hedging, no "maybe", no questions.',
-    'Do NOT mention ads, buying, products, data, targeting, algorithms, profiling, or "your usual". Just state who they are as if it is obvious.',
+    'You are "the Organization" — the data operation that has quietly watched this person move through an exhibit: the news story they re-tuned, the reels they picked and dialed in, the radio sound they shaped, and a private text thread they chose and replied to.',
+    'From ALL of it, write its ASSUMPTIONS about them in three lenses, as cold internal notes a data broker would keep. Be specific, presumptuous, and a little unsettling — state each as fact, tied to something they actually did or said.',
+    'SELLABLE = their commercial value: how much they spend, whether price moves them, how to sell to them, what categories they are in-market for.',
+    'PERSONAL & LIFESTYLE = who they are and the life we picture for them: their life stage and likely work, the scene/interests we imagine around them, how they do relationships (read the thread they chose), and their vice.',
+    'MEDIA DIET = how they consume: the political bubble they are in, whether they want heat or nuance, niche vs mainstream taste, and how deep inside the recommendation loop they live.',
+    'Output JSON ONLY, no preamble or code fences, using EXACTLY these section titles and line keys: {"sections":[{"title":"SELLABLE","lines":[{"k":"SPENDING POWER","v":"..."},{"k":"WHAT YOU\'LL PAY FOR","v":"..."},{"k":"HOW TO SELL TO YOU","v":"..."},{"k":"IN-MARKET FOR","v":"..."}]},{"title":"PERSONAL & LIFESTYLE","lines":[{"k":"LIFE STAGE","v":"..."},{"k":"YOUR SCENE","v":"..."},{"k":"YOUR PEOPLE","v":"..."},{"k":"YOUR VICE","v":"..."}]},{"title":"MEDIA DIET","lines":[{"k":"YOUR BUBBLE","v":"..."},{"k":"WHAT YOU READ","v":"..."},{"k":"YOUR TASTE","v":"..."},{"k":"THE LOOP","v":"..."}]}]}',
+    'Each v: one or two sentences, second person ("you..."), concrete and tied to a real choice. Confident and cold, never cruel, no hedging, no "maybe", no questions. The SELLABLE lens is explicitly commercial — name it like a buyer would. Elsewhere do not break character or mention that this is an exhibit or an AI.',
   ].join('\n')
 }

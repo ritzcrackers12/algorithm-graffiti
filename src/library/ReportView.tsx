@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { buildDossier } from '../shared/report.ts'
+import { buildDossier, type ReportBlock } from '../shared/report.ts'
 import { getBackend } from '../lib/backend.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult } from '../shared/types.ts'
@@ -11,9 +11,9 @@ export default function ReportView({
   article?: ArticleResult | null
 }) {
   const { blocks, assumptions } = buildDossier(profile, article)
-  // Start with the deterministic portrait (instant), then swap in the model's
+  // Start with the deterministic assumptions (instant), then swap in the model's
   // synthesis when it returns. Falls back silently if synthesis is unavailable.
-  const [portrait, setPortrait] = useState<{ k: string; v: string }[]>(assumptions)
+  const [portrait, setPortrait] = useState<ReportBlock[]>(assumptions)
   const [synth, setSynth] = useState(true)
 
   useEffect(() => {
@@ -43,15 +43,20 @@ export default function ReportView({
             ))}
           </section>
         ))}
-        <section>
-          <h2>WHAT WE THINK WE KNOW ABOUT YOU{synth ? ' …' : ''}</h2>
-          {portrait.map((l) => (
-            <div key={l.k} className="report-row">
-              <b>{l.k}</b>
-              <span>{l.v}</span>
-            </div>
+        <div className="report-assumptions">
+          <h2 className="report-assumptions-title">THE ORGANIZATION’S ASSUMPTION OF YOU{synth ? ' …' : ''}</h2>
+          {portrait.map((b) => (
+            <section key={b.title}>
+              {b.title && <h3 className="report-lens">{b.title}</h3>}
+              {b.lines.map((l) => (
+                <div key={l.k} className="report-row">
+                  <b>{l.k}</b>
+                  <span>{l.v}</span>
+                </div>
+              ))}
+            </section>
           ))}
-        </section>
+        </div>
       </div>
     </div>
   )
