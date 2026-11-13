@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { asset } from '../lib/content.ts'
 import { haptic } from '../lib/haptics.ts'
-import { getLive, rejoinQueue, sendCommand, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
+import { getLive, rejoinQueue, sendCommand, sendControl, sendGenerate, sessionId, startLive, useLive } from '../lib/live.ts'
 import { startVersionCheck } from '../lib/versionCheck.ts'
 import { resetChatWire } from '../lib/chatSync.ts'
 import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLocalProfile } from '../lib/profileClient.ts'
@@ -231,6 +231,16 @@ export default function Controller() {
               }}
             >
               {snap.profile?.session?.articleCompare ? 'HIDE ORIGINAL' : 'COMPARE'}
+            </PixelButton>
+          </div>
+        )}
+        {open === 'article' && (
+          <div className="article-scroll-row">
+            <PixelButton type="button" disabled={!!busy} onClick={() => void sendControl({ kind: 'scroll', dir: 'up', pane: 'both' })}>
+              SCROLL ▲
+            </PixelButton>
+            <PixelButton type="button" disabled={!!busy} onClick={() => void sendControl({ kind: 'scroll', dir: 'down', pane: 'both' })}>
+              SCROLL ▼
             </PixelButton>
           </div>
         )}

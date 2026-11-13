@@ -696,6 +696,8 @@ button { font: inherit; }
 .article-view-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: stretch; }
 .article-view-row > .seg { grid-column: span 2; gap: 8px; }
 .article-view-row .px-btn { width: 100%; }
+.article-scroll-row { display: flex; gap: 8px; margin-top: 8px; }
+.article-scroll-row .px-btn { flex: 1; }
 .chat-stage { align-items: stretch; justify-content: stretch; background: #16181e; }
 .chat-stage > .machine-line { margin: auto; color: #c6ff3d; }
 /* STATION — radio tuner (placeholder graphic, to be polished) */

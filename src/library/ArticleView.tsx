@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import { SPONSORED_MARK } from '../shared/ads.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult, View } from '../shared/types.ts'
@@ -80,6 +81,21 @@ export default function ArticleView({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
   }, [view, result?.at])
+
+  // Scroll driven from the phone (control channel). In compare mode both panes
+  // receive the same message and scroll in sync; a pane target can single one out.
+  const lastSeqRef = useRef(0)
+  const control = useSyncExternalStore(subscribeControl, getControl)
+  useEffect(() => {
+    if (!control || control.kind !== 'scroll' || control.seq === lastSeqRef.current) return
+    lastSeqRef.current = control.seq
+    const pane = control.pane ?? 'both'
+    if (pane !== 'both' && pane !== view) return
+    const el = scrollRef.current
+    if (!el) return
+    const step = Math.max(220, el.clientHeight * 0.8)
+    el.scrollBy({ top: control.dir === 'down' ? step : -step, behavior: 'smooth' })
+  }, [control, view])
 
   const { dek, rest } = takeDek(body)
   return (
