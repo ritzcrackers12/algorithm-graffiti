@@ -123,13 +123,37 @@ function parsePortrait(text: string): PortraitBlock[] | null {
   }
 }
 
-// End-of-visit synthesis: always on the Replicate chat model (independent of
-// CHAT_PROVIDER) so the portrait is model-written whenever Replicate works.
+// Raw-text call to Anthropic (used by the portrait synthesis).
+async function anthropicText(system: string, user: string, key: string, model: string, maxTokens = 900) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 1, system, messages: [{ role: 'user', content: user }] }),
+    signal: AbortSignal.timeout(30_000),
+  })
+  const data = await res.json() as { content?: { text?: string }[] }
+  return data.content?.map((c) => c.text ?? '').join('') ?? ''
+}
+
+// End-of-visit synthesis. Uses the configured CHAT_PROVIDER (Anthropic when set)
+// so the report runs on the same model as the chat, with Replicate as fallback.
 async function synthesizePortrait(profile: VisitorProfile) {
-  const prompt = portraitSystemPrompt() +
-    '\n\nSIGNALS\n' + sessionReadout(profile) +
+  const signals = 'SIGNALS\n' + sessionReadout(profile) +
     '\n\nCHAT\n' + transcript(profile.session?.chat?.turns ?? [], profile) +
     '\n\nWrite the portrait as JSON only.'
+  const key = Deno.env.get('CHAT_API_KEY') || ''
+  const provider = (Deno.env.get('CHAT_PROVIDER') || (key ? 'gemini' : 'replicate')).toLowerCase()
+  const model = Deno.env.get('CHAT_MODEL') || (provider === 'anthropic' ? 'claude-haiku-5-5' : 'gemini-2.0-flash-lite')
+  if (provider === 'anthropic' && key) {
+    try {
+      const text = await anthropicText(portraitSystemPrompt(), signals, key, model)
+      const parsed = parsePortrait(text)
+      if (parsed) return parsed
+    } catch (e) {
+      console.error('anthropic portrait failed, falling back', e)
+    }
+  }
+  const prompt = portraitSystemPrompt() + '\n\n' + signals
   const pred = await predict({ job: 'chat', timeoutSeconds: 30, input: { prompt, max_tokens: 900, temperature: 0.95 } })
   if (!pred.ok) return null
   return parsePortrait(String(pred.output ?? ''))
