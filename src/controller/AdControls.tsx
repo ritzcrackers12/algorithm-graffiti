@@ -30,7 +30,6 @@ function persistAd(patch: Partial<AdSession>) {
 export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; locked: boolean; onInfo?: (slide: number) => void }) {
   const ad0 = getLocalProfile().session.ad
   const [dials, setDials] = useState<[number, number, number]>(ad0.dials ?? [50, 50, 50])
-  const [tuned, setTuned] = useState((ad0.submittedAt ?? 0) > 0)
   const [playing, setPlaying] = useState(true)
   const linger = useRef(false)
   const openedAt = snap.display.openedAt
@@ -40,16 +39,24 @@ export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; l
     const t = window.setTimeout(() => { linger.current = true }, 2500)
     const cur = getLocalProfile().session.ad
     setDials(cur.dials ?? [50, 50, 50])
-    setTuned((cur.submittedAt ?? 0) > 0)
     setPlaying(true)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openedAt])
 
+  const audioReady = !!(snap.altered.ad?.audioUrl)
+
   const togglePlay = () => {
+    if (!audioReady) return
     const next = !playing
     setPlaying(next)
     void sendControl({ kind: 'audio', action: next ? 'play' : 'pause' })
+  }
+
+  const replay = () => {
+    if (locked || !audioReady) return
+    setPlaying(true)
+    void sendControl({ kind: 'audio', action: 'replay' })
   }
 
   // Genre is derived from the profile the visitor already built — not chosen here.
@@ -79,7 +86,6 @@ export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; l
       audioUrl: null,
       source: 'template',
     })
-    setTuned(true)
     setPlaying(true)
     void sendGenerate({
       session: sessionId(),
@@ -117,10 +123,15 @@ export default function AdControls({ snap, locked, onInfo }: { snap: Snapshot; l
       <PixelButton type="button" block disabled={locked} onClick={tuneIn}>
         {locked ? 'TUNING IN…' : 'TUNE IN'}
       </PixelButton>
-      {tuned && (
-        <PixelButton type="button" block disabled={locked} onClick={togglePlay}>
-          {playing ? '❚❚ PAUSE' : '▶ PLAY'}
-        </PixelButton>
+      {audioReady && (
+        <>
+          <PixelButton type="button" block disabled={locked} onClick={togglePlay}>
+            {playing ? '❚❚ PAUSE' : '▶ PLAY'}
+          </PixelButton>
+          <PixelButton type="button" block disabled={locked} onClick={replay}>
+            ↻ REPLAY
+          </PixelButton>
+        </>
       )}
     </div>
   )

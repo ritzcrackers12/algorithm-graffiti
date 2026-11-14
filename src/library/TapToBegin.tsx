@@ -15,8 +15,8 @@ function armAndPlay(v: HTMLVideoElement) {
 
 export default function TapToBegin({ onBegin }: { onBegin: () => void }) {
   const begin = () => {
+    document.querySelectorAll<HTMLVideoElement>('video.wallpaper-video, video.kiosk-loop').forEach(armAndPlay)
     unlockAudio()
-    document.querySelectorAll<HTMLVideoElement>('video.wallpaper-video').forEach(armAndPlay)
     onBegin()
     window.setTimeout(() => {
       void document.documentElement.requestFullscreen?.().catch(() => {})

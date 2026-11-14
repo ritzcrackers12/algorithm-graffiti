@@ -1,11 +1,75 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { pauseStation, playStation, resumeStation, stopStation } from '../lib/audio.ts'
+import { pauseStation, playStation, playWaitingPeace, resumeStation, stopStation } from '../lib/audio.ts'
+import { asset } from '../lib/content.ts'
 import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { AdResult } from '../shared/types.ts'
 
 const TUNE_TIMEOUT_MS = 75_000
 const STATION_LOOPS = 4 // play the ~15s clip 4x ≈ one minute
+const WAITING_VIDEO = asset('waiting-radio.mp4')
+const WAITING_AUDIO = asset('waiting-radio.m4a')
+
+const IOS_VIDEO_ATTRS = {
+  'webkit-playsinline': 'true',
+  playsinline: 'true',
+} as Record<string, string>
+
+function WaitingRadio() {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [band, setBand] = useState(12)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const play = () => {
+      el.muted = true
+      el.defaultMuted = true
+      el.playsInline = true
+      el.loop = true
+      el.setAttribute('muted', '')
+      el.setAttribute('playsinline', 'true')
+      el.setAttribute('webkit-playsinline', 'true')
+      void el.play().catch(() => {})
+    }
+    play()
+    const sweep = window.setInterval(() => setBand((b) => (b + 7) % 100), 140)
+    window.addEventListener('ag-media-unlock', play)
+    void playWaitingPeace(WAITING_AUDIO).catch(() => {})
+    return () => {
+      window.clearInterval(sweep)
+      window.removeEventListener('ag-media-unlock', play)
+      el.pause()
+      stopStation()
+    }
+  }, [])
+  return (
+    <div className="waiting-radio">
+      <video
+        ref={ref}
+        className="waiting-radio-video kiosk-loop"
+        src={WAITING_VIDEO}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        controls={false}
+        disablePictureInPicture
+        {...IOS_VIDEO_ATTRS}
+      />
+      <div className="waiting-radio-overlay">
+        <div className="radio-tuner">
+          <div className="radio-dial">
+            <div className="radio-needle" style={{ left: `${band}%` }} />
+            <div className="radio-scale">{'· '.repeat(24)}</div>
+          </div>
+          <div className="machine-line" style={{ color: '#c6ff3d' }}>TUNING IN TO YOUR STATION…</div>
+          <div className="waiting-radio-peace">enjoy the peace while you wait</div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /** The STATION object: a generated instrumental tuned to the visitor's profile. */
 export default function AdView({
@@ -20,23 +84,19 @@ export default function AdView({
   const submittedAt = session?.submittedAt ?? 0
   const resultAt = result?.at ?? 0
   const lastSeqRef = useRef(0)
-  const [band, setBand] = useState(12)
   const [now, setNow] = useState(() => Date.now())
 
   // Generation has returned for this submission (with or without audio).
   const resolved = resultAt > 0 && resultAt >= submittedAt
   // Keep the radio up from TUNE IN until the track returns or we time out.
   const pending = submittedAt > 0 && !audioUrl && !resolved && now - submittedAt < TUNE_TIMEOUT_MS
-  const showTuning = !!tuning || pending
+  const showTuning = !audioUrl && (!!tuning || pending)
   const failed = submittedAt > 0 && resolved && !audioUrl
 
-  // Tick while tuning so `pending` can expire and the sweep animates.
+  // Tick while tuning so `pending` can expire.
   useEffect(() => {
     if (!showTuning) return
-    const t = window.setInterval(() => {
-      setBand((b) => (b + 7) % 100)
-      setNow(Date.now())
-    }, 140)
+    const t = window.setInterval(() => setNow(Date.now()), 500)
     return () => window.clearInterval(t)
   }, [showTuning])
 
@@ -67,13 +127,7 @@ export default function AdView({
       </div>
       <div className="ad-stage">
         {showTuning ? (
-          <div className="radio-tuner">
-            <div className="radio-dial">
-              <div className="radio-needle" style={{ left: `${band}%` }} />
-              <div className="radio-scale">{'· '.repeat(24)}</div>
-            </div>
-            <div className="machine-line" style={{ color: '#c6ff3d' }}>TUNING IN TO YOUR STATION…</div>
-          </div>
+          <WaitingRadio />
         ) : audioUrl ? (
           <div className="radio-tuner">
             <div className="radio-eq">

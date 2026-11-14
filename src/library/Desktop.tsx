@@ -88,7 +88,7 @@ const ICON_H = 280
 const QR_W = 252
 const QR_H = 300
 const HINT_W = 336
-const HINT_H = 158
+const HINT_H = 110
 
 type Rect = { x: number; y: number; w: number; h: number }
 
@@ -170,15 +170,25 @@ function WallpaperVideo({ src, className }: { src: string; className: string }) 
         try { el.currentTime = 0.001 } catch { /* iOS loop fallback */ }
       }
     }
+    let resumeAt = 0
+    const onPause = () => {
+      if (document.querySelector('.boot')) return
+      const now = performance.now()
+      if (now < resumeAt) return
+      resumeAt = now + 250
+      play()
+    }
     const ipad = /iPad|iPhone|iPod/.test(navigator.userAgent)
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
     armWallpaper(el)
     play()
     el.addEventListener('ended', onEnded)
+    el.addEventListener('pause', onPause)
     if (ipad) el.addEventListener('timeupdate', onTime)
     window.addEventListener('ag-media-unlock', play)
     return () => {
       el.removeEventListener('ended', onEnded)
+      el.removeEventListener('pause', onPause)
       el.removeEventListener('timeupdate', onTime)
       window.removeEventListener('ag-media-unlock', play)
     }
@@ -206,6 +216,15 @@ function Wallpaper() {
       <WallpaperVideo className="wallpaper-video" src={asset('wallpaper.mp4')} />
       <div className="wallpaper-dim" />
       <WallpaperVideo className="wallpaper-video wallpaper-overlay" src={asset('wallpaper-overlay.mp4')} />
+      <video
+        src={asset('waiting-radio.mp4')}
+        muted
+        playsInline
+        preload="auto"
+        aria-hidden
+        tabIndex={-1}
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+      />
     </div>
   )
 }

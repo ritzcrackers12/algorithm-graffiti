@@ -257,6 +257,22 @@ export function syncKioskAudio(seconds: number) {
 // starts with no tap on the iPad (iOS autoplay is satisfied by TAP TO BEGIN). ---
 let stationEnded: (() => void) | null = null
 
+/** Peace bed while MusicGen runs — same unlocked kiosk element as the station. */
+export function playWaitingPeace(src: string) {
+  const a = kioskAudio()
+  setPlaybackSession()
+  void graph().resume()
+  stopClip()
+  if (stationEnded) { a.removeEventListener('ended', stationEnded); stationEnded = null }
+  a.loop = true
+  a.muted = false
+  a.volume = 1
+  if (a.src !== absUrl(src)) { a.src = src; a.load() }
+  try { a.currentTime = 0 } catch { /* ignore */ }
+  usingElement = true
+  return a.play()
+}
+
 export function playStation(src: string, loops = 4) {
   const a = kioskAudio()
   setPlaybackSession()
