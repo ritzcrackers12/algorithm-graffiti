@@ -174,13 +174,14 @@ export const CONFIG = {
   ],
 } as const
 
-export type ObjectId = 'article' | 'reel' | 'ad' | 'chat'
+export type ObjectId = 'article' | 'reel' | 'ad' | 'chat' | 'search'
 
 export const OBJECTS: { id: ObjectId; label: string; file: string; ready: boolean }[] = [
   { id: 'article', label: 'ARTICLES', file: 'article.txt', ready: true },
   { id: 'reel', label: 'VIDEOS', file: 'reel.mp4', ready: true },
   { id: 'ad', label: 'RADIO', file: 'station.wav', ready: true },
   { id: 'chat', label: 'MESSAGES', file: 'agent.exe', ready: true },
+  { id: 'search', label: 'SEARCH', file: 'search.exe', ready: true },
 ]
 
 /** Ready objects, in the order a visitor must finish them. */

@@ -416,6 +416,11 @@ export function sessionReadout(p: VisitorProfile | null | undefined): string {
       lines.push(`HOW THEY TYPED: avg ${avg}ms to reply, ${edits} backspaces total, ${over ? 'overshared at least once' : 'guarded'} — read for decisiveness and openness.`)
     }
   }
+  const search = p.session.search
+  if (search?.picks?.length) {
+    const rows = search.picks.map((q, i) => `"${q}"${search.takeaways[i] ? ` → said "${search.takeaways[i]}"` : ''}`)
+    lines.push('SEARCH: went down a rabbit hole — ' + rows.join('; ') + '. Read what they chose to click and what they said for curiosity, taste and what pulls them in.')
+  }
   const sig: string[] = []
   if (inf.interests.length) sig.push(`interests ${inf.interests.join(', ')}`)
   sig.push(`mood ${inf.mood}`)
