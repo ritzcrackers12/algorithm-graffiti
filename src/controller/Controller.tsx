@@ -118,6 +118,30 @@ function Centered({ children }: { children: ReactNode }) {
   return <div className="pop-in ctl-center">{children}</div>
 }
 
+/** Floating cue that pops in when the phone↔screen hand-off changes. Stays up
+ *  while the big screen is active; the "your turn" nudge auto-dismisses. */
+function FocusPopup({ focus }: { focus: { dir: 'up' | 'down' | 'both'; text: string } | null }) {
+  const [shown, setShown] = useState(false)
+  const key = focus ? `${focus.dir}|${focus.text}` : ''
+  useEffect(() => {
+    if (!focus) { setShown(false); return }
+    setShown(true)
+    if (focus.dir === 'down') {
+      const t = window.setTimeout(() => setShown(false), 2600)
+      return () => window.clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  if (!focus || !shown) return null
+  const arrow = focus.dir === 'up' ? '↑' : focus.dir === 'down' ? '↓' : '↕'
+  return (
+    <div key={key} className={`focus-pop ${focus.dir}`} role="status">
+      <span className="focus-arrow">{arrow}</span>
+      <span>{focus.text}</span>
+    </div>
+  )
+}
+
 function QueueScreen({ position }: { position: number }) {
   return (
     <Centered>
@@ -429,14 +453,9 @@ export default function Controller() {
           </div>
           <div className="ctl-timer" />
         </div>
-        {focus && (
-          <div className={`focus-bar ${focus.dir}`}>
-            <span className="focus-arrow">{focus.dir === 'up' ? '↑' : focus.dir === 'down' ? '↓' : '↕'}</span>
-            <span>{focus.text}</span>
-          </div>
-        )}
         {content}
       </div>
+      <FocusPopup focus={focus} />
       {showOnboard && <Onboarding onDone={dismissOnboard} />}
       {!showOnboard && activeTour && (
         <Tour
