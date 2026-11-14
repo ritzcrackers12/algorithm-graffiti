@@ -14,7 +14,6 @@ import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
 import AdControls from './AdControls.tsx'
 import ChatControls from './ChatControls.tsx'
-import SearchControls from './SearchControls.tsx'
 import ReelControls from './ReelControls.tsx'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
@@ -57,15 +56,6 @@ const APP_GUIDE: Record<string, { title: string; how: string; rows?: GuideRow[] 
   chat: {
     title: 'Messages',
     how: 'This drops you into a text conversation. Pick who you’re talking to, then just reply with whatever feels right.',
-  },
-  search: {
-    title: 'Search',
-    how: 'This is a search engine that has been watching you. Pick one of four searches, read the odd little fact it digs up, ask the assistant anything, then tell it what you thought — and it bends the next four searches toward you. Three rounds, each one closer.',
-    rows: [
-      { name: 'The four searches', meaning: 'Pick whichever one you actually want to read. Each pick pulls the next set toward your taste.' },
-      { name: 'The assistant', meaning: 'A helpful sidebar AI — ask it anything about what you’re reading.' },
-      { name: 'Your takeaway', meaning: 'Before each new round it asks what you made of it; your answer steers what comes next.' },
-    ],
   },
 }
 
@@ -381,9 +371,6 @@ export default function Controller() {
           )}
           {open === 'chat' && (
             <ChatControls snap={snap} locked={!!busy} onInfo={(s) => openTour('chat', s)} />
-          )}
-          {open === 'search' && (
-            <SearchControls snap={snap} locked={!!busy} onInfo={(s) => openTour('search', s)} />
           )}
           {busy && open !== 'reel' && open !== 'chat' && open !== 'ad' && (
             <div className="lock-shade">

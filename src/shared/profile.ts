@@ -64,24 +64,10 @@ export interface ChatSession {
   scenario?: import('./chatScript.ts').ScenarioId | null
 }
 
-export interface SearchTurn { role: 'you' | 'bot'; text: string; at: number }
-export interface SearchFact { q: string; title: string; body: string }
-export interface SearchSession {
-  round: number
-  phase: 'options' | 'reading' | 'takeaway' | 'done'
-  options: string[]
-  picks: string[]
-  facts: SearchFact[]
-  chat: SearchTurn[]
-  takeaways: string[]
-  source: string
-}
-
 export interface SessionLog {
   reel: ReelSession
   ad: AdSession
   chat: ChatSession
-  search: SearchSession
   /** Article side-by-side compare toggle (original + altered shown together on the iPad). */
   articleCompare?: boolean
 }
@@ -99,7 +85,6 @@ export const emptySession = (): SessionLog => ({
     lingered: false, matchedProfile: null, imageUrl: null, overlay: null, source: null,
   },
   chat: { turns: [], topic: '', n: 0, source: '', log: [], scenario: null },
-  search: { round: 0, phase: 'options', options: [], picks: [], facts: [], chat: [], takeaways: [], source: '' },
 })
 
 export interface InferredProfile {
@@ -241,15 +226,6 @@ export function hydrateProfile(raw: unknown): VisitorProfile {
         ...(r.session?.chat ?? {}),
         turns: Array.isArray(r.session?.chat?.turns) ? r.session.chat.turns : e.session.chat.turns,
         log: Array.isArray(r.session?.chat?.log) ? r.session.chat.log : e.session.chat.log,
-      },
-      search: {
-        ...e.session.search,
-        ...(r.session?.search ?? {}),
-        options: Array.isArray(r.session?.search?.options) ? r.session.search.options : e.session.search.options,
-        picks: Array.isArray(r.session?.search?.picks) ? r.session.search.picks : e.session.search.picks,
-        facts: Array.isArray(r.session?.search?.facts) ? r.session.search.facts : e.session.search.facts,
-        chat: Array.isArray(r.session?.search?.chat) ? r.session.search.chat : e.session.search.chat,
-        takeaways: Array.isArray(r.session?.search?.takeaways) ? r.session.search.takeaways : e.session.search.takeaways,
       },
     },
     game: {

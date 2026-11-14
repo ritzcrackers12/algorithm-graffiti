@@ -9,7 +9,6 @@ import { hydrateProfile } from '../shared/profile.ts'
 import ArticleView from './ArticleView.tsx'
 import AdView from './AdView.tsx'
 import ChatView from './ChatView.tsx'
-import SearchView from './SearchView.tsx'
 import PlaceholderView from './PlaceholderView.tsx'
 import ReelView from './ReelView.tsx'
 import ReportView from './ReportView.tsx'
@@ -128,7 +127,6 @@ function scatterLayout() {
     reel: { x: PAD, y: PAD },
     ad: { x: PAD, y: PAD },
     chat: { x: PAD, y: PAD },
-    search: { x: PAD, y: PAD },
   }
   for (const o of OBJECTS) {
     const r = place(ICON_W, ICON_H, taken)
@@ -245,7 +243,7 @@ export default function Desktop({ live, begun = true }: { live: Live; begun?: bo
     if (open) {
       setClosing(false)
       setClicking(open)
-      const instant = open === 'reel' || open === 'chat' || open === 'ad' || open === 'search'
+      const instant = open === 'reel' || open === 'chat' || open === 'ad'
       if (instant) setShown(open)
       else setShown(null)
       const t = setTimeout(() => {
@@ -331,7 +329,7 @@ export default function Desktop({ live, begun = true }: { live: Live; begun?: bo
       {obj && (
         <XpWindow
           key={`${obj.id}-${openedAt}`}
-          className={`${closing ? 'closing' : obj.id === 'reel' || obj.id === 'chat' || obj.id === 'ad' || obj.id === 'search' ? '' : 'opening'}`}
+          className={`${closing ? 'closing' : obj.id === 'reel' || obj.id === 'chat' || obj.id === 'ad' ? '' : 'opening'}`}
           style={WINDOW_RECT}
           title={`${obj.file} - ${view === 'altered' ? 'ALTERED' : 'ORIGINAL'}`}
           icon={<AssetImg names={[`icon-${obj.id}.png`]} fallback={<ObjectIcon id={obj.id} />} />}
@@ -360,8 +358,6 @@ export default function Desktop({ live, begun = true }: { live: Live; begun?: bo
             <AdView result={snap?.altered.ad} profile={profile} tuning={snap?.display.busy?.object === 'ad'} />
           ) : obj.id === 'chat' ? (
             <ChatView profile={profile} />
-          ) : obj.id === 'search' ? (
-            <SearchView profile={profile} />
           ) : (
             <PlaceholderView id={obj.id} />
           )}

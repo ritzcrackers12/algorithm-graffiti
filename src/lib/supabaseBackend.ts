@@ -87,11 +87,6 @@ export function createSupabaseBackend(url: string, key: string): Backend {
       if (error) return { ok: false }
       return data
     },
-    async search(req) {
-      const { data, error } = await sb.functions.invoke('search', { body: req })
-      if (error || !data?.ok) return { ok: false }
-      return data
-    },
     async portrait(profile) {
       try {
         const { data, error } = await sb.functions.invoke('chat', { body: { mode: 'portrait', profile } })

@@ -5,7 +5,6 @@ import { pickAd, personalizeAd, reservedAdIds, weaveSponsored } from '../shared/
 import { canonicalArticleParams, mockArticle, validateArticleParams } from '../shared/article.ts'
 import { deriveGenre, genreMeta, stationLegitimacy } from '../shared/station.ts'
 import { scriptedNext } from '../shared/chatScript.ts'
-import { fallbackAssistant, fallbackFact, fallbackOptions } from '../shared/search.ts'
 import { emitControlLocal } from './controlSync.ts'
 import { CONFIG, OBJECTS, type ObjectId } from '../shared/config.ts'
 import { objectLocked } from '../shared/gating.ts'
@@ -402,12 +401,6 @@ export function createLocalBackend(): Backend {
     },
     async portrait() {
       return null // local mode falls back to the deterministic portrait
-    },
-    async search(req) {
-      const round = req.round ?? 0
-      if (req.kind === 'options') return { ok: true, options: fallbackOptions(round), source: 'scripted' }
-      if (req.kind === 'fact') return { ok: true, fact: fallbackFact(req.query ?? '', round), source: 'scripted' }
-      return { ok: true, reply: fallbackAssistant(), source: 'scripted' }
     },
   }
 }

@@ -80,28 +80,11 @@ function Chat() {
   )
 }
 
-function Search() {
-  return (
-    <svg viewBox="0 0 128 128">
-      <defs>
-        <linearGradient id="search-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5ec8ff" /><stop offset="1" stopColor="#2a6cf0" /></linearGradient>
-        <Gloss id="search-g" />
-      </defs>
-      <rect x="10" y="10" width="108" height="108" rx="18" fill="#101826" />
-      <rect x="14" y="14" width="100" height="100" rx="14" fill="url(#search-a)" />
-      <circle cx="56" cy="54" r="24" fill="none" stroke="#fff" strokeWidth="9" />
-      <line x1="74" y1="72" x2="98" y2="96" stroke="#fff" strokeWidth="11" strokeLinecap="round" />
-      <rect x="14" y="14" width="100" height="100" rx="14" fill="url(#search-g)" />
-    </svg>
-  )
-}
-
 export function ObjectIcon({ id }: { id: ObjectId }) {
   switch (id) {
     case 'reel': return <Reel />
     case 'article': return <Article />
     case 'ad': return <Ad />
     case 'chat': return <Chat />
-    case 'search': return <Search />
   }
 }

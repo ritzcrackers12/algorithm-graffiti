@@ -19,25 +19,6 @@ export interface ChatReply {
 
 export type Command = 'touch' | 'open' | 'home' | 'view' | 'end' | 'done' | 'story' | 'signal'
 
-export interface SearchAsk {
-  kind: 'options' | 'fact' | 'assistant'
-  profile: VisitorProfile
-  round?: number
-  query?: string
-  picks?: string[]
-  takeaways?: string[]
-  fact?: import('../shared/profile.ts').SearchFact
-  chat?: import('../shared/profile.ts').SearchTurn[]
-  question?: string
-}
-export interface SearchReply {
-  ok: boolean
-  options?: string[]
-  fact?: import('../shared/profile.ts').SearchFact
-  reply?: string
-  source?: string
-}
-
 export interface Backend {
   kind: 'supabase' | 'local'
   heartbeat(session: string, join: boolean): Promise<Snapshot>
@@ -56,8 +37,6 @@ export interface Backend {
   /** Phone->iPad transient action (station play/pause, article scroll). */
   control(msg: import('./controlSync.ts').ControlMsg): void
   chat(req: ChatAsk): Promise<ChatReply>
-  /** Search rabbit-hole: generate 4 queries, a fact, or an assistant reply. */
-  search(req: SearchAsk): Promise<SearchReply>
   /** End-of-visit: the model reads the whole session and writes the portrait,
    *  grouped into the Organization's three assumption lenses.
    *  Returns null on any failure so the caller falls back to the local read. */
