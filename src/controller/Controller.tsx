@@ -19,6 +19,9 @@ import { PixelButton } from '../components/PixelButton.tsx'
 import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
 import Onboarding, { Tour, AppIcon, type Slide } from './Onboarding.tsx'
+import ControllerReport from './ControllerReport.tsx'
+import type { VisitorProfile } from '../shared/profile.ts'
+import type { ArticleResult } from '../shared/types.ts'
 
 type GuideRow = { name: string; meaning: string }
 
@@ -156,6 +159,9 @@ export default function Controller() {
   // Manually reopened tour (via a box's info button), independent of first-open auto-show.
   const [tourApp, setTourApp] = useState<string | null>(null)
   const [tourStart, setTourStart] = useState(0)
+  // Captured when the visit finishes: the report moves to THIS phone and the iPad is freed.
+  const [finalReport, setFinalReport] = useState<{ profile: VisitorProfile; article: ArticleResult | null } | null>(null)
+  const endedForReport = useRef(false)
   const openTour = (app: string, slide: number) => { haptic('press'); setTourStart(slide); setTourApp(app) }
   const markSeen = (app: string) => {
     setSeenHints((prev) => {
@@ -204,6 +210,16 @@ export default function Controller() {
     else if (open || choosingArticle) focus = { dir: 'down', text: 'Your turn — adjust on your phone' }
   }
 
+  // When the visit is finished, move the report onto this phone and release the
+  // iPad so the next visitor can start. Capture the profile first so it survives.
+  useEffect(() => {
+    if (showingReport && !endedForReport.current) {
+      endedForReport.current = true
+      setFinalReport({ profile: getLocalProfile(), article: snap?.altered.article ?? null })
+      void sendCommand('end')
+    }
+  }, [showingReport, snap])
+
   const wasBusy = useRef(false)
   useEffect(() => {
     if (wasBusy.current && !busy && active) {
@@ -247,8 +263,18 @@ export default function Controller() {
     }
   }
 
+  const resetAfterReport = () => {
+    resetLocalProfile()
+    resetChatWire()
+    endedForReport.current = false
+    setFinalReport(null)
+    rejoinQueue()
+  }
+
   let content: ReactNode
-  if (!snap) {
+  if (finalReport) {
+    content = <ControllerReport profile={finalReport.profile} article={finalReport.article} onReset={resetAfterReport} />
+  } else if (!snap) {
     content = <Centered><div className="scanline" /><div className="ctl-label">ESTABLISHING LINK...</div></Centered>
   } else if (live.ended) {
     content = (
@@ -271,12 +297,8 @@ export default function Controller() {
   } else if (showingReport) {
     content = (
       <Centered>
-        <div className="ctl-display">
-          THANK YOU FOR YOUR INPUTS.
-          <br />
-          <em>SESSION RECORDED.</em>
-        </div>
-        <div className="ctl-label">SEE THE REPORT ON THE IPAD.</div>
+        <div className="scanline" />
+        <div className="ctl-label">PREPARING YOUR REPORT…</div>
       </Centered>
     )
   } else if (!open && !choosingArticle) {

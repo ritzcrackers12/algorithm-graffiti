@@ -741,6 +741,20 @@ button { font: inherit; }
 .box-info { position: absolute; top: 6px; right: 6px; z-index: 3; line-height: 0; }
 .panel, .station-dial, .reel-unit { position: relative; }
 .reel-pick .prompt { display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+/* End-of-visit report, shown on the phone — scrollable, downloadable. */
+.theme-retro .ctl-report {
+  flex: 1; min-height: 0; width: 100%; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 14px; padding: 10px 12px 20px; text-align: left;
+}
+.ctl-report-head { display: flex; flex-direction: column; gap: 6px; }
+.theme-retro .ctl-report-title { font: 800 18px/1.15 var(--font-supreme); letter-spacing: 0.08em; color: var(--mint-deep, #39ff8c); text-transform: uppercase; }
+.theme-retro .ctl-report-sub { font: 500 12px/1.4 Tahoma, Verdana, 'Segoe UI', sans-serif; color: #cfe9dd; opacity: 0.8; }
+.theme-retro .ctl-report-lens { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid rgba(57, 255, 140, 0.3); }
+.theme-retro .ctl-report-lens h3 { margin: 0; font: 800 12px/1 var(--font-supreme); letter-spacing: 0.22em; color: #ffffff; text-transform: uppercase; }
+.theme-retro .ctl-report-row { display: flex; flex-direction: column; gap: 1px; }
+.theme-retro .ctl-report-row b { font: 700 11px/1.3 Tahoma, Verdana, 'Segoe UI', sans-serif; letter-spacing: 0.06em; color: var(--mint-deep, #39ff8c); text-transform: uppercase; }
+.theme-retro .ctl-report-row span { font: 500 13px/1.4 Tahoma, Verdana, 'Segoe UI', sans-serif; color: #f1ece2; }
+.ctl-report-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
 .chat-pick {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
