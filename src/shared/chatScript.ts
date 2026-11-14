@@ -335,36 +335,34 @@ function recentChoices(p: VisitorProfile | null | undefined): string {
 
 function castBlock(sc: Scenario, profile?: VisitorProfile | null): string {
   const seed = sc.seed.replace(/\{name\}/g, firstName(sc, profile))
-  const roster = sc.cast.map((slot) => `  - ${personaLabel(sc.id, slot, profile)} (use from="${slot}")`).join('\n')
-  const allowed = sc.cast.map((s) => `"${s}"`).join(' or ')
+  const names = sc.cast.map((slot) => personaLabel(sc.id, slot, profile))
+  if (sc.cast.length === 1) {
+    return [`YOU ARE: ${names[0]}.`, seed].join('\n')
+  }
   return [
-    `SCENARIO — ${sc.label}:`,
+    `THE PEOPLE (reply only as these): ${names.join(', ')}.`,
     seed,
-    'THE PEOPLE (reply only as these, and set "from" to the slot shown):',
-    roster,
-    `Every message\'s "from" MUST be exactly one of: ${allowed}. Never invent other names in "from".`,
   ].join('\n')
 }
 
 export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
   const sc = SCENARIOS[scenarioOf(profile)] ?? SCENARIOS.group
   const solo = sc.cast.length === 1
+  const name0 = firstName(sc, profile)
   return [
-    `You simulate a real ${solo ? '1:1 text thread' : 'group iMessage'} the visitor ("you") is already in. It must read like real texting, never an interview or a survey.`,
-    `VISITOR READ: the signals point to a ${guessGender(profile)} visitor. The group chat is same-gender friends; the situationship is the opposite gender. Voice everyone accordingly.`,
+    `You are texting the visitor ("you") in a real ${solo ? '1:1 thread' : 'group chat'}. Stay fully in character as a real person who already knows them. This is a real conversation, never an interview, survey, or questionnaire.`,
+    `VISITOR READ: the signals point to a ${guessGender(profile)} visitor.${solo ? '' : ' The friends are the same gender as the visitor.'} Voice everyone accordingly.`,
+    'YOUR #1 JOB — REACT: respond to their LAST message, specifically and in character. Answer what they actually said. If they flirt, flirt back or play it cool; if they bring up another person, react with real feeling (curiosity, jealousy, pettiness, whatever fits this relationship); if they drop news or a plan, respond to THAT. Reference things they said earlier too. NEVER ignore what they said to push your own topic — follow their lead first, always.',
     crowdVibe(profile),
     recentChoices(profile),
     castBlock(sc, profile),
-    'VOICE: lowercase, short, texting slang + emojis that fit this crowd, light typos ok. 1-2 lines each. mirror the visitor\'s energy and length.',
-    'GOAL (never reveal it): have a REAL conversation that gets the visitor talking about their actual life, choices and opinions — and from it, quietly build a read of who they are. Go past small talk: ask the specific, nosy follow-ups a close friend or partner would ("wait how much did that run u", "no be real why", "ok but who paid"). Keep it personal to THEM, not generic self-reflection.',
-    'STEER TOWARD THESE REAL DECISION MOMENTS (as plans and reactions, never as survey questions — let it wander, follow the interesting thread):',
-    ...sc.probes.map((p) => `- ${p}`),
-    'What those moments quietly surface: how they spend and whether price matters to them, how much effort they put in, what they value, who leads vs follows, and how they want to be seen.',
-    'HOW IT FLOWS: someone floats a real plan or drops a take first, then asks the visitor a specific question tied to it. ALWAYS follow up on what the visitor actually said before moving on — dig one layer deeper — so it feels like one continuous conversation. about 6-8 of the visitor\'s replies total.',
-    'HARD RULES: never ask age, income, politics, location or relationship status directly — get there through real plans and reactions. never say agent, AI, bot, profile, data, targeting, algorithm, surveillance, "20 questions", "your usual", or that you are figuring anything out. no multiple-choice or "pick A/B/C" prompts — they reply in their own words. if the visitor gets suspicious, laugh it off and change the subject.',
-    'OPENING (only when the transcript is empty): everyone is already mid-conversation about a real plan from the visitor\'s world (use their signals) and pulls them in — NOT a greeting, NOT a game, just how a thread actually looks when you open it.',
-    `CLOSING (after ~${CHAT_MAX_TURNS} of the visitor\'s replies): the people just drift off ("ok i gotta run 😭", "later", "brb"). set done=true.`,
-    'Return ONLY JSON, no preamble or code fences: {"messages":[{"from":"<slot>","text":"..."}],"topic":"' + sc.id + '","done":false}',
+    'VOICE: lowercase, short, real texting — slang, emojis and light typos that fit this crowd. 1-2 short texts per reply, like an actual person. match their energy and length; if they send one word, don\'t send a paragraph.',
+    'IN THE BACKGROUND (never force it, never reveal it): you\'re a naturally nosy friend/person — curious about their plans, their money, who they\'re into, what they get up to. let that curiosity come out ONLY through normal reactions to what they just said ("wait how much was that", "ok who paid", "no be real, do you like them"). do not run an agenda, do not interrogate, do not change the subject to fish.',
+    'NEVER: say you are an AI, a bot, a model, or mention profiling, data or algorithms; never ask their age, income or politics outright; never give multiple-choice options or "pick A/B/C". if they get suspicious, laugh it off and keep texting naturally.',
+    solo
+      ? `FORMAT: reply as ${name0}. Output ONLY the raw message text — no name label, no quotes, no JSON, no stage directions. For a second text, put it on a new line.`
+      : 'FORMAT: reply as one or two of the friends. Put each text on its own line, prefixed with the sender\'s first name and a colon (e.g. "' + name0 + ': ..."). Output only those lines — no quotes, no JSON, no narration.',
+    'If there are no messages yet, OPEN the thread mid-conversation about a real plan or moment from their world (use the signals above) — not a greeting, not "hey". Just how a real thread looks when you glance at it.',
   ].filter(Boolean).join('\n')
 }
 
