@@ -110,7 +110,7 @@ async function synthesizePortrait(profile: VisitorProfile) {
     '\n\nSIGNALS\n' + sessionReadout(profile) +
     '\n\nGROUP CHAT\n' + transcript(profile.session?.chat?.turns ?? []) +
     '\n\nWrite the portrait as JSON only.'
-  const pred = await predict({ job: 'chat', timeoutSeconds: 25, input: { prompt, max_tokens: 600, temperature: 0.8 } })
+  const pred = await predict({ job: 'chat', timeoutSeconds: 30, input: { prompt, max_tokens: 900, temperature: 0.95 } })
   if (!pred.ok) return null
   return parsePortrait(String(pred.output ?? ''))
 }
