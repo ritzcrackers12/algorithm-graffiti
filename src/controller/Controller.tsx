@@ -126,8 +126,9 @@ function FocusPopup({ focus }: { focus: { dir: 'up' | 'down' | 'both'; text: str
   useEffect(() => {
     if (!focus) { setShown(false); return }
     setShown(true)
-    if (focus.dir === 'down') {
-      const t = window.setTimeout(() => setShown(false), 2600)
+    // "Your turn" and the chat cue pop once then fade; only the live-screen cue stays.
+    if (focus.dir === 'down' || focus.dir === 'both') {
+      const t = window.setTimeout(() => setShown(false), 3200)
       return () => window.clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,7 +231,7 @@ export default function Controller() {
     else if (articleLive) focus = { dir: 'up', text: 'Rewritten on the big screen · scroll & compare below' }
     else if (reelLive) focus = { dir: 'up', text: 'Playing on the big screen' }
     else if (adLive) focus = { dir: 'up', text: 'Playing on the big screen · play / pause below' }
-    else if (open === 'chat') focus = { dir: 'both', text: 'Watch the big screen · reply on your phone' }
+    else if (open === 'chat' && getLocalProfile().session.chat.scenario) focus = { dir: 'both', text: 'Watch the big screen · reply on your phone' }
     else if (open || choosingArticle) focus = { dir: 'down', text: 'Your turn — adjust on your phone' }
   }
 
