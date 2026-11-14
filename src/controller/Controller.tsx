@@ -118,31 +118,6 @@ function Centered({ children }: { children: ReactNode }) {
   return <div className="pop-in ctl-center">{children}</div>
 }
 
-/** Floating cue that pops in when the phone↔screen hand-off changes. Stays up
- *  while the big screen is active; the "your turn" nudge auto-dismisses. */
-function FocusPopup({ focus }: { focus: { dir: 'up' | 'down' | 'both'; text: string } | null }) {
-  const [shown, setShown] = useState(false)
-  const key = focus ? `${focus.dir}|${focus.text}` : ''
-  useEffect(() => {
-    if (!focus) { setShown(false); return }
-    setShown(true)
-    // "Your turn" and the chat cue pop once then fade; only the live-screen cue stays.
-    if (focus.dir === 'down' || focus.dir === 'both') {
-      const t = window.setTimeout(() => setShown(false), 3200)
-      return () => window.clearTimeout(t)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
-  if (!focus || !shown) return null
-  const arrow = focus.dir === 'up' ? '↑' : focus.dir === 'down' ? '↓' : '↕'
-  return (
-    <div key={key} className={`focus-pop ${focus.dir}`} role="status">
-      <span className="focus-arrow">{arrow}</span>
-      <span>{focus.text}</span>
-    </div>
-  )
-}
-
 function QueueScreen({ position }: { position: number }) {
   return (
     <Centered>
@@ -218,22 +193,6 @@ export default function Controller() {
   // whenever the info button is tapped.
   const activeTour = open && APP_GUIDE[open] && (!seenHints[open] || tourApp === open) ? open : null
   const closeTour = () => { if (open) markSeen(open); setTourApp(null); setTourStart(0) }
-
-  // Where should the visitor be looking? Flip a banner between the big screen
-  // (while generating or when output is live there) and their phone (while tuning).
-  const articleLive = !!(active && open === 'article' && storyId && snap?.altered.article?.params.articleId === storyId)
-  const reelLive = !!(active && open === 'reel' && snap?.altered.reel)
-  const adLive = !!(active && open === 'ad' && snap?.altered.ad)
-  let focus: { dir: 'up' | 'down' | 'both'; text: string } | null = null
-  if (active) {
-    if (busy) focus = { dir: 'up', text: 'Generating — watch the big screen' }
-    else if (showingReport) focus = { dir: 'up', text: 'Your report is on the big screen' }
-    else if (articleLive) focus = { dir: 'up', text: 'Rewritten on the big screen · scroll & compare below' }
-    else if (reelLive) focus = { dir: 'up', text: 'Playing on the big screen' }
-    else if (adLive) focus = { dir: 'up', text: 'Playing on the big screen · play / pause below' }
-    else if (open === 'chat' && getLocalProfile().session.chat.scenario) focus = { dir: 'both', text: 'Watch the big screen · reply on your phone' }
-    else if (open || choosingArticle) focus = { dir: 'down', text: 'Your turn — adjust on your phone' }
-  }
 
   // When the visit is finished, move the report onto this phone and release the
   // iPad so the next visitor can start. Capture the profile first so it survives.
@@ -456,7 +415,6 @@ export default function Controller() {
         </div>
         {content}
       </div>
-      <FocusPopup focus={focus} />
       {showOnboard && <Onboarding onDone={dismissOnboard} />}
       {!showOnboard && activeTour && (
         <Tour
