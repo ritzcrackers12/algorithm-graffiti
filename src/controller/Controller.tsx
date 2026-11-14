@@ -188,6 +188,22 @@ export default function Controller() {
   const activeTour = open && APP_GUIDE[open] && (!seenHints[open] || tourApp === open) ? open : null
   const closeTour = () => { if (open) markSeen(open); setTourApp(null); setTourStart(0) }
 
+  // Where should the visitor be looking? Flip a banner between the big screen
+  // (while generating or when output is live there) and their phone (while tuning).
+  const articleLive = !!(active && open === 'article' && storyId && snap?.altered.article?.params.articleId === storyId)
+  const reelLive = !!(active && open === 'reel' && snap?.altered.reel)
+  const adLive = !!(active && open === 'ad' && snap?.altered.ad)
+  let focus: { dir: 'up' | 'down' | 'both'; text: string } | null = null
+  if (active) {
+    if (busy) focus = { dir: 'up', text: 'Generating — watch the big screen' }
+    else if (showingReport) focus = { dir: 'up', text: 'Your report is on the big screen' }
+    else if (articleLive) focus = { dir: 'up', text: 'Rewritten on the big screen · scroll & compare below' }
+    else if (reelLive) focus = { dir: 'up', text: 'Playing on the big screen' }
+    else if (adLive) focus = { dir: 'up', text: 'Playing on the big screen · play / pause below' }
+    else if (open === 'chat') focus = { dir: 'both', text: 'Watch the big screen · reply on your phone' }
+    else if (open || choosingArticle) focus = { dir: 'down', text: 'Your turn — adjust on your phone' }
+  }
+
   const wasBusy = useRef(false)
   useEffect(() => {
     if (wasBusy.current && !busy && active) {
@@ -391,6 +407,12 @@ export default function Controller() {
           </div>
           <div className="ctl-timer" />
         </div>
+        {focus && (
+          <div className={`focus-bar ${focus.dir}`}>
+            <span className="focus-arrow">{focus.dir === 'up' ? '↑' : focus.dir === 'down' ? '↓' : '↕'}</span>
+            <span>{focus.text}</span>
+          </div>
+        )}
         {content}
       </div>
       {showOnboard && <Onboarding onDone={dismissOnboard} />}
