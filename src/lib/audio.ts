@@ -164,6 +164,10 @@ function holdSilence() {
   void a.play().catch(() => {})
 }
 
+export function isMediaUnlocked() {
+  return unlocked
+}
+
 export function unlockAudio() {
   unlocked = true
   setPlaybackSession()

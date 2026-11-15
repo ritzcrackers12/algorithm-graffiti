@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { pauseStation, playStation, playWaitingPeace, resumeStation, stopStation } from '../lib/audio.ts'
+import { isMediaUnlocked, pauseStation, playStation, playWaitingPeace, resumeStation, stopStation } from '../lib/audio.ts'
 import { asset } from '../lib/content.ts'
 import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
@@ -29,13 +29,21 @@ function WaitingRadio() {
       el.setAttribute('muted', '')
       el.setAttribute('playsinline', 'true')
       el.setAttribute('webkit-playsinline', 'true')
+      if (el.readyState < 2) el.load()
       void el.play().catch(() => {})
     }
     play()
+    // Retry until it is actually running: the one unlock gesture fires before
+    // this view ever mounts, so a single blocked play() would stall forever.
+    const retry = window.setInterval(() => {
+      if (!el.paused && !el.ended && el.currentTime > 0) return
+      if (isMediaUnlocked() || el.muted) play()
+    }, 400)
     const sweep = window.setInterval(() => setBand((b) => (b + 7) % 100), 140)
     window.addEventListener('ag-media-unlock', play)
     void playWaitingPeace(WAITING_AUDIO).catch(() => {})
     return () => {
+      window.clearInterval(retry)
       window.clearInterval(sweep)
       window.removeEventListener('ag-media-unlock', play)
       el.pause()
