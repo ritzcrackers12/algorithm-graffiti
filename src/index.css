@@ -776,6 +776,15 @@ button { font: inherit; }
 .search-msg.you { align-self: flex-end; background: #4a6cf0; color: #fff; }
 .search-assist-tag { display: block; font: 700 10px/1 Arial, sans-serif; color: #4a6cf0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
 .search-done { font: 600 16px/1.4 Arial, sans-serif; color: #555; text-align: center; padding: 12px; }
+.chat-love-box {
+  width: min(320px, 92vw); box-sizing: border-box;
+  padding: 12px 14px; margin-bottom: 2px;
+  background: #050805; border: 2px solid #2f5d3a; border-radius: 4px;
+  font: 700 16px/1.3 var(--font-mono); letter-spacing: 0.02em;
+  color: #c6ff3d; text-align: center;
+  box-shadow: inset 0 0 18px rgba(198, 255, 61, 0.12);
+}
+.chat-love-heart { color: #ff2e6a; }
 .chat-picker { display: flex; flex-direction: column; gap: 10px; width: min(320px, 92vw); }
 .chat-pick {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
@@ -917,6 +926,54 @@ button { font: inherit; }
   margin: 16px 0 6px; padding: 4px 8px; background: rgba(198, 255, 61, 0.12);
   border-left: 3px solid #c6ff3d; display: inline-block;
 }
+
+/* ===== TARGETING DASHBOARD (report) — shared by phone + iPad ===== */
+.ctl-report-segment, .report-segment {
+  font: 700 11px/1.3 var(--font-mono); letter-spacing: 0.08em;
+  color: #c6ff3d; text-transform: uppercase; opacity: 0.95;
+}
+.report-segment { margin: 6px 0 10px; }
+.dash-kpis {
+  margin: 12px 0; border: 1px solid rgba(198, 255, 61, 0.35);
+  background: rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;
+}
+.dash-kpis-head {
+  display: flex; justify-content: space-between; padding: 5px 10px;
+  background: rgba(198, 255, 61, 0.14); border-bottom: 1px solid rgba(198, 255, 61, 0.3);
+  font: 700 10px/1 var(--font-mono); letter-spacing: 0.14em; color: #c6ff3d;
+}
+.dash-kpi-row {
+  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  padding: 6px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.dash-kpi-row:last-child { border-bottom: 0; }
+.dash-kpi-label { font: 500 12px/1.3 var(--font-mono); color: #a9c6bb; }
+.dash-kpi-value { font: 700 12px/1.3 var(--font-mono); color: #f1ece2; text-align: right; }
+.dash-pitch {
+  display: flex; flex-direction: column; gap: 3px; margin: 12px 0;
+  padding: 9px 11px; background: rgba(198, 255, 61, 0.1);
+  border-left: 3px solid #c6ff3d; border-radius: 2px;
+}
+.dash-pitch-tag { font: 700 9px/1 var(--font-mono); letter-spacing: 0.16em; color: #c6ff3d; }
+.dash-pitch-text { font: 500 13px/1.4 Tahoma, Verdana, sans-serif; color: #f1ece2; font-style: italic; }
+.dash-brands { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.dash-brands h3, .dash-ledger h3 {
+  margin: 0; font: 800 12px/1 var(--font-supreme); letter-spacing: 0.22em; color: #c6ff3d; text-transform: uppercase;
+}
+.dash-brand { display: flex; flex-direction: column; gap: 4px; }
+.dash-brand-head { display: flex; justify-content: space-between; align-items: baseline; }
+.dash-brand-name { font: 800 14px/1.1 var(--font-supreme); letter-spacing: 0.04em; color: #ffffff; }
+.dash-brand-pct { font: 700 13px/1 var(--font-mono); color: #c6ff3d; }
+.dash-brand-bar { height: 5px; background: rgba(255, 255, 255, 0.12); border-radius: 3px; overflow: hidden; }
+.dash-brand-bar > i { display: block; height: 100%; background: #c6ff3d; }
+.dash-brand-why { margin: 1px 0 0; font: 500 12.5px/1.5 Tahoma, Verdana, sans-serif; color: #d8d2c8; }
+.dash-ledger { margin-top: 18px; padding-top: 10px; border-top: 2px solid #c6ff3d; display: flex; flex-direction: column; gap: 5px; }
+.dash-ledger-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  font: 600 13px/1.3 var(--font-mono); color: #cfe9dd;
+}
+.dash-ledger-total { font-weight: 800; color: #c6ff3d; font-size: 15px; padding-top: 4px; border-top: 1px dashed rgba(198, 255, 61, 0.4); margin-top: 2px; }
+.dash-ledger-note { margin: 6px 0 0; font: 500 11.5px/1.5 Tahoma, Verdana, sans-serif; color: #9fb3a9; }
 
 span.xp-tbtn {
   background: var(--btn-face, #c0c0c0);

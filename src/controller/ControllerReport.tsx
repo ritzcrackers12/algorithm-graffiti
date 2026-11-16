@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { PixelButton } from '../components/PixelButton.tsx'
 import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
-import { buildDossier, type ReportBlock } from '../shared/report.ts'
+import { buildDossier, dataLedger, type PortraitReport } from '../shared/report.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult } from '../shared/types.ts'
 
@@ -13,8 +13,9 @@ export default function ControllerReport({
   article?: ArticleResult | null
   onReset: () => void
 }) {
-  const { assumptions } = buildDossier(profile, article)
-  const [blocks, setBlocks] = useState<ReportBlock[]>(assumptions)
+  const { fallback } = buildDossier(profile, article)
+  const ledger = dataLedger(profile)
+  const [report, setReport] = useState<PortraitReport>(fallback)
   const [synth, setSynth] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -22,7 +23,7 @@ export default function ControllerReport({
     let live = true
     void getBackend().then((b) => b.portrait(profile)).then((p) => {
       if (!live) return
-      if (p && p.length) setBlocks(p)
+      if (p && p.brands?.length) setReport(p)
       setSynth(false)
     }).catch(() => live && setSynth(false))
     return () => { live = false }
@@ -42,22 +43,53 @@ export default function ControllerReport({
       let y = 70
       const page = () => { doc.addPage(); y = 70 }
       doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(20)
-      for (const ln of doc.splitTextToSize('THE ORGANIZATION’S ASSUMPTION OF YOU', W)) { doc.text(ln, M, y); y += 22 }
+      doc.text('THE ORGANIZATION’S ASSESSMENT OF YOU', M, y); y += 20
       doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(130)
-      doc.text('Algorithm Graffiti', M, y); y += 26
-      for (const b of blocks) {
-        if (y > ph - 90) page()
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(20)
-        doc.text(b.title, M, y); y += 18
-        for (const l of b.lines) {
-          if (y > ph - 70) page()
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(60)
-          doc.text(l.k, M, y); y += 14
-          doc.setFont('helvetica', 'normal'); doc.setTextColor(30)
-          const wrapped = doc.splitTextToSize(l.v, W)
-          doc.text(wrapped, M, y); y += wrapped.length * 13 + 10
-        }
-        y += 10
+      doc.text(`SEGMENT: ${report.segment}`, M, y); y += 14
+      doc.text('Algorithm Graffiti', M, y); y += 24
+
+      // KPI chart
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20)
+      doc.text('TARGETING METRICS', M, y); y += 16
+      doc.setFontSize(10)
+      for (const k of report.kpis) {
+        if (y > ph - 60) page()
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(70)
+        doc.text(k.label, M, y)
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(20)
+        doc.text(String(k.value), pw - M, y, { align: 'right' })
+        y += 15
+      }
+      y += 8
+      if (y > ph - 60) page()
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(90)
+      for (const ln of doc.splitTextToSize(`PITCH THAT CLOSES YOU: “${report.pitch}”`, W)) { doc.text(ln, M, y); y += 14 }
+      y += 14
+
+      // Brands
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20)
+      if (y > ph - 60) page()
+      doc.text('YOUR BRAND AFFINITY', M, y); y += 16
+      for (const b of report.brands) {
+        if (y > ph - 70) page()
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(20)
+        doc.text(`${b.name} — ${b.pct}%`, M, y); y += 14
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(40)
+        const wrapped = doc.splitTextToSize(b.why, W)
+        doc.text(wrapped, M, y); y += wrapped.length * 13 + 10
+      }
+
+      // Ledger
+      if (y > ph - 80) page()
+      y += 6
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20)
+      doc.text('WHAT YOU WERE WORTH', M, y); y += 16
+      for (const l of ledger.lines) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(70)
+        doc.text(l.label, M, y)
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(20)
+        doc.text(String(l.value), pw - M, y, { align: 'right' })
+        y += 15
       }
       doc.save('algorithm-graffiti-report.pdf')
     } catch (e) {
@@ -70,20 +102,50 @@ export default function ControllerReport({
   return (
     <div className="ctl-report ctl-allow-scroll">
       <div className="ctl-report-head">
-        <div className="ctl-report-title">THE ORGANIZATION’S<br />ASSUMPTION OF YOU{synth ? ' …' : ''}</div>
-        <div className="ctl-report-sub">Everything it decided from your visit. Yours to take.</div>
+        <div className="ctl-report-title">THE ORGANIZATION’S<br />ASSESSMENT OF YOU{synth ? ' …' : ''}</div>
+        <div className="ctl-report-segment">SEGMENT: {report.segment}</div>
       </div>
-      {blocks.map((b) => (
-        <section key={b.title} className="ctl-report-lens">
-          <h3>{b.title}</h3>
-          {b.lines.map((l) => (
-            <div key={l.k} className="ctl-report-row">
-              <b>{l.k}</b>
-              <span>{l.v}</span>
+
+      <section className="dash-kpis">
+        <div className="dash-kpis-head"><span>METRIC</span><span>VALUE</span></div>
+        {report.kpis.map((k) => (
+          <div key={k.label} className="dash-kpi-row">
+            <span className="dash-kpi-label">{k.label}</span>
+            <span className="dash-kpi-value">{k.value}</span>
+          </div>
+        ))}
+      </section>
+
+      <div className="dash-pitch">
+        <span className="dash-pitch-tag">PITCH THAT CLOSES YOU</span>
+        <span className="dash-pitch-text">“{report.pitch}”</span>
+      </div>
+
+      <section className="dash-brands">
+        <h3>YOUR BRAND AFFINITY</h3>
+        {report.brands.map((b) => (
+          <div key={b.name} className="dash-brand">
+            <div className="dash-brand-head">
+              <span className="dash-brand-name">{b.name}</span>
+              <span className="dash-brand-pct">{b.pct}%</span>
             </div>
-          ))}
-        </section>
-      ))}
+            <div className="dash-brand-bar"><i style={{ width: `${b.pct}%` }} /></div>
+            <p className="dash-brand-why">{b.why}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="dash-ledger">
+        <h3>WHAT YOU WERE WORTH</h3>
+        {ledger.lines.map((l, i) => (
+          <div key={l.label} className={`dash-ledger-row${i === ledger.lines.length - 1 ? ' dash-ledger-total' : ''}`}>
+            <span>{l.label}</span>
+            <span>{l.value}</span>
+          </div>
+        ))}
+        <p className="dash-ledger-note">It cost {ledger.lines[1].value} to understand you. Your data resells for {ledger.lines[0].value}. You paid the difference in yourself.</p>
+      </section>
+
       <div className="ctl-report-actions">
         <PixelButton block type="button" disabled={saving} onClick={() => void download()}>
           {saving ? 'PREPARING…' : 'DOWNLOAD PDF'}

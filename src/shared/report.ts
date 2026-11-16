@@ -2,7 +2,7 @@ import { STATION_POLES } from './station.ts'
 import { bucketMeta, type ReelBucket } from './reelLibrary.ts'
 import { CONNOTATION_LABELS, EDUCATION_LABELS, INCOME_LABELS, LEAN_LABELS, SENSATION_LABELS } from './article.ts'
 import { resolveLocation } from './locations.ts'
-import { SCENARIOS, isYou, scenarioOf } from './chatScript.ts'
+import { isYou } from './chatScript.ts'
 import type { VisitorProfile } from './profile.ts'
 import type { ArticleResult } from './types.ts'
 
@@ -16,6 +16,19 @@ export interface ReportBlock {
   lines: ReportLine[]
 }
 
+/** The payoff report, styled as an ad-targeting dashboard: a one-line SEGMENT,
+ *  a grid of fake-precise KPIs, the PITCH that closes them, and a ranked list of
+ *  BRANDS (percent + a paragraph each). The live model writes this in
+ *  portraitSystemPrompt; fallbackPortrait is the instant/offline version. */
+export interface KPI { label: string; value: string }
+export interface BrandPick { name: string; pct: number; why: string }
+export interface PortraitReport {
+  segment: string
+  kpis: KPI[]
+  pitch: string
+  brands: BrandPick[]
+}
+
 function locLine(raw: string) {
   const loc = resolveLocation(raw)
   if (loc.kind === 'state') return loc.profile.name.toUpperCase()
@@ -23,136 +36,179 @@ function locLine(raw: string) {
   return raw ? raw.toUpperCase() : 'UNSET'
 }
 
-/** The payoff: what the Organization assumes about the visitor, grouped into
- *  three lenses — what makes them SELLABLE, their PERSONAL & LIFESTYLE portrait,
- *  and their MEDIA DIET. Each line is a conclusion, pinned to real choices, not
- *  a readout of the dials. The live model rewrites these in portraitSystemPrompt;
- *  this deterministic version is the instant/offline fallback. */
-export const ASSUMPTION_SECTIONS = [
-  { title: 'SELLABLE', keys: ['SPENDING POWER', "WHAT YOU'LL PAY FOR", 'HOW TO SELL TO YOU', 'IN-MARKET FOR'] },
-  { title: 'PERSONAL & LIFESTYLE', keys: ['LIFE STAGE', 'YOUR SCENE', 'YOUR PEOPLE', 'YOUR VICE'] },
-  { title: 'MEDIA DIET', keys: ['YOUR BUBBLE', 'WHAT YOU READ', 'YOUR TASTE', 'THE LOOP'] },
-] as const
-
-const SCENE_WORDS: Record<ReelBucket, string> = {
-  comedy: 'group chats and clips you send at 1am',
-  lifestyle: 'tidy routines, hauls, and aesthetic cafes',
-  body: 'the gym, the mirror, the progress photo',
-  mind: 'therapy-speak, journaling, and self-work',
-  money: 'the grind, the flex, the next come-up',
-  culture: 'discourse, inside jokes, being online',
+/** Brand vocabulary per reel bucket — the fallback speaks the visitor's dialect
+ *  the way the live model does. Each list is ordered most- to least-likely. */
+const BRANDS_BY_BUCKET: Record<ReelBucket, { name: string; why: string }[]> = {
+  money: [
+    { name: 'StockX', why: 'You treat sneakers as positions, not shoes — boxed, tracked, resold. The platform sells you the collector and the hustler in one tap.' },
+    { name: 'Nike / SNKRS', why: 'You live on the drop calendar. Scarcity is the lever; being locked out stings enough that getting in feels like winning.' },
+    { name: 'Fear of God Essentials', why: 'The silhouette of money without the price. It reads as expensive to people who can’t tell — which is exactly who it’s built for.' },
+    { name: 'Rolex', why: 'The number you’re actually chasing. You price it long before you can buy it, and that wanting is the whole relationship.' },
+    { name: 'Bleu de Chanel', why: 'You’ve aged off the entry scent and want to be read as intentional. An easy mark for the “mature upgrade.”' },
+    { name: 'Zara', why: 'The connective tissue between hype pieces — the volume that keeps the above-bracket image running day to day.' },
+  ],
+  lifestyle: [
+    { name: 'Erewhon', why: 'The receipt is the point. You buy the smoothie to be the kind of person who buys the smoothie.' },
+    { name: 'Alo Yoga', why: 'Athleisure as identity. You dress for a wellness you’re performing toward, not one you’ve reached.' },
+    { name: 'Glossier', why: 'The no-makeup makeup of someone who wants effort to read as ease. Minimalism you pay a premium for.' },
+    { name: 'Aritzia', why: 'The uniform of put-together. You buy the look of a life that’s handled.' },
+    { name: 'Stanley', why: 'The accessory that signals you’ve optimized even your water. Status dressed as self-care.' },
+    { name: 'Sephora', why: 'The small, frequent reward — the thing you buy to fix a mood, not a face.' },
+  ],
+  body: [
+    { name: 'Gymshark', why: 'Your body is the one asset you fully control, so it absorbs the spend. The buying spikes after a bad week.' },
+    { name: 'Optimum Nutrition', why: 'The ritual tub. You buy discipline in powder form and the tub is proof you’re serious.' },
+    { name: 'YoungLA', why: 'The fit that reads as “in the gym daily.” You dress for the men at the rack beside you.' },
+    { name: 'Nike', why: 'The default that still signals. You buy it to belong before you buy it to perform.' },
+    { name: 'Bucked Up', why: 'The pre-workout as personality. You pay for the feeling of being locked in.' },
+    { name: 'Rhode', why: 'The glow-up endpoint. Looks-maxxing with a clean, aspirational face on it.' },
+  ],
+  mind: [
+    { name: 'Erewhon', why: 'Calm you can purchase. The tonic is less about the body than about feeling in control of it.' },
+    { name: 'Alo Yoga', why: 'The uniform of a regulated nervous system you’re still working toward. You buy the before, labeled as the after.' },
+    { name: 'Oura', why: 'You want your rest scored so you can optimize even your stillness. Anxiety wearing the mask of data.' },
+    { name: 'Aesop', why: 'The $40 hand soap that says you take care of yourself on purpose. Taste as self-worth.' },
+    { name: 'Sakara', why: 'Wellness delivered, so the discipline is someone else’s problem. You pay to be held accountable.' },
+    { name: 'Aritzia', why: 'Quiet, expensive calm. The outside you build when the inside won’t settle.' },
+  ],
+  culture: [
+    { name: 'A24', why: 'The badge of correct taste. You buy the hat so the room knows what you watch.' },
+    { name: 'Criterion', why: 'The shelf as self-portrait. You own the films partly to be seen owning them.' },
+    { name: 'Urban Outfitters', why: 'Pre-packaged individuality. You pay a premium for looking like you didn’t try.' },
+    { name: 'Glossier', why: 'The online-literate face. You buy the thing the discourse already approved.' },
+    { name: 'Dr. Martens', why: 'The uniform of the scene you want to be read into. Identity you can lace up.' },
+    { name: 'Spotify', why: 'The taste engine you let define you, then resent for being right.' },
+  ],
+  comedy: [
+    { name: 'Depop', why: 'The feed as closet. You buy the joke-fit and the irony is the point.' },
+    { name: 'Liquid Death', why: 'You pay extra for the bit. The can is the personality.' },
+    { name: 'Urban Outfitters', why: 'Pre-packaged chaos. You buy the look of not caring.' },
+    { name: 'Shein', why: 'Volume and disposability — you buy fast, wear once, post, move on.' },
+    { name: 'Spotify', why: 'The aux identity. Your taste is a performance for the group chat.' },
+    { name: 'Monster Energy', why: 'The 1am fuel of someone who treats the feed like a job.' },
+  ],
 }
 
-function personalityPortrait(p: VisitorProfile): ReportBlock[] {
+const SEGMENTS: Record<ReelBucket, string> = {
+  money: 'ASPIRATIONAL STATUS-CLIMBER',
+  lifestyle: 'OPTIMIZED LIFESTYLE AESTHETE',
+  body: 'SELF-OPTIMIZING DISCIPLINE BUYER',
+  mind: 'ANXIOUS-ASPIRATIONAL WELLNESS',
+  culture: 'TASTE-SIGNALING INSIDER',
+  comedy: 'TERMINALLY-ONLINE IRONIST',
+}
+
+const PITCHES: Record<ReelBucket, string> = {
+  money: 'everyone’s already on it — this is the last pair.',
+  lifestyle: 'this is the one your routine was missing.',
+  body: 'the version of you that you keep promising is one order away.',
+  mind: 'this is the one your nervous system has been missing.',
+  culture: 'you already have the taste — this just proves it.',
+  comedy: 'you’ll be the first one in the group chat with it.',
+}
+
+const DEFAULT_BRANDS = [
+  { name: 'Amazon', why: 'The default you reach for without deciding to. Convenience has already won you.' },
+  { name: 'Nike', why: 'The safe signal. You buy it to belong before anything else.' },
+  { name: 'Apple', why: 'The ecosystem you’re too deep in to leave. You pay the premium as a tax on not switching.' },
+  { name: 'Target', why: 'The mid-market trip that always costs more than you planned. Easy, frequent, forgettable.' },
+  { name: 'Starbucks', why: 'The small daily yes. You buy the habit, not the coffee.' },
+  { name: 'Uniqlo', why: 'Quiet, cheap competence. You buy the basics and tell yourself it’s intentional.' },
+]
+
+function fallbackPortrait(p: VisitorProfile): PortraitReport {
   const a = p.article
   const inf = p.inferred
   const reel = p.session.reel
-  const ad = p.session.ad
-  const chat = p.session.chat
   const bucket = reel.bucket as ReelBucket | null
-  const poles = bucket ? bucketMeta(bucket).poles : null
-  const genre = String(ad.genreLabel || ad.genre || '').toLowerCase()
   const hour = p.device?.hour ?? 12
+  const sus = inf.susceptibility ?? 0.4
   const impulsive = p.behavior.extremes >= 2 || (a.sensationalism ?? 0) >= 3 || reel.twist >= 120
 
-  const userText = chat.turns.filter(isYou).map((t) => t.text.toLowerCase()).join(' ')
-  const log = chat.log ?? []
-  const totalEdits = log.reduce((s, r) => s + r.edits, 0)
-  const overshared = log.some((r) => r.overshare)
-  const priceCues = /\bcheap|split|venmo|\$|\bsix|sixer|free|broke|save|deal|coupon|afford|budget/.test(userText)
-  const scenario = chat.scenario ? SCENARIOS[scenarioOf(p)] : null
-  const nightlife = inf.interests.some((i) => i === 'nightlife' || i === 'luxury') || /\bbar\b|drink|club|party|weed|vape/.test(userText)
+  const age = inf.ageRange !== 'unknown' ? inf.ageRange : '22–29'
+  const seg = bucket ? SEGMENTS[bucket] : 'GENERAL CONSUMER'
+  const sexHint = ''
+  const segment = `${seg} · ${age}${sexHint}`
 
-  // ---- SELLABLE ----
-  let spend = 'Middle-market. Will pay for convenience over prestige.'
-  if (a.income != null && a.income >= 4) spend = 'High disposable income. Worth premium placement and upsell.'
-  else if (a.income != null && a.income <= 1) spend = 'Thin margins. Reach through volume and discounts, not luxury.'
-  else if (a.income == null) spend = genre.includes('ambient') || bucket === 'money' ? 'Reads aspirational — spends up to look the part.' : 'Unremarkable spend, steady and predictable.'
+  // Fake-precise KPIs derived from the real signals.
+  const ltv = 6000 + Math.round(((a.income ?? 2) + 1) * 2400 + sus * 3000)
+  const vulnHour = hour >= 22 || hour < 4 ? `${((hour + 11) % 12) + 1}PM – 2AM` : '11PM – 2AM'
+  const kpis: KPI[] = [
+    { label: 'Estimated Lifetime Value', value: `$${ltv.toLocaleString()}` },
+    { label: 'Ad Receptivity', value: `${Math.round(40 + sus * 55)} / 100` },
+    { label: 'Impulse Index', value: `${impulsive ? 78 + p.behavior.extremes * 3 : 46}%` },
+    { label: 'Status Anxiety', value: `${Math.round(50 + sus * 40)} / 100` },
+    { label: 'Discretionary Spend', value: `~$${260 + (a.income ?? 2) * 90} / mo` },
+    { label: 'Self-Image Gap', value: bucket === 'money' ? '+2 income brackets' : '+1 income bracket' },
+    { label: 'Churn Resistance', value: `${Math.round(10 + sus * 30)}%` },
+    { label: 'Peak Vulnerability Window', value: vulnHour },
+    { label: 'Time-to-Purchase', value: `${impulsive ? 18 : 48} hrs from first impression` },
+    { label: 'Brand Loyalty', value: sus > 0.5 ? 'Low / promiscuous' : 'Moderate' },
+    { label: 'Primary Conversion Trigger', value: sus > 0.5 ? 'Scarcity + social proof' : 'Reassurance + review' },
+    { label: 'Touchpoints to Convert', value: `${impulsive ? 6 : 11}` },
+    { label: 'Preferred Channel', value: `Short-form video (${80 + p.behavior.extremes * 3}% mobile)` },
+    { label: 'Price Sensitivity', value: (a.income ?? 2) <= 1 ? 'High' : impulsive ? 'Low' : 'Moderate' },
+    { label: 'Resale Dependency', value: bucket === 'money' ? '64%' : '21%' },
+  ]
 
-  let pay = 'Considered buyer — researches first, so slow and costly to convert.'
-  if (priceCues || (a.income != null && a.income <= 1)) pay = 'Price-first. Checks the cost before the want — deal- and coupon-responsive.'
-  else if (impulsive) pay = 'Impulse-led. Buys on reaction, rarely returns it.'
-
-  let sell = 'Hard sell. Resists the obvious ad; has to feel like their own idea.'
-  if (inf.susceptibility >= 0.55 || (reel.legitimacy != null && reel.legitimacy <= 40)) sell = 'Social proof and urgency. Moves with what trends and what others already picked.'
-  else if (inf.susceptibility >= 0.4) sell = 'A strong pitch lands, but they notice it — sell soft.'
-
-  const market: string[] = []
-  if (bucket) market.push(bucket)
-  if (genre) market.push(genre)
-  for (const it of inf.interests.slice(0, 4)) if (!market.includes(it)) market.push(it)
-  const inMarket = market.length ? `Ripe for: ${market.join(', ')}.` : 'Still mapping what to sell you.'
-
-  // ---- PERSONAL & LIFESTYLE ----
-  const age = inf.ageRange !== 'unknown' ? inf.ageRange : 'twenties-ish'
-  let work = 'early-career'
-  if (a.education != null && a.education >= 4) work = 'degree-track, white-collar'
-  else if (a.education != null && a.education <= 1) work = 'working, hands-on, no pretense'
-  const stage = `${age}. Reads ${work}${chat.scenario === 'work' ? ', and work is on your mind' : ''}.`
-
-  const sceneBits: string[] = []
-  if (bucket) sceneBits.push(SCENE_WORDS[bucket])
-  if (genre) sceneBits.push(`${genre} in the headphones`)
-  const scene = sceneBits.length ? `We picture ${sceneBits.join('; ')}.` : 'A life we can only half-see yet.'
-
-  let people = 'Private about who you keep close.'
-  if (chat.scenario === 'group') people = 'Social, built around the group — you move with the plan.'
-  else if (chat.scenario === 'situationship') people = 'Something undefined and a little anxious; you keep it loose on purpose.'
-  else if (chat.scenario === 'work') people = 'You measure yourself against peers more than you let on.'
-  if (overshared) people += ' Opens up fast once comfortable.'
-  else if (totalEdits >= 4) people += ' Chooses every word carefully.'
-
-  let vice = 'Comfort over discipline when no one is watching.'
-  if (nightlife) vice = 'Nights out and a drink to take the edge off.'
-  else if (inf.mood === 'anxious' || inf.mood === 'restless' || hour >= 22 || hour < 6) vice = 'Scrolling past midnight to quiet the noise.'
-  else if ((ad.dials?.[0] ?? 50) >= 65) vice = 'Chasing intensity — louder, faster, more.'
-
-  // ---- MEDIA DIET ----
-  let bubble = 'Politically unread — which is its own kind of bubble.'
-  if (a.lean != null && a.lean <= -1) bubble = 'Left of center, and the feed keeps it that way.'
-  else if (a.lean != null && a.lean >= 1) bubble = 'Right of center, and the feed keeps it that way.'
-  else if (a.lean === 0) bubble = 'You think you are neutral; the feed still has a side picked for you.'
-
-  let read = 'Somewhere between outrage and analysis.'
-  if ((a.sensationalism ?? 0) >= 3) read = 'Heat over nuance — you click whatever is loudest.'
-  else if ((a.sensationalism ?? 0) <= 1) read = 'You want it measured and sourced.'
-  if (a.education != null && a.education >= 4) read += ' Pitched smart.'
-  else if (a.education != null && a.education <= 1) read += ' Kept simple.'
-
-  let taste = 'Middle-of-the-road taste.'
-  if (poles) {
-    const d2 = reel.dials[1]
-    taste = d2 >= 60 ? 'Niche taste — you dig past the front page.' : d2 <= 40 ? 'Mainstream — you ride whatever is served.' : 'Middle-of-the-road taste.'
-    const r3 = poles[2][1].toLowerCase()
-    if (r3.includes('ironic') || r3.includes('performative')) taste += reel.dials[2] >= 60 ? ' Ironic, held at arm’s length.' : ' Earnest, you mean it.'
-  }
-
-  const loop = inf.susceptibility >= 0.5 || (reel.legitimacy != null && reel.legitimacy <= 40)
-    ? 'You live inside the recommendation loop. The usual finds you before you look.'
-    : 'You step out of the feed sometimes — but it still knows your usual.'
-
-  const map: Record<string, string> = {
-    'SPENDING POWER': spend,
-    "WHAT YOU'LL PAY FOR": pay,
-    'HOW TO SELL TO YOU': sell,
-    'IN-MARKET FOR': inMarket,
-    'LIFE STAGE': stage,
-    'YOUR SCENE': scene,
-    'YOUR PEOPLE': people,
-    'YOUR VICE': vice,
-    'YOUR BUBBLE': bubble,
-    'WHAT YOU READ': read,
-    'YOUR TASTE': taste,
-    'THE LOOP': loop,
-  }
-  void scenario
-  return ASSUMPTION_SECTIONS.map((s) => ({
-    title: s.title,
-    lines: s.keys.map((k) => ({ k, v: (map[k] || '').toUpperCase() })),
+  const list = (bucket ? BRANDS_BY_BUCKET[bucket] : DEFAULT_BRANDS)
+  const base = [92, 86, 79, 71, 64, 58]
+  const brands: BrandPick[] = list.slice(0, 6).map((b, i) => ({
+    name: b.name,
+    pct: Math.max(40, base[i] - (sus < 0.4 ? 8 : 0)),
+    why: b.why,
   }))
+
+  return { segment, kpis, pitch: bucket ? PITCHES[bucket] : 'this is the one you’ve been meaning to get.', brands }
 }
 
-export function buildDossier(p: VisitorProfile, article?: ArticleResult | null): { blocks: ReportBlock[]; assumptions: ReportBlock[] } {
+export { fallbackPortrait }
+
+/** The economics of the visit: what their harvested profile resells for, what it
+ *  cost the Organization to generate it, and the margin left over. Deterministic,
+ *  computed from how much of themselves they actually gave up. */
+export interface DataLedger {
+  value: number // $ the profile is worth on the data market
+  cost: number // $ it cost to profile them (model + compute)
+  profit: number // value − cost
+  lines: KPI[]
+}
+
+export function dataLedger(p: VisitorProfile): DataLedger {
+  const a = p.article
+  const s = p.session
+  const turns = s.chat.turns.filter(isYou).length
+  const overshared = (s.chat.log ?? []).some((r) => r.overshare)
+
+  // Data value: a base cookie plus a premium for each sellable field they filled.
+  let value = 0.06 // the raw cookie / device fingerprint
+  if (a.lean != null) value += 0.04 // political lean
+  if (a.income != null) value += 0.06 // income is the most sellable field
+  if (a.education != null) value += 0.02
+  if (a.location) value += 0.03
+  if (s.reel.bucket) value += 0.05 // content taste
+  if (s.ad.genre || s.ad.genreLabel) value += 0.03 // audio taste
+  value += Math.min(0.14, turns * 0.02) // stated preferences, declared in their own words
+  if (overshared) value += 0.06 // disclosure premium
+  if (p.device) value += 0.02
+  value = Math.round(value * 100) / 100
+
+  // Cost: Claude Haiku tokens for each chat turn plus the end-of-visit report.
+  const cost = Math.round((turns * 0.0004 + 0.0011) * 10000) / 10000
+  const profit = Math.round((value - cost) * 10000) / 10000
+
+  const money = (n: number) => (n < 1 ? `$${n.toFixed(n < 0.01 ? 4 : 2)}` : `$${n.toFixed(2)}`)
+  return {
+    value, cost, profit,
+    lines: [
+      { label: 'Your Data Resells For', value: money(value) },
+      { label: 'Cost to Profile You', value: money(cost) },
+      { label: 'Net Profit On You', value: money(profit) },
+    ],
+  }
+}
+
+export function buildDossier(p: VisitorProfile, article?: ArticleResult | null): { blocks: ReportBlock[]; fallback: PortraitReport } {
   const a = p.article
   const s = p.session
   const articleLines: ReportLine[] = [
@@ -224,8 +280,6 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
     { k: 'HESITATION SAMPLES', v: String(p.behavior.hesitationMs.length) },
   ]
 
-  const assumptions = personalityPortrait(p)
-
   return {
     blocks: [
       { title: 'ARTICLE', lines: articleLines },
@@ -234,6 +288,6 @@ export function buildDossier(p: VisitorProfile, article?: ArticleResult | null):
       { title: 'CHATBOT', lines: chatLines },
       { title: 'COVERT', lines: covert },
     ],
-    assumptions,
+    fallback: fallbackPortrait(p),
   }
 }

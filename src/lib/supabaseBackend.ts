@@ -90,8 +90,9 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     async portrait(profile) {
       try {
         const { data, error } = await sb.functions.invoke('chat', { body: { mode: 'portrait', profile } })
-        if (error || !data?.ok || !Array.isArray(data.portrait)) return null
-        return data.portrait as import('../shared/report.ts').ReportBlock[]
+        const pr = data?.portrait
+        if (error || !data?.ok || !pr || !Array.isArray(pr.brands)) return null
+        return pr as import('../shared/report.ts').PortraitReport
       } catch {
         return null
       }

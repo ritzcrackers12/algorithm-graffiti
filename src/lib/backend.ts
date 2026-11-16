@@ -37,10 +37,10 @@ export interface Backend {
   /** Phone->iPad transient action (station play/pause, article scroll). */
   control(msg: import('./controlSync.ts').ControlMsg): void
   chat(req: ChatAsk): Promise<ChatReply>
-  /** End-of-visit: the model reads the whole session and writes the portrait,
-   *  grouped into the Organization's three assumption lenses.
+  /** End-of-visit: the model reads the whole session and writes the dashboard
+   *  report — segment, KPIs, pitch and ranked brand affinities.
    *  Returns null on any failure so the caller falls back to the local read. */
-  portrait(profile: VisitorProfile): Promise<import('../shared/report.ts').ReportBlock[] | null>
+  portrait(profile: VisitorProfile): Promise<import('../shared/report.ts').PortraitReport | null>
 }
 
 let instance: Backend | null = null

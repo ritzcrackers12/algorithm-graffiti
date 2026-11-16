@@ -219,7 +219,7 @@ export default function ChatControls({ snap, locked, onInfo }: { snap: Snapshot;
     return (
       <div className="ctl-center ctl-allow-scroll" style={{ justifyContent: 'flex-start', gap: 10, paddingTop: 6, position: 'relative' }}>
         {onInfo && <span className="box-info"><InfoDot onClick={() => onInfo(0)} title="How Messages works" /></span>}
-        <div className="ctl-display" style={{ fontSize: 14, lineHeight: 1.35 }}>PICK A CHAT.</div>
+        <div className="chat-love-box">Text someone you love <span className="chat-love-heart">♥</span></div>
         <div className="ctl-done-sub" style={{ opacity: 0.65 }}>you’re dropped mid-conversation. reply however you want.</div>
         <div className="chat-picker">
           {SCENARIO_IDS.map((id) => {

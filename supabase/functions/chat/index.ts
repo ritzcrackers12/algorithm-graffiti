@@ -85,39 +85,43 @@ function parseReply(text: string, profile: VisitorProfile) {
   return { messages: out, bot: out.at(-1)!.text, chips: [] as string[], topic: scenario, done: false }
 }
 
-type PortraitLine = { k: string; v: string }
-type PortraitBlock = { title: string; lines: PortraitLine[] }
+type KPI = { label: string; value: string }
+type BrandPick = { name: string; pct: number; why: string }
+type PortraitReport = { segment: string; kpis: KPI[]; pitch: string; brands: BrandPick[] }
 
-function parseLines(rows: unknown): PortraitLine[] {
-  const out: PortraitLine[] = []
-  if (!Array.isArray(rows)) return out
-  for (const row of rows) {
-    if (!row || typeof row !== 'object') continue
-    const k = String((row as { k?: unknown }).k ?? '').trim()
-    const v = String((row as { v?: unknown }).v ?? '').trim()
-    if (k && v) out.push({ k: k.toUpperCase(), v })
-  }
-  return out
-}
-
-function parsePortrait(text: string): PortraitBlock[] | null {
+function parsePortrait(text: string): PortraitReport | null {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start < 0 || end <= start) return null
   try {
-    const raw = JSON.parse(text.slice(start, end + 1)) as { sections?: unknown; portrait?: unknown }
-    if (Array.isArray(raw.sections)) {
-      const blocks: PortraitBlock[] = []
-      for (const sec of raw.sections) {
-        if (!sec || typeof sec !== 'object') continue
-        const title = String((sec as { title?: unknown }).title ?? '').trim().toUpperCase()
-        const lines = parseLines((sec as { lines?: unknown }).lines)
-        if (title && lines.length) blocks.push({ title, lines })
-      }
-      return blocks.length ? blocks : null
+    const raw = JSON.parse(text.slice(start, end + 1)) as {
+      segment?: unknown; kpis?: unknown; pitch?: unknown; brands?: unknown
     }
-    const flat = parseLines(raw.portrait)
-    return flat.length ? [{ title: '', lines: flat }] : null
+    const kpis: KPI[] = []
+    if (Array.isArray(raw.kpis)) {
+      for (const row of raw.kpis) {
+        if (!row || typeof row !== 'object') continue
+        const label = String((row as { label?: unknown }).label ?? '').trim()
+        const value = String((row as { value?: unknown }).value ?? '').trim()
+        if (label && value) kpis.push({ label, value })
+      }
+    }
+    const brands: BrandPick[] = []
+    if (Array.isArray(raw.brands)) {
+      for (const row of raw.brands) {
+        if (!row || typeof row !== 'object') continue
+        const name = String((row as { name?: unknown }).name ?? '').trim()
+        const why = String((row as { why?: unknown }).why ?? '').trim()
+        let pct = Number((row as { pct?: unknown }).pct)
+        if (!Number.isFinite(pct)) pct = 60
+        pct = Math.max(1, Math.min(99, Math.round(pct)))
+        if (name && why) brands.push({ name, pct, why })
+      }
+    }
+    const segment = String(raw.segment ?? '').trim() || 'GENERAL CONSUMER'
+    const pitch = String(raw.pitch ?? '').trim()
+    if (!brands.length || !kpis.length) return null
+    return { segment, kpis, pitch, brands }
   } catch {
     return null
   }

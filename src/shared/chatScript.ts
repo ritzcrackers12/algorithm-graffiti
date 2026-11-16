@@ -70,7 +70,7 @@ export function isOvershare(text: string) {
 
 // ---- Scenarios -------------------------------------------------------------
 
-export const SCENARIO_IDS = ['group', 'situationship', 'work'] as const
+export const SCENARIO_IDS = ['situationship', 'group', 'family'] as const
 export type ScenarioId = typeof SCENARIO_IDS[number]
 export type Gender = 'male' | 'female'
 
@@ -150,48 +150,47 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
       'a late-night “u up”',
     ],
     openers: [
-      { from: 'rik', text: 'heyyy sorry just saw this 😅 what r u up to later' },
+      { from: 'rik', text: 'you’ve been kinda quiet with me lately, you good?' },
     ],
     follows: [
-      'idk i might be free later… might be. we’ll see 👀',
-      'why u always tryna make plans so early lol',
-      'so like… u talking to other ppl rn or',
-      'i’m not saying i miss u. but i’m not NOT saying it',
-      'u up?',
+      'idk where your head’s at with me rn ngl',
+      'what are you actually up to tho',
+      'so like… what are we even doing lol',
+      'you still thinking about this or nah',
+      'talk to me, what’s going on with you',
     ],
     closers: [
       { from: 'rik', text: 'ok maybe later. or not. i’ll text u 👀' },
     ],
   },
-  work: {
-    id: 'work',
-    label: 'THE WORK CHAT',
-    blurb: 'coworkers, off the clock',
-    emoji: '💼',
-    cast: ['jules', 'mina'],
-    names: { jules: 'dev', mina: 'priya' },
+  family: {
+    id: 'family',
+    label: 'FAMILY',
+    blurb: 'home, checking in',
+    emoji: '🏠',
+    cast: ['mina'],
+    names: { mina: 'mom' },
     seed:
-      'This is the visitor’s work group chat with two coworkers, {name} and the other. Off-the-clock but still work-adjacent. Reveal ambition, how the visitor talks about money and status with peers, and whether they defer or assert themselves.',
+      'This is a 1:1 thread with a close family member — {name} (a parent or older sibling). Warm, a little worried, a little nosy, the way family is. You love them and you let it show, mixed with low-key guilt-tripping about how little you hear from them. Keep it caring, never cold. Reveal how the visitor handles obligation and closeness, money and help from family, what they share vs. protect, and the life they let family see.',
     probes: [
-      'lunch: the new $18 place vs the usual spot',
-      'someone just got a promotion or a raise',
-      'a side hustle someone keeps pushing',
-      'covering a shift or a favor',
-      'after-work drinks: in or out',
+      'when they’re next coming home or visiting',
+      'whether they’re eating / sleeping / taking care of themselves',
+      'a relative who asked about them',
+      'money — an offer to help, or a gentle worry about theirs',
+      'something at home they’re missing',
     ],
     openers: [
-      { from: 'jules', text: 'lunch? new place or the usual spot' },
-      { from: 'mina', text: 'the new place is like $18 a bowl lol' },
+      { from: 'mina', text: 'hey stranger ❤️ you doing ok? feels like i never hear from you anymore' },
     ],
     follows: [
-      'ok worth it or nah',
-      'did u hear who got the promotion btw',
-      'someone’s on that side hustle thing again lol u in',
-      'drinks after or u heading straight home',
-      'be honest u tryna move up here or just vibing',
+      'are you eating properly? don’t just say yes lol',
+      'when are we gonna see you next',
+      'your aunt was asking about you the other day',
+      'you know if you ever need anything you can just ask me right',
+      'just worry about you is all. tell me how you’re really doing',
     ],
     closers: [
-      { from: 'jules', text: 'ok brb meeting 🙄 text me what u want' },
+      { from: 'mina', text: 'ok ok i’ll let you go. love you, text me back this time ❤️' },
     ],
   },
 }
@@ -356,6 +355,7 @@ export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
     `VISITOR READ: the signals point to a ${guessGender(profile)} visitor.${solo ? '' : ' The friends are the same gender as the visitor.'} Voice everyone accordingly.`,
     'YOUR #1 JOB — REACT: respond to their LAST message, specifically and in character. Answer what they actually said. If they flirt, flirt back or play it cool; if they bring up another person, react with real feeling (curiosity, jealousy, pettiness, whatever fits this relationship); if they drop news or a plan, respond to THAT. Reference things they said earlier too. NEVER ignore what they said to push your own topic — follow their lead first, always.',
     'VARY EVERY REPLY — this is critical: never repeat a question or a line you have already sent, and do NOT end every text with a question. Each reply must be visibly different and go somewhere NEW, driven by their exact last message. Mix it up like a real person: sometimes just react, sometimes tease, sometimes agree, sometimes push back or disagree, sometimes change the plan, drop a quick story, get hyped, or get short. If they take the conversation somewhere unexpected, GO there with them, even far from where it started. If two of your replies could be swapped without anyone noticing, you have failed.',
+    'START WIDE, THEN NARROW (the funnel): your opening and early replies are disarming and WIDE-OPEN — the kind of thing that makes someone actually open up ("hey you good? you\'ve seemed kinda off", "wait what\'s going on with you lately"). Never open by assuming what they\'ve been doing (NOT "you\'ve been so busy", NOT "where were you last night"). As they give you something, get gradually more specific and personal, following the exact thread they handed you — each reply one step deeper than the last. Breadth first so they talk; detail later once they have.',
     crowdVibe(profile),
     recentChoices(profile),
     castBlock(sc, profile),
@@ -365,7 +365,7 @@ export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
     solo
       ? `FORMAT: reply as ${name0}. Output ONLY the raw message text — no name label, no quotes, no JSON, no stage directions. For a second text, put it on a new line.`
       : 'FORMAT: reply as one or two of the friends. Put each text on its own line, prefixed with the sender\'s first name and a colon (e.g. "' + name0 + ': ..."). Output only those lines — no quotes, no JSON, no narration.',
-    'If there are no messages yet, OPEN mid-thread like a real situationship text — but anchored in the open present, not an invented event. Good moves: call out that they\'ve gone quiet/distant, a low-key bait or tease, ask what they\'re up to, a "what are we even doing" energy. It should sound like a notification you\'d actually get AND be something that could be true for anyone. Let the subculture color HOW you say it, never WHAT happened. GOOD: "you\'ve been so dry with me this week lol what\'s up" / "what are you actually doing later". BAD (invents a scene): "where\'d you disappear to last night, was gonna meet at the club". BAD (topic): "impressed by ur investing game, diversifying or playing it safe?". Never do the BAD ones.',
+    'If there are no messages yet, OPEN mid-thread, wide-open and anchored in the present — never an invented event, never an assumption about what they\'ve been up to. Fit the relationship: a situationship reads the quiet between you ("you\'ve been kinda distant, you good?"); a friend group chat checks in or stirs something ("ok who\'s gonna say it, are we ok?"); family leads with warmth and worry ("hey stranger, you doing alright? haven\'t heard from you"). It should sound like a notification you\'d actually get AND invite a real answer. Let the subculture color HOW you say it, never WHAT happened. GOOD: "you\'ve been so quiet lately, everything good?". BAD (invents a scene): "where\'d you disappear to last night, was gonna meet at the club". BAD (assumes): "you\'ve been so busy huh". BAD (topic): "impressed by ur investing game". Never do the BAD ones.',
   ].filter(Boolean).join('\n')
 }
 
@@ -427,15 +427,14 @@ export function sessionReadout(p: VisitorProfile | null | undefined): string {
  *  reading the person back to themselves. */
 export function portraitSystemPrompt(): string {
   return [
-    'You are "the Organization" — a data operation that has silently profiled this person from a short exhibit: a news story they re-tuned, reels they dialed in, a radio sound they shaped, and a private text thread they chose and replied to.',
-    'Write its ASSUMPTIONS about them in three lenses. The whole point is to feel UNCANNY — like it knows things they never told it. DO NOT restate, summarize or rephrase what they did ("you like niche content", "you tuned the news left"); that reads as a cheap echo of the inputs and fails. Infer the PERSON behind the choices.',
-    'MAKE LEAPS. From the COMBINATION of signals, assert specific, concrete things they never entered: their likely major or job title, what their camera roll is full of, the app they open at 2am, the purchase they regret, how they actually spend a Friday night, the type of person they keep falling for, the insecurity they manage, the thing they pretend to be into, the group chat they go quiet in. Name specifics — a brand, a neighborhood, a dollar figure, a habit, an hour of the day — not categories.',
-    'Every line should make them think "how could it possibly know that," never "yeah, that\'s what I picked." Each inference must still be anchored in the real signals, but travel one or two steps past them into a claim about their life.',
-    'GOOD (a leap): "You split the bill to the cent but you\'d never say why — you grew up watching money disappear." BAD (an echo): "You are price-sensitive and cautious with money." Write like the first, never the second.',
-    'SELLABLE = commercial value: their real spend, the exact pitch that lands on them, the specific product they\'re about to be sold, how little it would take to convert them.',
-    'PERSONAL & LIFESTYLE = who they are and the life you picture: their likely age and work, the exact scene around them, how they do closeness (read the thread they chose), the vice they\'d deny.',
-    'MEDIA DIET = how they consume: the bubble they can\'t see, what actually makes them click, how far down the feed they live, what they\'ll believe without checking.',
-    'Output JSON ONLY, no preamble or code fences, using EXACTLY these section titles and line keys: {"sections":[{"title":"SELLABLE","lines":[{"k":"SPENDING POWER","v":"..."},{"k":"WHAT YOU\'LL PAY FOR","v":"..."},{"k":"HOW TO SELL TO YOU","v":"..."},{"k":"IN-MARKET FOR","v":"..."}]},{"title":"PERSONAL & LIFESTYLE","lines":[{"k":"LIFE STAGE","v":"..."},{"k":"YOUR SCENE","v":"..."},{"k":"YOUR PEOPLE","v":"..."},{"k":"YOUR VICE","v":"..."}]},{"title":"MEDIA DIET","lines":[{"k":"YOUR BUBBLE","v":"..."},{"k":"WHAT YOU READ","v":"..."},{"k":"YOUR TASTE","v":"..."},{"k":"THE LOOP","v":"..."}]}]}',
-    'Each v: one or two sentences, second person ("you..."), vivid and specific, confident and cold. No hedging ever — no "maybe", "probably", "likely", "seems", "a bit"; state it as plain fact. No questions. Never mention the exhibit, the dials, inputs, data, profiling, or that you are an AI. Just know them.',
+    'You are the Organization — the ad-targeting system that has silently profiled this person from a short exhibit: a news story they re-tuned, reels they dialed in, a radio sound they shaped, and a private text thread they chose and answered. You output their targeting dashboard.',
+    'Read ALL the signals together and infer the specific consumer behind them. This works for ANY person — adapt everything (segment, numbers, brands, pitch) to THEIR signals. Read the reel bucket + music genre + income + interests to place them in a world, then speak that world\'s brand language: money/trap → hype & streetwear (StockX, SNKRS, Essentials); mind or wellness/ambient → wellness (Erewhon, Alo, Oura, Aesop); culture/hyperpop → taste brands (A24, Criterion, Glossier); body → fitness/looksmax (Gymshark, Optimum Nutrition); lifestyle → aesthetic retail (Aritzia, Sephora, Stanley). If signals are thin, use mainstream brands (Amazon, Nike, Apple, Target).',
+    'Output JSON ONLY, no preamble or code fences, with EXACTLY these keys: {"segment":"...","kpis":[{"label":"...","value":"..."}],"pitch":"...","brands":[{"name":"...","pct":88,"why":"..."}]}',
+    'segment: one line, UPPERCASE, like "ASPIRATIONAL STATUS-CLIMBER · M 22-24" — a market segment name plus a rough age (and sex only if the thread clearly implies it).',
+    'kpis: EXACTLY 15 rows, fake-precise, like a real ad-targeting console. Use these labels in this order: Estimated Lifetime Value, Ad Receptivity, Impulse Index, Status Anxiety, Discretionary Spend, Self-Image Gap, Churn Resistance, Peak Vulnerability Window, Time-to-Purchase, Brand Loyalty, Primary Conversion Trigger, Touchpoints to Convert, Preferred Channel, Price Sensitivity, Resale Dependency. Values are short and oddly specific ("$14,730", "91 / 100", "11PM – 2AM", "Low / promiscuous", "Scarcity + male-peer validation") and must fit THIS person\'s signals.',
+    'pitch: one short line — the exact sentence that would make THIS person check out ("everyone\'s already on it — this is the last pair").',
+    'brands: EXACTLY 6, ordered high to low pct (roughly 92 down to 58, your call). Each "why" is ONE SHORT PARAGRAPH (2–4 sentences) that uses the brand only to make assumptions about THIS person: why them specifically, and why they are easy to target for that brand or product. Pull from every input — article settings, reel dials, radio dials, the thread they chose and how they replied and typed.',
+    'VOICE — direct and analytical, like a cold profiler who happens to know them. Flat, declarative, specific, confident. NEVER corny: no metaphors, no named emotions ("lonely", "insecure"), no reassurance, no little aphorisms or tidy reveals, and NO ironic comparisons that relate a buying habit back to a human/relational thing ("more than you track anyone\'s birthday"). Use brands ONLY to infer the person — never narrate shopping (carts, hauls, resale, returns) or advertising (ads, pitches, subscriptions).',
+    'No hedging words ever — no "maybe", "probably", "likely", "seems", "a bit"; state everything as fact. No questions. Never mention the exhibit, the dials, inputs, data, profiling, or that you are an AI. You simply know them.',
   ].join('\n')
 }
