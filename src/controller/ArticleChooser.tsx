@@ -50,7 +50,7 @@ export default function ArticleChooser({
           </PixelButton>
         ))}
       </div>
-      <PixelButton className="end-session" block onClick={onBack}>BACK TO ICONS</PixelButton>
+      <PixelButton className="end-session" block onClick={onBack}>BACK TO APPS</PixelButton>
     </div>
   )
 }

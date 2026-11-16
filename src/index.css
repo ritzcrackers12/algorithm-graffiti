@@ -486,6 +486,11 @@ button { font: inherit; }
 
 .picker { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .picker-label { text-align: center; margin: 2px 0 8px; }
+.picker-hint {
+  text-align: center; margin: -4px 0 12px; padding: 0 10px;
+  font: 600 11px/1.45 var(--font-mono); letter-spacing: 0.04em; color: var(--mint-deep);
+  opacity: 0.85;
+}
 .picker-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; }
 .picker-grid .tile.locked {
   background: var(--btn-face);

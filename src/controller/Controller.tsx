@@ -401,7 +401,7 @@ export default function Controller() {
             void sendCommand('home')
           }}
         >
-          BACK TO ICONS
+          BACK TO APPS
         </PixelButton>
       </div>
     )
