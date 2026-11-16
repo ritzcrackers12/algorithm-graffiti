@@ -27,7 +27,7 @@ const OUTLET: Record<string, Outlet> = {
 }
 const OUTLET_NAME: Record<Outlet, string> = {
   wsj: 'The Ball Street Journal',
-  nyt: 'The You Pork Times',
+  nyt: 'Your Pork Times',
   fox: 'Cox News',
 }
 const OUTLET_URL: Record<Outlet, string> = {
@@ -168,7 +168,7 @@ function Masthead({ outlet }: { outlet: Outlet }) {
           <span>TODAY’S PAPER</span>
           <span>$4.00</span>
         </div>
-        <div className="bsj-mast nyt-mast">The You Pork Times</div>
+        <div className="bsj-mast nyt-mast">Your Pork Times</div>
         <div className="bsj-rule" />
         <nav className="bsj-nav nyt-nav">
           {['World', 'U.S.', 'Politics', 'Business', 'Technology', 'Science', 'Opinion', 'Arts'].map((s) => (
