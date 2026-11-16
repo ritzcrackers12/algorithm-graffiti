@@ -17,7 +17,7 @@
     "import:reels": "python3 scripts/import-reels.py",
     "deploy": "git push",
     "deploy:functions": "node scripts/sync-shared.mjs && supabase functions deploy generate && supabase functions deploy admin && supabase functions deploy reels && supabase functions deploy chat",
-    "deploy:db": "supabase db push"
+    "deploy:db": "supabase db push --remote"
   },
   "dependencies": {
     "@fontsource/win95fa": "^5.3.0",
