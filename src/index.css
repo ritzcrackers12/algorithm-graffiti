@@ -734,7 +734,7 @@ button { font: inherit; }
   text-transform: none;
 }
 .ob-icon { color: #2a2a31; margin-top: 2px; }
-.ob-title { font: 650 19px/1.25 inherit; letter-spacing: -0.01em; }
+.ob-title { font: 800 19px/1.25 inherit; letter-spacing: -0.01em; }
 .ob-body { font: 400 15px/1.5 inherit; color: #55555f; max-width: 282px; }
 .ob-dots { display: flex; gap: 7px; margin-top: 2px; }
 .ob-dot { width: 7px; height: 7px; border-radius: 50%; background: #d8d8de; transition: background 0.15s ease; }

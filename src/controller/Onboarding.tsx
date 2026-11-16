@@ -18,6 +18,17 @@ function PhoneIcon() {
   )
 }
 
+function AppsGridIcon() {
+  return (
+    <svg viewBox="0 0 64 44" width="64" height="44" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="12" y="2" width="16" height="16" rx="2" />
+      <rect x="36" y="2" width="16" height="16" rx="2" />
+      <rect x="12" y="26" width="16" height="16" rx="2" />
+      <rect x="36" y="26" width="16" height="16" rx="2" opacity="0.45" strokeDasharray="3 3" />
+    </svg>
+  )
+}
+
 function DialSliderIcon() {
   return (
     <svg viewBox="0 0 64 44" width="64" height="44" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -106,6 +117,11 @@ export function Tour({ slides, start = 0, onDone }: { slides: Slide[]; start?: n
 }
 
 const INTRO: Slide[] = [
+  {
+    icon: <AppsGridIcon />,
+    title: 'Choose an app to start',
+    body: 'Tap any tile to open it on the big screen. Messages and Radio unlock as you use Articles and Videos.',
+  },
   {
     icon: <PhoneIcon />,
     title: 'Your phone is the remote',
