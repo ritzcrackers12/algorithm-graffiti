@@ -4,6 +4,7 @@
 export type ControlMsg =
   | { kind: 'audio'; action: 'play' | 'pause' | 'replay' }
   | { kind: 'scroll'; dir: 'up' | 'down'; pane?: 'original' | 'altered' | 'both' }
+  | { kind: 'touchwarn'; action: 'show' | 'clear' }
 
 let last: (ControlMsg & { seq: number }) | null = null
 let seq = 0

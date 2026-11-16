@@ -20,6 +20,8 @@ import { Segmented } from './controls.tsx'
 import Picker from './Picker.tsx'
 import Onboarding, { Tour, AppIcon, type Slide } from './Onboarding.tsx'
 import ControllerReport from './ControllerReport.tsx'
+import { TouchWarning } from '../components/TouchWarning.tsx'
+import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult } from '../shared/types.ts'
 
@@ -162,6 +164,15 @@ export default function Controller() {
   // Captured when the visit finishes: the report moves to THIS phone and the iPad is freed.
   const [finalReport, setFinalReport] = useState<{ profile: VisitorProfile; article: ArticleResult | null } | null>(null)
   const endedForReport = useRef(false)
+  // Someone touched the iPad: the warning is pushed here so they dismiss it from the phone.
+  const [touchWarn, setTouchWarn] = useState(false)
+  useEffect(() => {
+    const unsub = subscribeControl(() => {
+      const c = getControl()
+      if (c?.kind === 'touchwarn') setTouchWarn(c.action === 'show')
+    })
+    return () => { unsub() }
+  }, [])
   const openTour = (app: string, slide: number) => { haptic('press'); setTourStart(slide); setTourApp(app) }
   const markSeen = (app: string) => {
     setSeenHints((prev) => {
@@ -425,6 +436,16 @@ export default function Controller() {
         />
       )}
       {toast && <div key={toast.key} className="toast" onAnimationEnd={() => setToast(null)}>{toast.text}</div>}
+      {touchWarn && active && (
+        <TouchWarning
+          variant="phone"
+          onContinue={() => {
+            haptic('press')
+            setTouchWarn(false)
+            void sendControl({ kind: 'touchwarn', action: 'clear' })
+          }}
+        />
+      )}
     </div>
   )
 }
