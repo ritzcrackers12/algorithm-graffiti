@@ -25,12 +25,31 @@ const set = (patch: Partial<Live>) => {
 }
 
 export function sessionId(): string {
-  let id = sessionStorage.getItem('ag-session')
+  // localStorage (not sessionStorage) so the id survives an iOS Safari tab
+  // reload/eviction — the phone reclaims its slot instead of going to the back.
+  let id: string | null = null
+  try { id = localStorage.getItem('ag-session') } catch { /* private mode */ }
   if (!id) {
     id = 'v-' + crypto.randomUUID().replace(/-/g, '').slice(0, 20)
-    sessionStorage.setItem('ag-session', id)
+    try { localStorage.setItem('ag-session', id) } catch { /* ignore */ }
   }
   return id
+}
+
+// ---- Screen wake lock: keep the controller's screen awake during a turn so
+// heartbeats never stop while the visitor watches the iPad. Browsers release it
+// when the tab is hidden, so we re-acquire on visibility/online.
+type WakeSentinel = { release: () => Promise<void>; addEventListener: (t: string, cb: () => void) => void }
+let wakeLock: WakeSentinel | null = null
+async function ensureWakeLock() {
+  try {
+    const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<WakeSentinel> } }
+    if (role !== 'controller' || document.visibilityState !== 'visible' || wakeLock || !nav.wakeLock) return
+    wakeLock = await nav.wakeLock.request('screen')
+    wakeLock.addEventListener('release', () => { wakeLock = null })
+  } catch {
+    wakeLock = null
+  }
 }
 
 let role: Role | null = null
@@ -89,6 +108,20 @@ export function startLive(r: Role) {
       if (ok !== state.connected) set({ connected: ok })
     }, 1000)
   })
+
+  if (r === 'controller' && typeof document !== 'undefined') {
+    // Keep the screen awake, and the moment the phone wakes/reconnects, beat
+    // immediately so it reclaims its slot within the grace window.
+    const onBack = () => {
+      if (document.visibilityState === 'visible') {
+        void ensureWakeLock()
+        void refresh()
+      }
+    }
+    document.addEventListener('visibilitychange', onBack)
+    window.addEventListener('online', onBack)
+    void ensureWakeLock()
+  }
 }
 
 export function rejoinQueue() {

@@ -18,8 +18,12 @@ export const CONFIG = {
   TURN_SECONDS: 0,
   /** Seconds without touching anything before control passes on. 0 = never drop for inactivity (turn ends only at the report or staff skip). */
   IDLE_SECONDS: 0,
-  /** The visitor in control is dropped if their phone stops checking in (locked / tab closed) this long. */
+  /** Next-in-line must have checked in within this long to be promoted (presence check). */
   GONE_SECONDS: 12,
+  /** The ACTIVE visitor's reclaim grace: the iPad is held this long if their phone goes
+   *  dark (locked / app-switched / offline) before advancing to the next person. They
+   *  resume where they left off if they return within it. Enforced in SQL (ag__advance). */
+  RECLAIM_SECONDS: 120,
   /** People waiting in line keep their place this long with a locked phone (they're skipped if their turn comes while away). */
   WAITING_GONE_SECONDS: 180,
   /** How often phones and the iPad check in with the server (milliseconds). */
