@@ -16,6 +16,7 @@ export default function ReportView({
   // synthesis when it returns. Falls back silently if synthesis is unavailable.
   const [report, setReport] = useState<PortraitReport>(fallback)
   const [synth, setSynth] = useState(true)
+  const kpis = report.kpis.length >= 5 ? report.kpis : fallback.kpis
 
   useEffect(() => {
     let live = true
@@ -58,7 +59,7 @@ export default function ReportView({
 
           <section className="dash-kpis">
             <div className="dash-kpis-head"><span>METRIC</span><span>VALUE</span></div>
-            {report.kpis.map((k) => (
+            {kpis.map((k) => (
               <div key={k.label} className="dash-kpi-row">
                 <span className="dash-kpi-label">{k.label}</span>
                 <span className="dash-kpi-value">{k.value}</span>

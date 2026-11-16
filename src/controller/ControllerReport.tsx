@@ -16,6 +16,7 @@ export default function ControllerReport({
   const { fallback } = buildDossier(profile, article)
   const ledger = dataLedger(profile)
   const [report, setReport] = useState<PortraitReport>(fallback)
+  const kpis = report.kpis.length >= 5 ? report.kpis : fallback.kpis
   const [synth, setSynth] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -30,8 +31,13 @@ export default function ControllerReport({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const download = async () => {
+  // Build the PDF, open it in a NEW TAB (so the visitor keeps their report),
+  // then end the session — freeing the iPad for the next person. When `finish`
+  // is false it just downloads without ending (plain "download" affordance).
+  const makePdf = async (finish: boolean) => {
     haptic('press')
+    // Open the tab synchronously inside the tap so iOS/Safari doesn't block it.
+    const tab = finish ? window.open('', '_blank') : null
     setSaving(true)
     try {
       const { jsPDF } = await import('jspdf')
@@ -61,7 +67,7 @@ export default function ControllerReport({
       doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20)
       doc.text('TARGETING METRICS', M, y); y += 16
       doc.setFontSize(10)
-      for (const k of report.kpis) {
+      for (const k of kpis) {
         if (y > ph - 60) page()
         doc.setFont('helvetica', 'normal'); doc.setTextColor(70)
         doc.text(k.label, M, y)
@@ -100,11 +106,19 @@ export default function ControllerReport({
         doc.text(String(l.value), pw - M, y, { align: 'right' })
         y += 15
       }
-      doc.save('algorithm-graffiti-report.pdf')
+      if (finish) {
+        const url = doc.output('bloburl') as unknown as string
+        if (tab) tab.location.href = url
+        else doc.save('algorithm-graffiti-report.pdf') // popup blocked → fall back to download
+      } else {
+        doc.save('algorithm-graffiti-report.pdf')
+      }
     } catch (e) {
       console.error('pdf failed', e)
+      if (tab) tab.close()
     } finally {
       setSaving(false)
+      if (finish) setTimeout(() => onReset(), 500) // hand the iPad to the next person
     }
   }
 
@@ -124,7 +138,7 @@ export default function ControllerReport({
 
       <section className="dash-kpis">
         <div className="dash-kpis-head"><span>METRIC</span><span>VALUE</span></div>
-        {report.kpis.map((k) => (
+        {kpis.map((k) => (
           <div key={k.label} className="dash-kpi-row">
             <span className="dash-kpi-label">{k.label}</span>
             <span className="dash-kpi-value">{k.value}</span>
@@ -163,10 +177,11 @@ export default function ControllerReport({
       </section>
 
       <div className="ctl-report-actions">
-        <PixelButton block type="button" disabled={saving} onClick={() => void download()}>
-          {saving ? 'PREPARING…' : 'DOWNLOAD PDF'}
+        <PixelButton block type="button" disabled={saving} onClick={() => void makePdf(true)}>
+          {saving ? 'PREPARING…' : 'OPEN MY REPORT ↗'}
         </PixelButton>
-        <PixelButton block type="button" onClick={() => { haptic('press'); onReset() }}>DONE</PixelButton>
+        <div className="ctl-report-fineprint">opens your report in a new tab, then frees the display for the next visitor</div>
+        <PixelButton block type="button" disabled={saving} onClick={() => { haptic('press'); onReset() }}>JUST FINISH</PixelButton>
       </div>
     </div>
   )

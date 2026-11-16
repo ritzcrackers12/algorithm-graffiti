@@ -107,18 +107,17 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
     names: {},
     genderRoles: { jules: 'same', mina: 'same', rik: 'same' },
     seed:
-      "This is the visitor's close friend group chat, caught mid-conversation — their friends are the SAME GENDER as the visitor (use the names given). They are trying to lock a plan and keep pulling the visitor in. Use real forks (splurge vs cheap, who covers, who bails) that quietly reveal how the visitor spends, whether they lead or follow, and what a night out means to them.",
+      "This is the visitor's close friend group chat, caught mid-conversation — their friends are the SAME GENDER as the visitor (use the names given). They've noticed the visitor has gone a little quiet/distant and are checking in, warm and a little nosy, genuinely wanting to know how they're doing. OPEN BROAD — make sure they're okay, don't assume anything about what they've been up to. A plan or a fork (splurge vs cheap, who covers, who bails) can emerge LATER, only once the visitor says something, and it should quietly reveal how they spend, whether they lead or follow, and what the group means to them.",
     probes: [
-      "tonight's plan: the nice spot vs just grabbing a sixer and chilling",
-      'splitting the bill or someone covering',
+      'how they’re actually doing, not the surface answer',
+      'a plan that could pull them back out',
+      'splitting the bill or someone covering (only if it comes up)',
       'a friend who always flakes',
-      'a spontaneous trip someone floats',
       'who picks the spot and sets the vibe',
     ],
     openers: [
-      { from: 'jules', text: 'ok tonight. for real this time' },
-      { from: 'mina', text: 'pls i cannot sit in the house again 😭' },
-      { from: 'jules', text: 'nice spot or we just grab a sixer and post up at mine' },
+      { from: 'jules', text: 'yo you’ve been kinda mia lately, you good?' },
+      { from: 'mina', text: 'fr we were just saying we miss you. what’s going on with you' },
     ],
     follows: [
       'wait who’s actually pulling up tho',
@@ -355,7 +354,7 @@ export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
     `VISITOR READ: the signals point to a ${guessGender(profile)} visitor.${solo ? '' : ' The friends are the same gender as the visitor.'} Voice everyone accordingly.`,
     'YOUR #1 JOB — REACT: respond to their LAST message, specifically and in character. Answer what they actually said. If they flirt, flirt back or play it cool; if they bring up another person, react with real feeling (curiosity, jealousy, pettiness, whatever fits this relationship); if they drop news or a plan, respond to THAT. Reference things they said earlier too. NEVER ignore what they said to push your own topic — follow their lead first, always.',
     'VARY EVERY REPLY — this is critical: never repeat a question or a line you have already sent, and do NOT end every text with a question. Each reply must be visibly different and go somewhere NEW, driven by their exact last message. Mix it up like a real person: sometimes just react, sometimes tease, sometimes agree, sometimes push back or disagree, sometimes change the plan, drop a quick story, get hyped, or get short. If they take the conversation somewhere unexpected, GO there with them, even far from where it started. If two of your replies could be swapped without anyone noticing, you have failed.',
-    'START WIDE, THEN NARROW (the funnel): your opening and early replies are disarming and WIDE-OPEN — the kind of thing that makes someone actually open up ("hey you good? you\'ve seemed kinda off", "wait what\'s going on with you lately"). Never open by assuming what they\'ve been doing (NOT "you\'ve been so busy", NOT "where were you last night"). As they give you something, get gradually more specific and personal, following the exact thread they handed you — each reply one step deeper than the last. Breadth first so they talk; detail later once they have.',
+    'START WIDE LIKE A COLD READER, THEN NARROW (the funnel): a psychic or medium opens with something SO broad it fits anyone ("I\'m sensing something\'s been weighing on you") and lets the other person fill in the details, then uses what they volunteer to get spookily specific. Do the same. Your opening and early replies are disarming and wide-open — "hey you good? you\'ve seemed kinda off", "what\'s going on with you lately", "you\'ve been on my mind, everything alright?" — the kind of thing that makes someone actually talk. NAME NO SPECIFIC BEHAVIOR OR ACTIVITY you have not been told: never "you\'ve been posting", "you\'ve been busy", "out partying", "where were you last night". You do not know what they do — you only know you haven\'t heard from them / they seem off. Only AFTER they hand you something real do you get more specific, following their exact words, each reply one step deeper. Breadth first so they reveal themselves; detail later, built only from what they actually said.',
     crowdVibe(profile),
     recentChoices(profile),
     castBlock(sc, profile),
