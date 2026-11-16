@@ -46,7 +46,16 @@ export default function ControllerReport({
       doc.text('THE ORGANIZATION’S ASSESSMENT OF YOU', M, y); y += 20
       doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(130)
       doc.text(`SEGMENT: ${report.segment}`, M, y); y += 14
-      doc.text('Algorithm Graffiti', M, y); y += 24
+      doc.text('Algorithm Graffiti', M, y); y += 22
+      if (report.grade) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(20)
+        doc.text(`BUYER GRADE: ${report.grade}`, M, y); y += 16
+      }
+      if (report.targeting) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50)
+        const tw = doc.splitTextToSize(report.targeting, W)
+        doc.text(tw, M, y); y += tw.length * 13 + 12
+      }
 
       // KPI chart
       doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(20)
@@ -105,6 +114,13 @@ export default function ControllerReport({
         <div className="ctl-report-title">THE ORGANIZATION’S<br />ASSESSMENT OF YOU{synth ? ' …' : ''}</div>
         <div className="ctl-report-segment">SEGMENT: {report.segment}</div>
       </div>
+
+      {(report.grade || report.targeting) && (
+        <section className="dash-target">
+          {report.grade && <div className="dash-grade">{report.grade}</div>}
+          {report.targeting && <p className="dash-target-why">{report.targeting}</p>}
+        </section>
+      )}
 
       <section className="dash-kpis">
         <div className="dash-kpis-head"><span>METRIC</span><span>VALUE</span></div>

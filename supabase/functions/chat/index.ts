@@ -87,7 +87,7 @@ function parseReply(text: string, profile: VisitorProfile) {
 
 type KPI = { label: string; value: string }
 type BrandPick = { name: string; pct: number; why: string }
-type PortraitReport = { segment: string; kpis: KPI[]; pitch: string; brands: BrandPick[] }
+type PortraitReport = { segment: string; grade: string; targeting: string; kpis: KPI[]; pitch: string; brands: BrandPick[] }
 
 function parsePortrait(text: string): PortraitReport | null {
   const start = text.indexOf('{')
@@ -95,7 +95,7 @@ function parsePortrait(text: string): PortraitReport | null {
   if (start < 0 || end <= start) return null
   try {
     const raw = JSON.parse(text.slice(start, end + 1)) as {
-      segment?: unknown; kpis?: unknown; pitch?: unknown; brands?: unknown
+      segment?: unknown; grade?: unknown; targeting?: unknown; kpis?: unknown; pitch?: unknown; brands?: unknown
     }
     const kpis: KPI[] = []
     if (Array.isArray(raw.kpis)) {
@@ -119,9 +119,11 @@ function parsePortrait(text: string): PortraitReport | null {
       }
     }
     const segment = String(raw.segment ?? '').trim() || 'GENERAL CONSUMER'
+    const grade = String(raw.grade ?? '').trim()
+    const targeting = String(raw.targeting ?? '').trim()
     const pitch = String(raw.pitch ?? '').trim()
     if (!brands.length || !kpis.length) return null
-    return { segment, kpis, pitch, brands }
+    return { segment, grade, targeting, kpis, pitch, brands }
   } catch {
     return null
   }

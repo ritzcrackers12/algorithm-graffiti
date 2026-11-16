@@ -933,6 +933,13 @@ button { font: inherit; }
   color: #c6ff3d; text-transform: uppercase; opacity: 0.95;
 }
 .report-segment { margin: 6px 0 10px; }
+.dash-target { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; }
+.dash-grade {
+  align-self: flex-start; padding: 4px 10px;
+  background: #c6ff3d; color: #0a1207;
+  font: 800 13px/1 var(--font-mono); letter-spacing: 0.06em; border-radius: 3px;
+}
+.dash-target-why { margin: 0; font: 500 12.5px/1.5 Tahoma, Verdana, sans-serif; color: #d8d2c8; }
 .dash-kpis {
   margin: 12px 0; border: 1px solid rgba(198, 255, 61, 0.35);
   background: rgba(0, 0, 0, 0.35); border-radius: 4px; overflow: hidden;

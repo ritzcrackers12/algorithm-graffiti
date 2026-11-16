@@ -49,6 +49,13 @@ export default function ReportView({
           <h2 className="report-assumptions-title">THE ORGANIZATION’S ASSESSMENT OF YOU{synth ? ' …' : ''}</h2>
           <div className="report-segment">SEGMENT: {report.segment}</div>
 
+          {(report.grade || report.targeting) && (
+            <section className="dash-target">
+              {report.grade && <div className="dash-grade">{report.grade}</div>}
+              {report.targeting && <p className="dash-target-why">{report.targeting}</p>}
+            </section>
+          )}
+
           <section className="dash-kpis">
             <div className="dash-kpis-head"><span>METRIC</span><span>VALUE</span></div>
             {report.kpis.map((k) => (

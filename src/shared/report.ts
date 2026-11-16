@@ -24,6 +24,8 @@ export interface KPI { label: string; value: string }
 export interface BrandPick { name: string; pct: number; why: string }
 export interface PortraitReport {
   segment: string
+  grade: string // buyer grade, e.g. "A — PRIME TARGET"
+  targeting: string // short analysis: who'd fight to sell to them, who wouldn't bother, why
   kpis: KPI[]
   pitch: string
   brands: BrandPick[]
@@ -159,7 +161,20 @@ function fallbackPortrait(p: VisitorProfile): PortraitReport {
     why: b.why,
   }))
 
-  return { segment, kpis, pitch: bucket ? PITCHES[bucket] : 'this is the one you’ve been meaning to get.', brands }
+  // Buyer grade + targeting analysis — how desirable a target they are, and why.
+  const income = a.income ?? 2
+  const value = (sus >= 0.55 ? 2 : sus >= 0.4 ? 1 : 0) + (income >= 4 ? 2 : income >= 2 ? 1 : 0) + (impulsive ? 1 : 0)
+  let grade = 'C — LOW-PRIORITY TARGET'
+  let targeting = 'You research before you buy and you flinch at full price, so premium brands don’t chase you. Only discount and performance-marketing reach you, and they reach you on price, never aspiration — you’re volume, not a prize.'
+  if (value >= 4) {
+    grade = 'A — PRIME TARGET'
+    targeting = 'Brands bid up for you. High intent, low resistance, and you spend past your means to look the part — so premium labels reach down to you and mass labels fight for the volume. You are the account everyone wants and the one that costs the least to win.'
+  } else if (value >= 2) {
+    grade = 'B — SOLID TARGET'
+    targeting = 'A dependable buy. You hesitate, but the right pitch moves you, and you pay a little extra to feel seen. Aspirational mid-market brands reach you most easily — they sell you the bracket just above the one you’re in.'
+  }
+
+  return { segment, grade, targeting, kpis, pitch: bucket ? PITCHES[bucket] : 'this is the one you’ve been meaning to get.', brands }
 }
 
 export { fallbackPortrait }
