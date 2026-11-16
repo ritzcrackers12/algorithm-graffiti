@@ -312,6 +312,35 @@ button { font: inherit; }
 .bsj-takeaways { font-family: var(--font-wsj-sans); font-weight: 700; letter-spacing: 0.08em; font-size: 13px !important; color: #333; }
 .bsj-bullet { padding-left: 1em; }
 .doc-profile { font: 700 11px/1.6 var(--font-supreme); letter-spacing: 1px; color: #b00000; border: 1px dashed #b00000; padding: 6px 10px; margin-bottom: 16px; }
+
+/* ===== You Pork Times (NYT skin) ===== */
+.paper-nyt .bsj-top { font-variant: small-caps; letter-spacing: 0.04em; border-bottom: 1px solid #000; }
+.nyt-mast {
+  font-family: 'UnifrakturCook', 'UnifrakturMaguntia', var(--font-wsj-serif); font-weight: 700;
+  font-size: 50px; letter-spacing: 0; transform: none; padding: 12px 20px 8px; color: #121212;
+}
+.paper-nyt .bsj-rule { height: 2px; }
+.nyt-nav { font-family: var(--font-wsj-serif); font-weight: 600; font-size: 13px; letter-spacing: 0.01em; gap: 20px; }
+.paper-nyt .bsj-kicker { color: #666; letter-spacing: 0.18em; font-weight: 700; }
+.paper-nyt .bsj-article h1 { font-weight: 700; letter-spacing: -0.015em; }
+.paper-nyt .bsj-dek { color: #333; font-size: 20px; }
+
+/* ===== Cox News (Fox skin) ===== */
+.paper-fox { font-family: Arial, Helvetica, sans-serif; }
+.fox-bar { display: flex; align-items: stretch; background: #0b2244; color: #fff; }
+.fox-logo { font-size: 26px; font-weight: 900; letter-spacing: 1px; padding: 8px 14px; }
+.fox-logo b { background: #c8102e; padding: 2px 8px; margin-right: 6px; border-radius: 2px; letter-spacing: -1px; }
+.fox-nav { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 16px; font-size: 12px; font-weight: 700; padding-right: 16px; }
+.fox-breaking { background: #c8102e; color: #fff; font-weight: 900; font-size: 13px; letter-spacing: 0.14em; padding: 5px 16px; }
+.paper-fox .bsj-article h1 {
+  font-family: Arial, Helvetica, sans-serif; font-weight: 900; font-size: 40px; line-height: 1.08;
+  letter-spacing: -0.02em; color: #111; text-transform: uppercase;
+}
+.paper-fox .bsj-kicker { color: #c8102e; font-weight: 900; letter-spacing: 0.1em; }
+.paper-fox .bsj-dek { font-family: Arial, Helvetica, sans-serif; font-weight: 700; font-size: 19px; color: #333; }
+.paper-fox .bsj-article p { font-family: Arial, Helvetica, sans-serif; font-size: 17px; line-height: 1.6; }
+.paper-fox .bsj-article h2 { font-family: Arial, Helvetica, sans-serif; font-weight: 900; }
+.paper-fox .bsj-photo figcaption { font-family: Arial, Helvetica, sans-serif; }
 .caret { display: inline-block; width: 10px; height: 1.05em; vertical-align: -2px; background: #111; margin-left: 2px; animation: blink 0.7s steps(1) infinite; }
 
 /* ---- Website (browser-like) ---- */

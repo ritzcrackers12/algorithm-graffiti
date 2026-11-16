@@ -13,8 +13,27 @@ const PHOTO_CAP: Record<string, string> = {
 }
 const KICKER: Record<string, string> = {
   'maga-coalition': 'OPINION',
-  'ai-data-centers': 'TECH',
+  'ai-data-centers': 'TECHNOLOGY',
   'military-ai': 'DEFENSE',
+}
+
+type Outlet = 'wsj' | 'nyt' | 'fox'
+// Each article wears a different parody outlet's skin. Keyed on the stable
+// articleId, so the original and every regeneration stay in the same paper.
+const OUTLET: Record<string, Outlet> = {
+  'maga-coalition': 'wsj',
+  'ai-data-centers': 'nyt',
+  'military-ai': 'fox',
+}
+const OUTLET_NAME: Record<Outlet, string> = {
+  wsj: 'The Ball Street Journal',
+  nyt: 'The You Pork Times',
+  fox: 'Cox News',
+}
+const OUTLET_URL: Record<Outlet, string> = {
+  wsj: 'https://www.ballstreetjournal.example/articles',
+  nyt: 'https://www.youporktimes.example/section/technology',
+  fox: 'https://www.coxnews.example/politics',
 }
 
 function takeDek(body: string): { dek: string; rest: string } {
@@ -98,34 +117,16 @@ export default function ArticleView({
   }, [control, view])
 
   const { dek, rest } = takeDek(body)
+  const outlet: Outlet = (articleId && OUTLET[articleId]) || 'wsj'
   return (
     <>
       <div className="xp-toolbar">
-        <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>https://www.bsj.example/articles</span>
+        <span className="xp-field" style={{ flex: 1, fontSize: 13 }}>{OUTLET_URL[outlet]}</span>
         <ViewTabs view={view} hasAltered={!!result} />
       </div>
       <div className="doc-scroll" ref={scrollRef}>
-        <div className="bsj">
-          <div className="bsj-top">
-            <span>{todayLine()}</span>
-            <span>U.S. EDITION</span>
-            <span>BSJ</span>
-          </div>
-          <div className="bsj-mast">The Ball Street Journal</div>
-          <div className="bsj-rule" />
-          <nav className="bsj-nav">
-            {['World', 'Business', 'U.S.', 'Politics', 'Economy', 'Tech', 'Markets', 'Opinion', 'Arts', 'Lifestyle'].map((s) => (
-              <span key={s}>{s}</span>
-            ))}
-          </nav>
-          <div className="bsj-rule thin" />
-          <div className="bsj-ticker">
-            <b>MARKETS</b>
-            <span>DJIA 51285.73 <i className="dn">−0.46%</i></span>
-            <span>S&amp;P 500 7376.86 <i className="up">+0.31%</i></span>
-            <span>NASDAQ 24579.42 <i className="up">+1.09%</i></span>
-            <span>U.S. 10 YR 4.867%</span>
-          </div>
+        <div className={`bsj paper-${outlet}`}>
+          <Masthead outlet={outlet} />
           <article className="bsj-article">
             <div className="bsj-kicker">{(articleId && KICKER[articleId]) || 'U.S. NEWS'}</div>
             <h1>{title}</h1>
@@ -151,8 +152,67 @@ export default function ArticleView({
       </div>
       <div className="xp-statusbar">
         <span style={{ flex: 1 }}>{altered ? 'OUTPUT GENERATED.' : 'SOURCE DOCUMENT.'}</span>
-        <span style={{ width: 200 }}>{altered ? `SOURCE: ${result.source.toUpperCase()}` : 'UNMODIFIED'}</span>
+        <span style={{ width: 220 }}>SOURCE: {OUTLET_NAME[outlet].toUpperCase()}</span>
         <span style={{ width: 120 }}>{doc ? `${doc.body.split(/\s+/).length} WORDS` : ''}</span>
+      </div>
+    </>
+  )
+}
+
+function Masthead({ outlet }: { outlet: Outlet }) {
+  if (outlet === 'nyt') {
+    return (
+      <>
+        <div className="bsj-top nyt-top">
+          <span>{todayLine()}</span>
+          <span>TODAY’S PAPER</span>
+          <span>$4.00</span>
+        </div>
+        <div className="bsj-mast nyt-mast">The You Pork Times</div>
+        <div className="bsj-rule" />
+        <nav className="bsj-nav nyt-nav">
+          {['World', 'U.S.', 'Politics', 'Business', 'Technology', 'Science', 'Opinion', 'Arts'].map((s) => (
+            <span key={s}>{s}</span>
+          ))}
+        </nav>
+        <div className="bsj-rule thin" />
+      </>
+    )
+  }
+  if (outlet === 'fox') {
+    return (
+      <>
+        <div className="fox-bar">
+          <span className="fox-logo"><b>COX</b>NEWS</span>
+          <nav className="fox-nav">
+            {['U.S.', 'POLITICS', 'MEDIA', 'OPINION', 'WORLD'].map((s) => <span key={s}>{s}</span>)}
+          </nav>
+        </div>
+        <div className="fox-breaking">● BREAKING NEWS</div>
+      </>
+    )
+  }
+  return (
+    <>
+      <div className="bsj-top">
+        <span>{todayLine()}</span>
+        <span>U.S. EDITION</span>
+        <span>BSJ</span>
+      </div>
+      <div className="bsj-mast">The Ball Street Journal</div>
+      <div className="bsj-rule" />
+      <nav className="bsj-nav">
+        {['World', 'Business', 'U.S.', 'Politics', 'Economy', 'Tech', 'Markets', 'Opinion', 'Arts', 'Lifestyle'].map((s) => (
+          <span key={s}>{s}</span>
+        ))}
+      </nav>
+      <div className="bsj-rule thin" />
+      <div className="bsj-ticker">
+        <b>MARKETS</b>
+        <span>DJIA 51285.73 <i className="dn">−0.46%</i></span>
+        <span>S&amp;P 500 7376.86 <i className="up">+0.31%</i></span>
+        <span>NASDAQ 24579.42 <i className="up">+1.09%</i></span>
+        <span>U.S. 10 YR 4.867%</span>
       </div>
     </>
   )
