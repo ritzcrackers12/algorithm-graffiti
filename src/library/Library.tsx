@@ -3,6 +3,7 @@ import { getLive, sendControl, startLive, useLive } from '../lib/live.ts'
 import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import { startVersionCheck } from '../lib/versionCheck.ts'
 import { TouchWarning } from '../components/TouchWarning.tsx'
+import { Welcome } from '../components/Welcome.tsx'
 import Desktop from './Desktop.tsx'
 import { stageLayout } from './stageLayout.ts'
 import TapToBegin from './TapToBegin.tsx'
@@ -32,6 +33,8 @@ export default function Library() {
   const layout = useStageLayout()
   const [begun, setBegun] = useState(false)
   const [touchWarn, setTouchWarn] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
+  const welcomeDone = useRef(false) // dismissed (via phone OK) for the current visitor
   const warnRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   warnRef.current = touchWarn
@@ -67,6 +70,30 @@ export default function Library() {
     }
   }, [begun])
 
+  // Welcome / instructions popup: appears when a visitor takes control, reads
+  // itself aloud, and clears when the phone taps OK or the visitor opens a piece
+  // of media. Resets for the next visitor when control is released.
+  const snap = live.snap
+  useEffect(() => {
+    if (!begun) return
+    const active = !!snap?.hasActive
+    const opened = !!snap?.display.open
+    if (!active) { welcomeDone.current = false; setShowWelcome(false); return }
+    if (opened || welcomeDone.current) { setShowWelcome(false); return }
+    setShowWelcome(true)
+  }, [begun, snap?.hasActive, snap?.display.open])
+
+  useEffect(() => {
+    const unsub = subscribeControl(() => {
+      const c = getControl()
+      if (c?.kind === 'welcome' && c.action === 'clear') {
+        welcomeDone.current = true
+        setShowWelcome(false)
+      }
+    })
+    return () => { unsub() }
+  }, [])
+
   useEffect(() => {
     startLive('library')
     if (!versionCheckStarted) {
@@ -86,6 +113,7 @@ export default function Library() {
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
       {touchWarn && <TouchWarning variant="ipad" />}
+      {showWelcome && !touchWarn && <Welcome variant="ipad" speak />}
     </div>
   )
 }

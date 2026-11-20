@@ -21,6 +21,7 @@ import Picker from './Picker.tsx'
 import Onboarding, { Tour, AppIcon, type Slide } from './Onboarding.tsx'
 import ControllerReport from './ControllerReport.tsx'
 import { TouchWarning } from '../components/TouchWarning.tsx'
+import { Welcome } from '../components/Welcome.tsx'
 import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult } from '../shared/types.ts'
@@ -154,6 +155,16 @@ export default function Controller() {
   const dismissOnboard = () => {
     try { sessionStorage.setItem('ag-onboarded', '1') } catch { /* private mode */ }
     setShowOnboard(false)
+  }
+  // Welcome / instructions popup, shown first on scan (before the tour).
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try { return sessionStorage.getItem('ag-welcomed') !== '1' } catch { return true }
+  })
+  const dismissWelcome = () => {
+    try { sessionStorage.setItem('ag-welcomed', '1') } catch { /* private mode */ }
+    setShowWelcome(false)
+    // Mirror the dismissal to the iPad so its welcome (and voice) clear too.
+    void sendControl({ kind: 'welcome', action: 'clear' })
   }
   const [seenHints, setSeenHints] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(sessionStorage.getItem('ag-seen-hints') || '{}') } catch { return {} }
@@ -426,8 +437,9 @@ export default function Controller() {
         </div>
         {content}
       </div>
-      {showOnboard && <Onboarding onDone={dismissOnboard} />}
-      {!showOnboard && activeTour && (
+      {showWelcome && <Welcome variant="phone" onOk={dismissWelcome} />}
+      {!showWelcome && showOnboard && <Onboarding onDone={dismissOnboard} />}
+      {!showWelcome && !showOnboard && activeTour && (
         <Tour
           key={`${activeTour}-${tourStart}`}
           slides={appSlides(activeTour, activeTour === 'reel' ? getLocalProfile().session.reel.bucket : null)}

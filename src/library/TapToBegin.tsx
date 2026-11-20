@@ -17,6 +17,12 @@ export default function TapToBegin({ onBegin }: { onBegin: () => void }) {
   const begin = () => {
     document.querySelectorAll<HTMLVideoElement>('video.wallpaper-video, video.kiosk-loop').forEach(armAndPlay)
     unlockAudio()
+    // Prime speech synthesis within this user gesture so the welcome voice can
+    // speak later (iOS blocks speech that isn't unlocked by a prior gesture).
+    try {
+      const ss = window.speechSynthesis
+      if (ss) { ss.cancel(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; ss.speak(u) }
+    } catch { /* no TTS */ }
     onBegin()
     window.setTimeout(() => {
       void document.documentElement.requestFullscreen?.().catch(() => {})
