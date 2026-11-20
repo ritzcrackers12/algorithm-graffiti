@@ -24,7 +24,7 @@ export const CONFIG = {
   /** The ACTIVE visitor's reclaim grace: the iPad is held this long if their phone goes
    *  dark (locked / app-switched / offline) before advancing to the next person. They
    *  resume where they left off if they return within it. Enforced in SQL (ag__advance). */
-  RECLAIM_SECONDS: 120,
+  RECLAIM_SECONDS: 90,
   /** People waiting in line keep their place this long with a locked phone (they're skipped if their turn comes while away). */
   WAITING_GONE_SECONDS: 180,
   /** How often phones and the iPad check in with the server (milliseconds). */

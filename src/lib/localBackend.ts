@@ -88,6 +88,10 @@ export function createLocalBackend(): Backend {
       changed = true
     }
     const fresh = (q: { lastSeen: number }) => q.lastSeen >= now - CONFIG.GONE_SECONDS * 1000
+    // The active visitor gets the longer reclaim grace before being dropped
+    // (mirrors ag__advance in SQL); next-in-line still uses the short check.
+    const graceSecs = Math.max(CONFIG.GONE_SECONDS, CONFIG.RECLAIM_SECONDS)
+    const activeFresh = (q: { lastSeen: number }) => q.lastSeen >= now - graceSecs * 1000
     db.queue = db.queue.filter((q) => q.lastSeen >= now - CONFIG.WAITING_GONE_SECONDS * 1000)
     const reset = () => {
       db.display = { ...HOME, busy }
@@ -99,7 +103,7 @@ export function createLocalBackend(): Backend {
     const turnOver = CONFIG.TURN_SECONDS > 0 && db.turnStartedAt! <= now - CONFIG.TURN_SECONDS * 1000
     if (
       db.activeSession &&
-      (!db.queue.some((q) => q.id === db.activeSession && fresh(q)) ||
+      (!db.queue.some((q) => q.id === db.activeSession && activeFresh(q)) ||
         turnOver ||
         (CONFIG.IDLE_SECONDS > 0 && !busy && db.lastActivityAt! <= now - CONFIG.IDLE_SECONDS * 1000))
     ) {
