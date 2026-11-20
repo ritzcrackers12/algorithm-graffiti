@@ -53,7 +53,11 @@ export default function Library() {
         void sendControl({ kind: 'touchwarn', action: 'clear' })
       }, 8000)
     }
-    const onDown = () => show()
+    const onDown = (e: PointerEvent) => {
+      // The reset-queue button is the one thing on the iPad you may touch.
+      if ((e.target as HTMLElement | null)?.closest?.('.kiosk-reset')) return
+      show()
+    }
     window.addEventListener('pointerdown', onDown, true)
     const unsub = subscribeControl(() => {
       const c = getControl()

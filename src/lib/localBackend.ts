@@ -184,6 +184,18 @@ export function createLocalBackend(): Backend {
       write(db, changed || joined)
       return snapshot(db, session)
     },
+    async kioskReset() {
+      const db = read()
+      const now = Date.now()
+      db.queue = db.queue.filter((q) => q.id !== db.activeSession && q.lastSeen >= now - CONFIG.GONE_SECONDS * 1000)
+      db.activeSession = db.turnStartedAt = db.lastActivityAt = null
+      db.profile = emptyProfile()
+      db.display = { ...HOME }
+      if (CONFIG.RESET_MODE === 'per_visitor') db.altered = {}
+      advance(db)
+      write(db, true)
+      return snapshot(db, null)
+    },
     async tick() {
       const db = read()
       write(db, advance(db))

@@ -54,6 +54,7 @@ export function createSupabaseBackend(url: string, key: string): Backend {
     kind: 'supabase',
     heartbeat: (session, join) => rpc('ag_heartbeat', { p_session: session, p_join: join, ...P }),
     tick: () => rpc('ag_tick', P),
+    kioskReset: () => rpc('ag_kiosk_reset', P),
     command: (session, cmd, arg = null) => rpc('ag_command', { p_session: session, p_cmd: cmd, p_arg: arg, ...P }),
     async generate(req) {
       const { data, error } = await sb.functions.invoke('generate', { body: req })

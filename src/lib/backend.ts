@@ -23,6 +23,8 @@ export interface Backend {
   kind: 'supabase' | 'local'
   heartbeat(session: string, join: boolean): Promise<Snapshot>
   tick(): Promise<Snapshot>
+  /** iPad button: drop whoever holds the station and let the next waiting phone in. */
+  kioskReset(): Promise<Snapshot>
   command(session: string, cmd: Command, arg?: string | null): Promise<Snapshot>
   generate(req: GenerateRequest): Promise<GenerateResponse>
   admin(passcode: string, action: AdminAction, extra?: AdminExtra): Promise<{ ok: boolean; status?: AdminStatus; tests?: unknown; tokenSaved?: string }>

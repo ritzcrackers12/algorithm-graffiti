@@ -15,6 +15,7 @@ import ReportView from './ReportView.tsx'
 import ProgressDialog from './ProgressDialog.tsx'
 import QrNote from './QrNote.tsx'
 import WelcomeWindow from './WelcomeWindow.tsx'
+import KioskReset from './KioskReset.tsx'
 import Taskbar from './Taskbar.tsx'
 import { XpWindow } from './XpWindow.tsx'
 
@@ -86,6 +87,8 @@ const PAD = 18
 const GAP = 26
 const ICON_W = 228
 const ICON_H = 280
+const RESET_W = 330
+const RESET_H = 112
 const WELCOME_W = 420
 const WELCOME_H = 300
 const QR_W = 252
@@ -114,8 +117,13 @@ function place(w: number, h: number, taken: Rect[]): Rect {
   return { x: PAD + (taken.length % 5) * 48, y: PAD + taken.length * 36, w, h }
 }
 
+function resetRect(): Rect {
+  return { x: STAGE_W - RESET_W - PAD, y: STAGE_H - TASKBAR_H - RESET_H - PAD, w: RESET_W, h: RESET_H }
+}
+
 function scatterLayout() {
-  const taken: Rect[] = []
+  // Reserve the bottom-right corner for the reset-queue button.
+  const taken: Rect[] = [resetRect()]
   const qr = place(QR_W, QR_H, taken)
   taken.push(qr)
   const preferRight = qr.x + QR_W + 16 + HINT_W < STAGE_W - PAD
@@ -343,6 +351,7 @@ export default function Desktop({ live, begun = true, welcome = false }: { live:
       )}
 
       <QrNote style={{ left: scatter.qr.x, top: scatter.qr.y }} />
+      <KioskReset style={{ left: resetRect().x, top: resetRect().y, width: RESET_W }} />
       {welcome && <WelcomeWindow style={{ left: scatter.welcome.x, top: scatter.welcome.y }} />}
 
       {obj && (
