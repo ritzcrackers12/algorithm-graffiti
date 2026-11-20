@@ -269,12 +269,14 @@ export default function Controller() {
     }
   }
 
+  // After the report, this visitor is DONE: do not rejoin the line (that used to
+  // grab the iPad straight back and block the next person scanning the QR).
+  // They land on SESSION COMPLETE, which has a manual REJOIN QUEUE button.
   const resetAfterReport = () => {
     resetLocalProfile()
     resetChatWire()
     endedForReport.current = false
     setFinalReport(null)
-    rejoinQueue()
   }
 
   let content: ReactNode
