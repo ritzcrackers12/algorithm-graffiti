@@ -6,8 +6,8 @@ import { OBJECTS, type ObjectId } from '../shared/config.ts'
 import { inputCount, objectLocked, UNLOCK_AFTER } from '../shared/gating.ts'
 
 export default function Picker({
-  onPick, used = [],
-}: { onPick: (id: ObjectId) => void; used?: string[] }) {
+  onPick, used = [], finished = [],
+}: { onPick: (id: ObjectId) => void; used?: string[]; finished?: string[] }) {
   const stillLocked = inputCount(used) < UNLOCK_AFTER
   return (
     <div className="picker">
@@ -17,16 +17,17 @@ export default function Picker({
       )}
       <div className="picker-grid">
         {OBJECTS.map((o) => {
-          const locked = objectLocked(o.id, used) || !o.ready
+          const done = finished.includes(o.id)
+          const locked = done || objectLocked(o.id, used) || !o.ready
           const inner = (
             <>
-              {locked && <span className="tag">ACCESS RESTRICTED</span>}
+              {locked && <span className="tag">{done ? 'COMPLETED ✓' : 'ACCESS RESTRICTED'}</span>}
               <div className="art">
                 <AssetImg names={[`icon-${o.id}.png`]} fallback={<ObjectIcon id={o.id} />} />
               </div>
               <div className="name">{o.label}</div>
               <div className="sub">
-                {locked ? 'INSUFFICIENT DATA.' : o.file}
+                {done ? 'DATA COLLECTED.' : locked ? 'INSUFFICIENT DATA.' : o.file}
               </div>
             </>
           )

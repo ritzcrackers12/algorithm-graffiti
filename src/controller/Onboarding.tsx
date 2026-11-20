@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { haptic } from '../lib/haptics.ts'
+import { hush, say } from '../lib/speak.ts'
 
 /* A deliberately plain, unthemed product tour. It should read like any SaaS
  * onboarding — neutral card, system font, one idea per slide — so visitors
@@ -87,11 +88,17 @@ export function Tour({ slides, start = 0, onDone }: { slides: Slide[]; start?: n
   const last = i === slides.length - 1
   const s = slides[i]
   const go = (n: number) => { haptic('press'); setI(n) }
+  // Read each step aloud as it appears; stop when the tour closes.
+  useEffect(() => {
+    if (s) say(`${s.title}. ${s.body}`)
+  }, [i]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => hush(), [])
+  const done = () => { hush(); onDone() }
   return (
     <div className="ob-scrim">
       <div className="ob-card pop-in">
         {!last && (
-          <button className="ob-skip" type="button" onClick={() => { haptic('press'); onDone() }}>Skip</button>
+          <button className="ob-skip" type="button" onClick={() => { haptic('press'); done() }}>Skip</button>
         )}
         <div className="ob-slide" key={i}>
           {s.icon && <div className="ob-icon" aria-hidden>{s.icon}</div>}
@@ -106,7 +113,7 @@ export function Tour({ slides, start = 0, onDone }: { slides: Slide[]; start?: n
             <button className="ob-btn ghost" type="button" onClick={() => go(i - 1)}>Back</button>
           )}
           {last ? (
-            <button className="ob-btn solid" type="button" onClick={() => { haptic('success'); onDone() }}>Got it</button>
+            <button className="ob-btn solid" type="button" onClick={() => { haptic('success'); done() }}>Got it</button>
           ) : (
             <button className="ob-btn solid" type="button" onClick={() => go(i + 1)}>Next</button>
           )}

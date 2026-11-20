@@ -8,7 +8,8 @@ import { bootProfile, getLocalProfile, recordArticle, resetLocalProfile, setLoca
 import type { ObjectId } from '../shared/config.ts'
 import { REEL_BUCKETS, bucketMeta, type ReelBucket } from '../shared/reelLibrary.ts'
 import { poleMeaning } from '../shared/poleMeta.ts'
-import { objectsTouched, reportReady } from '../shared/gating.ts'
+import { objectsFinished, objectsTouched, reportReady } from '../shared/gating.ts'
+import { primeSpeech } from '../lib/speak.ts'
 import type { ArticleParams, GenerateRequest } from '../shared/types.ts'
 import ArticleChooser from './ArticleChooser.tsx'
 import ArticleControls from './ArticleControls.tsx'
@@ -195,6 +196,8 @@ export default function Controller() {
   const lastTouch = useRef(0)
 
   useEffect(() => {
+    // Unlock speech on the first tap so onboarding steps can be read aloud.
+    document.addEventListener('pointerdown', primeSpeech, { once: true, capture: true })
     startLive('controller')
     lockGestures()
     startVersionCheck(() => {
@@ -313,6 +316,7 @@ export default function Controller() {
     content = (
       <Picker
         used={used}
+        finished={objectsFinished(snap)}
         onPick={(id) => {
           if (id === 'article') setChoosingArticle(true)
           else void sendCommand('open', id)

@@ -35,3 +35,20 @@ export function objectLocked(id: string, used: readonly string[] = []) {
 export function reportReady(used: readonly string[] = []) {
   return ALL_OBJECT_IDS.every((id) => used.includes(id))
 }
+
+/** Apps the visitor has actually FINISHED (not just opened): a submitted
+ *  rewrite, a watched feed, a tuned station, or a reply in Messages. Finished
+ *  apps lock so visitors move on to the next one. */
+export function objectsFinished(snap?: {
+  display?: { completed?: string[] }
+  altered?: { article?: unknown; reel?: unknown; ad?: unknown; chat?: unknown }
+  profile?: { session?: { reel?: { currentId?: string | null }; ad?: { brandId?: string | null }; chat?: { turns?: { role?: string; from?: string }[] } } }
+} | null): string[] {
+  const ids = new Set<string>(snap?.display?.completed ?? [])
+  if (snap?.altered?.article) ids.add('article')
+  if (snap?.altered?.reel || snap?.profile?.session?.reel?.currentId) ids.add('reel')
+  if (snap?.altered?.ad || snap?.profile?.session?.ad?.brandId) ids.add('ad')
+  const turns = snap?.profile?.session?.chat?.turns ?? []
+  if (snap?.altered?.chat || turns.some((t) => t?.role === 'user' || t?.from === 'you')) ids.add('chat')
+  return [...ids]
+}

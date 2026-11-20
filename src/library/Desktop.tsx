@@ -4,7 +4,7 @@ import { ObjectIcon } from '../components/ObjectIcons.tsx'
 import { asset } from '../lib/content.ts'
 import type { Live } from '../lib/live.ts'
 import { OBJECTS, type ObjectId } from '../shared/config.ts'
-import { objectLocked, objectsTouched, reportReady } from '../shared/gating.ts'
+import { objectLocked, objectsFinished, objectsTouched, reportReady } from '../shared/gating.ts'
 import { hydrateProfile } from '../shared/profile.ts'
 import ArticleView from './ArticleView.tsx'
 import AdView from './AdView.tsx'
@@ -311,7 +311,7 @@ export default function Desktop({ live, begun = true, welcome = false }: { live:
         {OBJECTS.map((o) => {
           const altered = !!snap?.altered[o.id as keyof typeof snap.altered]
           const done = completed.includes(o.id)
-          const locked = objectLocked(o.id, used) || !o.ready
+          const locked = objectsFinished(snap).includes(o.id) || objectLocked(o.id, used) || !o.ready
           const pos = scatter.icons[o.id]
           const cls = [
             'desk-icon',
