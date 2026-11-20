@@ -9,7 +9,7 @@ import { haptic } from '../lib/haptics.ts'
 export const WELCOME_TEXT =
   "Welcome to Algorithm Graffiti! Put on your headphones and choose a piece of media to begin. As you move on, you will unlock more objects to interact with. Also, remember your phone is the controller, so there's no reason to touch the iPad."
 
-function speakAfter(delayMs: number) {
+export function speakAfter(delayMs: number) {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null
   if (!synth) return () => {}
   const t = setTimeout(() => {

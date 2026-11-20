@@ -3,7 +3,6 @@ import { getLive, sendControl, startLive, useLive } from '../lib/live.ts'
 import { getControl, subscribeControl } from '../lib/controlSync.ts'
 import { startVersionCheck } from '../lib/versionCheck.ts'
 import { TouchWarning } from '../components/TouchWarning.tsx'
-import { Welcome } from '../components/Welcome.tsx'
 import Desktop from './Desktop.tsx'
 import { stageLayout } from './stageLayout.ts'
 import TapToBegin from './TapToBegin.tsx'
@@ -109,11 +108,10 @@ export default function Library() {
   return (
     <div className="stage-outer theme-win95">
       <div className="stage" style={{ zoom: layout.scale, left: layout.left, top: layout.top }}>
-        <Desktop live={live} begun={begun} />
+        <Desktop live={live} begun={begun} welcome={showWelcome && !touchWarn} />
         {!begun && <TapToBegin onBegin={() => setBegun(true)} />}
       </div>
       {touchWarn && <TouchWarning variant="ipad" />}
-      {showWelcome && !touchWarn && <Welcome variant="ipad" speak />}
     </div>
   )
 }

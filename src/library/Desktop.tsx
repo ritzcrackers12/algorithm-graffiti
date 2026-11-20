@@ -14,6 +14,7 @@ import ReelView from './ReelView.tsx'
 import ReportView from './ReportView.tsx'
 import ProgressDialog from './ProgressDialog.tsx'
 import QrNote from './QrNote.tsx'
+import WelcomeWindow from './WelcomeWindow.tsx'
 import Taskbar from './Taskbar.tsx'
 import { XpWindow } from './XpWindow.tsx'
 
@@ -85,6 +86,8 @@ const PAD = 18
 const GAP = 26
 const ICON_W = 228
 const ICON_H = 280
+const WELCOME_W = 420
+const WELCOME_H = 300
 const QR_W = 252
 const QR_H = 300
 const HINT_W = 336
@@ -133,7 +136,22 @@ function scatterLayout() {
     taken.push(r)
     icons[o.id] = { x: r.x, y: r.y }
   }
-  return { qr: { x: qr.x, y: qr.y }, hint: { x: hint.x, y: hint.y, side: hint.side }, icons }
+  // Welcome window: a free spot that never covers the QR, its hint, or icons.
+  // If the desktop is too crowded, park it on the half of the screen away from the QR.
+  let welcome: Rect | null = null
+  for (let i = 0; i < 300 && !welcome; i++) {
+    const r = place(WELCOME_W, WELCOME_H, taken)
+    if (taken.every((t) => !overlaps(r, t))) welcome = r
+  }
+  if (!welcome) {
+    const qrOnRight = qr.x + QR_W / 2 > STAGE_W / 2
+    welcome = {
+      x: qrOnRight ? PAD : STAGE_W - WELCOME_W - PAD,
+      y: Math.round((STAGE_H - TASKBAR_H - WELCOME_H) / 2),
+      w: WELCOME_W, h: WELCOME_H,
+    }
+  }
+  return { qr: { x: qr.x, y: qr.y }, hint: { x: hint.x, y: hint.y, side: hint.side }, icons, welcome: { x: welcome.x, y: welcome.y } }
 }
 
 const IOS_VIDEO_ATTRS = {
@@ -229,7 +247,7 @@ function Wallpaper() {
   )
 }
 
-export default function Desktop({ live, begun = true }: { live: Live; begun?: boolean }) {
+export default function Desktop({ live, begun = true, welcome = false }: { live: Live; begun?: boolean; welcome?: boolean }) {
   const snap = live.snap
   const open = snap?.display.open ?? null
   const openedAt = snap?.display.openedAt ?? 0
@@ -325,6 +343,7 @@ export default function Desktop({ live, begun = true }: { live: Live; begun?: bo
       )}
 
       <QrNote style={{ left: scatter.qr.x, top: scatter.qr.y }} />
+      {welcome && <WelcomeWindow style={{ left: scatter.welcome.x, top: scatter.welcome.y }} />}
 
       {obj && (
         <XpWindow

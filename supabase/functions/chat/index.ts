@@ -135,7 +135,7 @@ async function anthropicText(system: string, user: string, key: string, model: s
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model, max_tokens: maxTokens, temperature: 1, system, messages: [{ role: 'user', content: user }] }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(45_000),
   })
   const data = await res.json() as { content?: { text?: string }[] }
   return data.content?.map((c) => c.text ?? '').join('') ?? ''
@@ -152,7 +152,7 @@ async function synthesizePortrait(profile: VisitorProfile) {
   const model = Deno.env.get('CHAT_MODEL') || (provider === 'anthropic' ? 'claude-haiku-5-5' : 'gemini-2.0-flash-lite')
   if (provider === 'anthropic' && key) {
     try {
-      const text = await anthropicText(portraitSystemPrompt(), signals, key, model)
+      const text = await anthropicText(portraitSystemPrompt(), signals, key, model, 2400)
       const parsed = parsePortrait(text)
       if (parsed) return parsed
     } catch (e) {
