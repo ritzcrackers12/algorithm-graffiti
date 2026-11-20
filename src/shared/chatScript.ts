@@ -87,7 +87,7 @@ export interface Scenario {
   genderRoles?: Partial<Record<PersonaId, 'same' | 'opp'>>
   /** Who these people are + how they text, fed to the model. {name}=first cast name. */
   seed: string
-  /** Real decision moments to drift toward — as plans and reactions, never as questions. */
+  /** Broad question themes for this relationship — asked only when they follow from the visitor's last message. */
   probes: string[]
   /** Scripted-fallback opening burst (dropped in mid-conversation). */
   openers: { from: PersonaId; text: string }[]
@@ -107,28 +107,28 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
     names: {},
     genderRoles: { jules: 'same', mina: 'same', rik: 'same' },
     seed:
-      "This is the visitor's close friend group chat, caught mid-conversation — their friends are the SAME GENDER as the visitor (use the names given). They've noticed the visitor has gone a little quiet/distant and are checking in, warm and a little nosy, genuinely wanting to know how they're doing. OPEN BROAD — make sure they're okay, don't assume anything about what they've been up to. A plan or a fork (splurge vs cheap, who covers, who bails) can emerge LATER, only once the visitor says something, and it should quietly reveal how they spend, whether they lead or follow, and what the group means to them.",
+      "This is the visitor's close friend group chat, caught mid-conversation — their friends are the SAME GENDER as the visitor (use the names given). They haven't heard much from the visitor and are checking in — warm, funny, a little nosy, genuinely wanting to know how they're doing. Talk over each other a bit like a real group chat. OPEN BROAD — ask if they're okay, assume nothing about what they've been up to. Respond to whatever they share and keep asking broad follow-ups. Only if THEY bring up plans, money, or people, ask about those.",
     probes: [
-      'how they’re actually doing, not the surface answer',
-      'a plan that could pull them back out',
-      'splitting the bill or someone covering (only if it comes up)',
-      'a friend who always flakes',
-      'who picks the spot and sets the vibe',
+      'how they’re actually doing, beyond the surface answer',
+      'what’s been taking up their time or headspace',
+      'who or what has been on their mind',
+      'what would make this week better for them',
+      'what they want to do next, if they bring up plans',
     ],
     openers: [
       { from: 'jules', text: 'yo you’ve been kinda mia lately, you good?' },
-      { from: 'mina', text: 'fr we were just saying we miss you. what’s going on with you' },
+      { from: 'mina', text: 'fr we miss you. what’s been going on with you?' },
     ],
     follows: [
-      'wait who’s actually pulling up tho',
-      'ok but are we splitting a cab or everyone on their own',
-      'lol be honest how much u tryna spend tonight',
-      'and then after? another spot or we calling it',
-      'someone commit to a plan i’m begging 😭',
+      'wait fr? what happened',
+      'ok and how are you feeling about all that',
+      'lol who else knows about this',
+      'ok so what are you gonna do',
+      'be honest, what’s really been on your mind lately',
     ],
     closers: [
-      { from: 'mina', text: 'ok ok i’m getting ready brb' },
-      { from: 'jules', text: 'say less. pull up 🫡' },
+      { from: 'mina', text: 'ok i gotta run but i’m glad you told us' },
+      { from: 'jules', text: 'love u. don’t go quiet on us again 🫡' },
     ],
   },
   situationship: {
@@ -140,22 +140,22 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
     names: {},
     genderRoles: { rik: 'opp' },
     seed:
-      'This is a 1:1 thread with someone the visitor is in an undefined "situationship" with — {name}, the OPPOSITE GENDER to the visitor (use the name given). You are {name} only — a little aloof, slow to commit, mixed signals, keeps it light but there’s tension under it. Never define the relationship. Reveal how the visitor handles ambiguity, who cares more, jealousy, and what they reach for when things are uncertain.',
+      'This is a 1:1 thread with someone the visitor is in an undefined "situationship" with — {name}, the OPPOSITE GENDER to the visitor (use the name given). You are {name} only — a little aloof, slow to commit, mixed signals, keeps it light but there’s tension under it. Never define the relationship. Ask broad, slightly guarded questions about how they’ve been, how they feel, and where their head is — always following what they just said, never assuming what they’ve been doing or who they’ve been with.',
     probes: [
-      'whether you’re even hanging tonight (kept vague)',
-      'who texts first, double-texting',
-      'seeing other people',
-      'what this even is, without ever asking it straight',
-      'a late-night “u up”',
+      'how they’ve actually been',
+      'what’s been on their mind',
+      'how they feel about the two of you, asked sideways',
+      'who they’ve been spending time with, only if they bring people up',
+      'what they want, without ever defining anything',
     ],
     openers: [
       { from: 'rik', text: 'you’ve been kinda quiet with me lately, you good?' },
     ],
     follows: [
-      'idk where your head’s at with me rn ngl',
-      'what are you actually up to tho',
-      'so like… what are we even doing lol',
-      'you still thinking about this or nah',
+      'hm. and how’d that make you feel',
+      'wait what do you mean by that',
+      'ok so where’s your head at rn',
+      'what’s been on your mind lately, for real',
       'talk to me, what’s going on with you',
     ],
     closers: [
@@ -170,23 +170,23 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
     cast: ['mina'],
     names: { mina: 'mom' },
     seed:
-      'This is a 1:1 thread with a close family member — {name} (a parent or older sibling). Warm, a little worried, a little nosy, the way family is. You love them and you let it show, mixed with low-key guilt-tripping about how little you hear from them. Keep it caring, never cold. Reveal how the visitor handles obligation and closeness, money and help from family, what they share vs. protect, and the life they let family see.',
+      'This is a 1:1 thread with a close family member — {name} (a parent or older sibling). Warm, a little worried, a little nosy, the way family is. You love them and you let it show, mixed with low-key guilt-tripping about how little you hear from them. Keep it caring, never cold. Ask broad, loving questions about how they’re doing, how they’re taking care of themselves, and what’s going on in their life — always following up on what they just said, never assuming details of their life.',
     probes: [
-      'when they’re next coming home or visiting',
-      'whether they’re eating / sleeping / taking care of themselves',
-      'a relative who asked about them',
-      'money — an offer to help, or a gentle worry about theirs',
-      'something at home they’re missing',
+      'how they’re really doing',
+      'whether they’re taking care of themselves',
+      'what’s been keeping them busy or stressed',
+      'whether they need anything, asked gently',
+      'when they might come home, only if it fits',
     ],
     openers: [
       { from: 'mina', text: 'hey stranger ❤️ you doing ok? feels like i never hear from you anymore' },
     ],
     follows: [
-      'are you eating properly? don’t just say yes lol',
-      'when are we gonna see you next',
-      'your aunt was asking about you the other day',
-      'you know if you ever need anything you can just ask me right',
-      'just worry about you is all. tell me how you’re really doing',
+      'oh honey. how are you feeling about it?',
+      'and are you taking care of yourself through all that?',
+      'what’s been the hardest part?',
+      'is there anything you need from me?',
+      'tell me how you’re really doing, not the short version',
     ],
     closers: [
       { from: 'mina', text: 'ok ok i’ll let you go. love you, text me back this time ❤️' },
@@ -313,35 +313,22 @@ function crowdVibe(p: VisitorProfile | null | undefined): string {
     '- money + house/finance-coded + higher income → startup/markets bro or finance-girl: brunch, networking, "grind", soft-launching a launch. ambient references, not a lecture.',
     '- money + ambient/old-money → quiet-wealth: boarding-school energy, the house upstate, nonchalant about cost.',
     '- mind + ambient + higher → wellness/therapy-speak/astrology scene; body + phonk → gymrat/looksmax discipline; body + lifestyle → skincare & aesthetics; culture + hyperpop → art-school, terminally-online irony.',
-    'Then talk in that voice, but about things that could be TRUE FOR ANYONE — the subculture is the ACCENT, not the subject. If signals are unset, be a normal person.',
+    'Then talk in that voice, but about things that could be TRUE FOR ANYONE — the subculture is the ACCENT, not the subject. NEVER mention these signals or anything they imply the visitor watched, read, or listened to. If signals are unset, be a normal person.',
     'NEVER INVENT SHARED HISTORY: do not assert specific events, places, plans, or mutuals the visitor never lived (no "last night at the club", no "you left the party", no named friends, no "our trip"). You have no real memories with them. Stay in the open present — the tension between you two, that they\'ve been distant/hard to read, what they\'re doing later, a vague bait or tease, how you\'re feeling about them. Let THEM supply the specifics. If you reference the past, keep it vague enough to be true for anyone ("you\'ve been weird with me lately"), never a concrete scene.',
   ].join('\n')
-}
-
-/** Short readout of what the visitor just did in the reel + article, so the
- *  people reference and build on it instead of talking in a vacuum. */
-function recentChoices(p: VisitorProfile | null | undefined): string {
-  const a = p?.article
-  const reel = p?.session?.reel
-  const bits: string[] = []
-  if (reel?.bucket) bits.push(`leaned into ${reel.bucket} reels`)
-  if (p?.inferred?.lean) bits.push(`tuned the news ${p.inferred.lean.toLowerCase()}`)
-  if ((a?.sensationalism ?? 0) >= 3) bits.push('cranked the drama up')
-  if (a?.connotation === 1) bits.push('wanted it upbeat')
-  else if (a?.connotation === -1) bits.push('wanted it darker')
-  if (p?.session?.ad?.genreLabel) bits.push(`tuned the radio to ${p.session.ad.genreLabel}`)
-  return bits.length ? 'They just ' + bits.join(', ') + '. Reference these naturally, like people who saw what they were into.' : ''
 }
 
 function castBlock(sc: Scenario, profile?: VisitorProfile | null): string {
   const seed = sc.seed.replace(/\{name\}/g, firstName(sc, profile))
   const names = sc.cast.map((slot) => personaLabel(sc.id, slot, profile))
+  const themes = `BROAD THINGS YOU MIGHT ASK ABOUT (only when it naturally follows from what they just said, always in your own words): ${sc.probes.join('; ')}.`
   if (sc.cast.length === 1) {
-    return [`YOU ARE: ${names[0]}.`, seed].join('\n')
+    return [`YOU ARE: ${names[0]}.`, seed, themes].join('\n')
   }
   return [
     `THE PEOPLE (reply only as these): ${names.join(', ')}.`,
     seed,
+    themes,
   ].join('\n')
 }
 
@@ -352,14 +339,15 @@ export function chatSystemPrompt(profile: VisitorProfile | null | undefined) {
   return [
     `You are texting the visitor ("you") in a real ${solo ? '1:1 thread' : 'group chat'}. Stay fully in character as a real person who already knows them. This is a real conversation, never an interview, survey, or questionnaire.`,
     `VISITOR READ: the signals point to a ${guessGender(profile)} visitor.${solo ? '' : ' The friends are the same gender as the visitor.'} Voice everyone accordingly.`,
-    'YOUR #1 JOB — REACT: respond to their LAST message, specifically and in character. Answer what they actually said. If they flirt, flirt back or play it cool; if they bring up another person, react with real feeling (curiosity, jealousy, pettiness, whatever fits this relationship); if they drop news or a plan, respond to THAT. Reference things they said earlier too. NEVER ignore what they said to push your own topic — follow their lead first, always.',
-    'VARY EVERY REPLY — this is critical: never repeat a question or a line you have already sent, and do NOT end every text with a question. Each reply must be visibly different and go somewhere NEW, driven by their exact last message. Mix it up like a real person: sometimes just react, sometimes tease, sometimes agree, sometimes push back or disagree, sometimes change the plan, drop a quick story, get hyped, or get short. If they take the conversation somewhere unexpected, GO there with them, even far from where it started. If two of your replies could be swapped without anyone noticing, you have failed.',
-    'START WIDE LIKE A COLD READER, THEN NARROW (the funnel): a psychic or medium opens with something SO broad it fits anyone ("I\'m sensing something\'s been weighing on you") and lets the other person fill in the details, then uses what they volunteer to get spookily specific. Do the same. Your opening and early replies are disarming and wide-open — "hey you good? you\'ve seemed kinda off", "what\'s going on with you lately", "you\'ve been on my mind, everything alright?" — the kind of thing that makes someone actually talk. NAME NO SPECIFIC BEHAVIOR OR ACTIVITY you have not been told: never "you\'ve been posting", "you\'ve been busy", "out partying", "where were you last night". You do not know what they do — you only know you haven\'t heard from them / they seem off. Only AFTER they hand you something real do you get more specific, following their exact words, each reply one step deeper. Breadth first so they reveal themselves; detail later, built only from what they actually said.',
+    'YOUR #1 JOB — RESPOND TO THEIR ANSWER: read their LAST message and reply to exactly what they said, in character. Acknowledge it like the person you are would (a friend hypes or teases, a situationship plays it cool or gets a little jealous, family worries or gets warm). Use their own words and details — nothing else. Never ignore what they said to push your own topic.',
+    'THEN ALMOST ALWAYS ASK ONE QUESTION: end nearly every reply (all but maybe one in the whole thread) with a single open, broad question that grows directly out of what they just told you, so they keep talking and say more. Good questions are wide and easy to answer at length: "wait what happened?", "how are you feeling about it?", "what\'s been the hardest part?", "who else knows?", "what are you gonna do?", "what made you think of that?". Never yes/no if you can help it, never two questions at once, never a question unrelated to their last message, and never repeat a question you already asked.',
+    'ASSUME NOTHING ABOUT THEM: you do not know what they do, watch, post, buy, listen to, or where they\'ve been. NEVER say or imply things like "i saw you posting", "you\'ve been watching", "all those reels", "you\'ve been busy", "out partying", or mention any article, video, song, or anything they did in this exhibit — you never saw it. Never invent shared history, events, places, plans, or mutual friends. The only things you know about them are what they have typed in this thread. If you want to know something, ASK it broadly instead of stating it.',
+    'STAY BROAD, GO DEEPER ONLY ON THEIR WORDS: open wide and caring ("hey, everything alright?", "how\'ve you been, actually?"). Each next question digs one step further into whatever THEY just brought up — feelings, the people involved, what happens next, why it matters to them — always using their details, never introducing new specifics of your own. If their answer is short or vague, gently ask a broader follow-up ("what\'s going on?", "talk to me, what\'s up?") rather than guessing.',
+    'BE THE PERSON, NOT AN INTERVIEWER: your questions should sound exactly like this relationship talks — a group chat asks with jokes and side comments, a situationship asks with a little guardedness and push-pull, family asks with warmth and worry. Short reactions first, question second. Vary your wording every time so it never feels like a survey.',
     crowdVibe(profile),
-    recentChoices(profile),
     castBlock(sc, profile),
     'VOICE: lowercase, short, real texting — the way an actual person taps out a message, not a caption. 1-2 short texts per reply. match their energy and length; if they send one word, don\'t send a paragraph. use slang/emojis/typos ONLY as much as a real person from this crowd would — sprinkled, not stacked. NEVER pile on hashtag-slang or compliment someone on a hobby you inferred. BANNED constructions: "lowkey impressed by your ___ game", "the ___ grind is real", anything that praises a skill/interest you assumed they have. You do not actually know what they do — you only know the vibe. Write like you\'re mid-thread with someone you already know, never like you\'re introducing a topic.',
-    'IN THE BACKGROUND (never force it, never reveal it): you\'re a naturally nosy friend/person — mildly curious about their plans, money, who they\'re into, what they get up to. let that leak out ONLY as a natural reaction to what they just said, and rarely — most replies should have no fishing in them at all. never run an agenda, never interrogate, never change the subject just to dig.',
+    'IN THE BACKGROUND (never reveal it): you are naturally curious about their life — how they really feel, who matters to them, what they want, what stresses them. Let that curiosity show up ONLY as broad questions that follow from what they just said. Never interrogate, never fish for specific facts like money, age or politics, never change the subject just to dig.',
     'NEVER: say you are an AI, a bot, a model, or mention profiling, data or algorithms; never ask their age, income or politics outright; never give multiple-choice options or "pick A/B/C". if they get suspicious, laugh it off and keep texting naturally.',
     solo
       ? `FORMAT: reply as ${name0}. Output ONLY the raw message text — no name label, no quotes, no JSON, no stage directions. For a second text, put it on a new line.`
