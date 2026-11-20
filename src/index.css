@@ -1276,3 +1276,39 @@ span.xp-tbtn {
 .theme-retro .chat-pick:active { box-shadow: inset 1px 1px 0 var(--r-sh1), inset -1px -1px 0 var(--r-hl); }
 .theme-retro .chat-pick-label { font-family: Tahoma, Verdana, 'Segoe UI', sans-serif; }
 .theme-retro .chat-pick-blurb { font-family: Tahoma, Verdana, 'Segoe UI', sans-serif; opacity: 0.72; }
+
+/* ---- Scammy "download your report" end screen (controller) ---- */
+.rpt-scam-screen {
+  position: fixed; inset: 0; background: #000; z-index: 60;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 34px; padding: 30px; box-sizing: border-box;
+}
+.rpt-scam-head {
+  color: #f5f5f5; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 22px; line-height: 1.5; font-weight: 700; text-align: center;
+}
+.rpt-scam-wrap { width: 100%; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.rpt-scam-badge {
+  background: #ffe100; color: #8a0000; font-family: Arial, sans-serif; font-size: 12px;
+  font-weight: 900; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px;
+  text-transform: uppercase; animation: rpt-blink .8s step-end infinite;
+}
+.rpt-scam-btn {
+  position: relative; overflow: hidden; width: 100%; padding: 20px 16px; color: #fff;
+  font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 900;
+  letter-spacing: .5px; text-transform: uppercase; text-shadow: 0 2px 3px rgba(0,0,0,.5);
+  background: linear-gradient(#ff5a4d, #e01b00 55%, #a60f00); border: 2px solid #ffd2cc;
+  border-radius: 12px; box-shadow: 0 8px 0 #6e0a00, 0 10px 22px rgba(224,27,0,.75);
+  cursor: pointer; animation: rpt-pulse 1s ease-in-out infinite;
+}
+.rpt-scam-btn:active { transform: translateY(5px) scale(1.02); box-shadow: 0 3px 0 #6e0a00, 0 5px 14px rgba(224,27,0,.6); }
+.rpt-scam-btn[disabled] { filter: grayscale(.4) brightness(.8); animation: none; cursor: default; }
+.rpt-scam-sub { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; opacity: .95; }
+.rpt-scam-shine {
+  position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.65), transparent);
+  transform: skewX(-20deg); animation: rpt-shine 2.4s ease-in-out infinite;
+}
+@keyframes rpt-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+@keyframes rpt-blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes rpt-shine { 0% { left: -60%; } 60%,100% { left: 140%; } }

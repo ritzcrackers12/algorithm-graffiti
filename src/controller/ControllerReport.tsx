@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { PixelButton } from '../components/PixelButton.tsx'
 import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
 import { buildDossier, dataLedger, type PortraitReport } from '../shared/report.ts'
@@ -17,16 +16,16 @@ export default function ControllerReport({
   const ledger = dataLedger(profile)
   const [report, setReport] = useState<PortraitReport>(fallback)
   const kpis = report.kpis.length >= 5 ? report.kpis : fallback.kpis
-  const [synth, setSynth] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // The dashboard is no longer shown on-screen (it only goes into the PDF), but
+  // we still fetch the synthesized portrait so the downloaded PDF is the rich one.
   useEffect(() => {
     let live = true
     void getBackend().then((b) => b.portrait(profile)).then((p) => {
       if (!live) return
       if (p && p.brands?.length) setReport(p)
-      setSynth(false)
-    }).catch(() => live && setSynth(false))
+    }).catch(() => {})
     return () => { live = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -123,65 +122,20 @@ export default function ControllerReport({
   }
 
   return (
-    <div className="ctl-report ctl-allow-scroll">
-      <div className="ctl-report-head">
-        <div className="ctl-report-title">THE ORGANIZATION’S<br />ASSESSMENT OF YOU{synth ? ' …' : ''}</div>
-        <div className="ctl-report-segment">SEGMENT: {report.segment}</div>
-      </div>
-
-      {(report.grade || report.targeting) && (
-        <section className="dash-target">
-          {report.grade && <div className="dash-grade">{report.grade}</div>}
-          {report.targeting && <p className="dash-target-why">{report.targeting}</p>}
-        </section>
-      )}
-
-      <section className="dash-kpis">
-        <div className="dash-kpis-head"><span>METRIC</span><span>VALUE</span></div>
-        {kpis.map((k) => (
-          <div key={k.label} className="dash-kpi-row">
-            <span className="dash-kpi-label">{k.label}</span>
-            <span className="dash-kpi-value">{k.value}</span>
-          </div>
-        ))}
-      </section>
-
-      <div className="dash-pitch">
-        <span className="dash-pitch-tag">PITCH THAT CLOSES YOU</span>
-        <span className="dash-pitch-text">“{report.pitch}”</span>
-      </div>
-
-      <section className="dash-brands">
-        <h3>YOUR BRAND AFFINITY</h3>
-        {report.brands.map((b) => (
-          <div key={b.name} className="dash-brand">
-            <div className="dash-brand-head">
-              <span className="dash-brand-name">{b.name}</span>
-              <span className="dash-brand-pct">{b.pct}%</span>
-            </div>
-            <div className="dash-brand-bar"><i style={{ width: `${b.pct}%` }} /></div>
-            <p className="dash-brand-why">{b.why}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="dash-ledger">
-        <h3>WHAT YOU WERE WORTH</h3>
-        {ledger.lines.map((l, i) => (
-          <div key={l.label} className={`dash-ledger-row${i === ledger.lines.length - 1 ? ' dash-ledger-total' : ''}`}>
-            <span>{l.label}</span>
-            <span>{l.value}</span>
-          </div>
-        ))}
-        <p className="dash-ledger-note">It cost {ledger.lines[1].value} to understand you. Your data resells for {ledger.lines[0].value}. You paid the difference in yourself.</p>
-      </section>
-
-      <div className="ctl-report-actions">
-        <PixelButton block type="button" disabled={saving} onClick={() => void makePdf(true)}>
-          {saving ? 'PREPARING…' : 'OPEN MY REPORT ↗'}
-        </PixelButton>
-        <div className="ctl-report-fineprint">opens your report in a new tab, then frees the display for the next visitor</div>
-        <PixelButton block type="button" disabled={saving} onClick={() => { haptic('press'); onReset() }}>JUST FINISH</PixelButton>
+    <div className="rpt-scam-screen">
+      <div className="rpt-scam-head">Your report<br />is ready.</div>
+      <div className="rpt-scam-wrap">
+        <div className="rpt-scam-badge">★ 100% free · act now ★</div>
+        <button
+          className="rpt-scam-btn"
+          type="button"
+          disabled={saving}
+          onClick={() => void makePdf(true)}
+        >
+          <span className="rpt-scam-shine" aria-hidden />
+          {saving ? 'Preparing…' : '⬇ Download Your Report'}
+          {!saving && <div className="rpt-scam-sub">tap here » no credit card required</div>}
+        </button>
       </div>
     </div>
   )
