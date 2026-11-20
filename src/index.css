@@ -1332,3 +1332,9 @@ span.xp-tbtn {
   border-right: 2px solid #3b3b3b; border-bottom: 2px solid #3b3b3b;
   outline: 1px dotted #000; outline-offset: -5px;
 }
+.rpt-scam-count {
+  color: #ff3b2f; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 64px; font-weight: 700; line-height: 1; margin-top: -14px; font-variant-numeric: tabular-nums;
+}
+.rpt-scam-count span { font-size: 28px; margin-left: 2px; }
+.rpt-scam-count .rpt-scam-almost { font-size: 18px; color: #f5f5f5; animation: rpt-blink 1s step-end infinite; }

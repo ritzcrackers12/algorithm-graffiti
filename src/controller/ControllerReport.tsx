@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
 import { buildDossier, dataLedger, type PortraitReport } from '../shared/report.ts'
 import type { VisitorProfile } from '../shared/profile.ts'
 import type { ArticleResult } from '../shared/types.ts'
+
+const EST_SECONDS = 30
+const MAX_WAIT_MS = 75_000
 
 export default function ControllerReport({
   profile, article, onReset,
@@ -19,13 +22,24 @@ export default function ControllerReport({
 
   // The dashboard is no longer shown on-screen (it only goes into the PDF), but
   // we still fetch the synthesized portrait so the downloaded PDF is the rich one.
-  const portraitReq = useRef<Promise<PortraitReport | null> | null>(null)
+  // The button stays locked until Claude has finished writing the report, so the
+  // PDF can be built and opened instantly on tap (a long wait after the tap
+  // leaves the new tab blank on phones). A countdown shows while it writes.
+  const [ready, setReady] = useState(false)
+  const [secs, setSecs] = useState(EST_SECONDS)
   useEffect(() => {
     let live = true
-    const req = getBackend().then((b) => b.portrait(profile)).then((p) => (p && p.brands?.length ? p : null)).catch(() => null)
-    portraitReq.current = req
-    void req.then((p) => { if (live && p) setReport(p) })
-    return () => { live = false }
+    void import('jspdf') // warm the PDF library so the tap is instant
+    void getBackend().then((b) => b.portrait(profile)).then((p) => (p && p.brands?.length ? p : null)).catch(() => null)
+      .then((p) => {
+        if (!live) return
+        if (p) setReport(p)
+        setReady(true)
+      })
+    // Never lock forever: unlock with the built-in report if Claude is very slow.
+    const giveUp = setTimeout(() => { if (live) setReady(true) }, MAX_WAIT_MS)
+    const tick = setInterval(() => setSecs((n) => Math.max(0, n - 1)), 1000)
+    return () => { live = false; clearTimeout(giveUp); clearInterval(tick) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -38,13 +52,7 @@ export default function ControllerReport({
     const tab = finish ? window.open('', '_blank') : null
     setSaving(true)
     try {
-      // If Claude is still writing the report, wait for it (up to 45s) so the
-      // visitor gets the real one, not the generic fallback.
-      const fresh = await Promise.race([
-        portraitReq.current ?? Promise.resolve(null),
-        new Promise<null>((r) => setTimeout(() => r(null), 45_000)),
-      ])
-      const report = fresh ?? reportNow
+      const report = reportNow
       const kpis = report.kpis.length >= 5 ? report.kpis : fallback.kpis
       const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'pt', format: 'letter' })
@@ -130,18 +138,25 @@ export default function ControllerReport({
 
   return (
     <div className="rpt-scam-screen">
-      <div className="rpt-scam-head">Your report<br />is ready.</div>
+      <div className="rpt-scam-head">
+        {ready ? <>Your report<br />is ready.</> : <>We’re generating<br />your report now.</>}
+      </div>
+      {!ready && (
+        <div className="rpt-scam-count" aria-live="polite">
+          {secs > 0 ? <>{secs}<span>s</span></> : <span className="rpt-scam-almost">almost there…</span>}
+        </div>
+      )}
       <div className="rpt-scam-wrap">
         <div className="rpt-scam-badge">★ 100% free · act now ★</div>
         <button
           className="rpt-scam-btn"
           type="button"
-          disabled={saving}
+          disabled={saving || !ready}
           onClick={() => void makePdf(true)}
         >
           <span className="rpt-scam-shine" aria-hidden />
-          {saving ? 'Preparing…' : '⬇ Download Your Report'}
-          {!saving && <div className="rpt-scam-sub">tap here » no credit card required</div>}
+          {saving ? 'Opening…' : ready ? '⬇ Download Your Report' : 'Generating…'}
+          {!saving && ready && <div className="rpt-scam-sub">tap here » no credit card required</div>}
         </button>
       </div>
     </div>
