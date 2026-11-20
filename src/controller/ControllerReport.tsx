@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getBackend } from '../lib/backend.ts'
 import { haptic } from '../lib/haptics.ts'
 import { buildDossier, dataLedger, type PortraitReport } from '../shared/report.ts'
@@ -14,18 +14,17 @@ export default function ControllerReport({
 }) {
   const { fallback } = buildDossier(profile, article)
   const ledger = dataLedger(profile)
-  const [report, setReport] = useState<PortraitReport>(fallback)
-  const kpis = report.kpis.length >= 5 ? report.kpis : fallback.kpis
+  const [reportNow, setReport] = useState<PortraitReport>(fallback)
   const [saving, setSaving] = useState(false)
 
   // The dashboard is no longer shown on-screen (it only goes into the PDF), but
   // we still fetch the synthesized portrait so the downloaded PDF is the rich one.
+  const portraitReq = useRef<Promise<PortraitReport | null> | null>(null)
   useEffect(() => {
     let live = true
-    void getBackend().then((b) => b.portrait(profile)).then((p) => {
-      if (!live) return
-      if (p && p.brands?.length) setReport(p)
-    }).catch(() => {})
+    const req = getBackend().then((b) => b.portrait(profile)).then((p) => (p && p.brands?.length ? p : null)).catch(() => null)
+    portraitReq.current = req
+    void req.then((p) => { if (live && p) setReport(p) })
     return () => { live = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -39,6 +38,14 @@ export default function ControllerReport({
     const tab = finish ? window.open('', '_blank') : null
     setSaving(true)
     try {
+      // If Claude is still writing the report, wait for it (up to 45s) so the
+      // visitor gets the real one, not the generic fallback.
+      const fresh = await Promise.race([
+        portraitReq.current ?? Promise.resolve(null),
+        new Promise<null>((r) => setTimeout(() => r(null), 45_000)),
+      ])
+      const report = fresh ?? reportNow
+      const kpis = report.kpis.length >= 5 ? report.kpis : fallback.kpis
       const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ unit: 'pt', format: 'letter' })
       const pw = doc.internal.pageSize.getWidth()

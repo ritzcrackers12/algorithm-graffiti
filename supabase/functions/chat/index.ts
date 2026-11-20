@@ -149,10 +149,12 @@ async function synthesizePortrait(profile: VisitorProfile) {
     '\n\nWrite the portrait as JSON only.'
   const key = Deno.env.get('CHAT_API_KEY') || ''
   const provider = (Deno.env.get('CHAT_PROVIDER') || (key ? 'gemini' : 'replicate')).toLowerCase()
-  const model = Deno.env.get('CHAT_MODEL') || (provider === 'anthropic' ? 'claude-haiku-5-5' : 'gemini-2.0-flash-lite')
+  // The report gets its own (stronger) model: one call per visitor, and it's the
+  // piece people take home. Override with the REPORT_MODEL secret.
+  const reportModel = Deno.env.get('REPORT_MODEL') || 'claude-sonnet-5-5'
   if (provider === 'anthropic' && key) {
     try {
-      const text = await anthropicText(portraitSystemPrompt(), signals, key, model, 2400)
+      const text = await anthropicText(portraitSystemPrompt(), signals, key, reportModel, 2400)
       const parsed = parsePortrait(text)
       if (parsed) return parsed
     } catch (e) {
